@@ -90,6 +90,7 @@
     ".price-chart-empty { opacity: 0.6; font-style: italic; font-size: 0.82em; padding: 10px 0; }",
     ".history { margin-top: 12px; font-size: 0.85em; }",
     ".history-title { font-weight: 700; opacity: 0.85; margin-bottom: 6px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; }",
+    ".history-list { max-height: 260px; overflow-y: auto; }",
     ".history-row { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.15)); }",
     ".history-row:last-child { border-bottom: none; }",
     ".history-dot { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }",
@@ -469,6 +470,7 @@
         historyTitle.className = "history-title";
         historyTitle.textContent = "Dernières saisies";
         var historyList = document.createElement("div");
+        historyList.className = "history-list";
         history.appendChild(historyTitle);
         history.appendChild(historyList);
         card.appendChild(history);
@@ -723,7 +725,7 @@
         list.appendChild(empty);
         return;
       }
-      var recent = entries.slice(-5).reverse();
+      var recent = entries.slice().reverse();
       recent.forEach(function (entry) {
         var row = document.createElement("div");
         row.className = "history-row";
