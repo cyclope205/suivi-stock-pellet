@@ -36,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
 
 CARD_URL_PATH = "/suivi_stock_pellet/suivi-stock-pellet-card.js"
-CARD_VERSION = "1.0.0"
+CARD_VERSION = "1.1.0"
 
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
