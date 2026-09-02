@@ -4,10 +4,10 @@
 <tr>
 <td>
 
-![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)
-![Build](https://img.shields.io/github/actions/workflow/status/cyclope205/suivi-stock-pellet/validate.yml?branch=main)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)
+[![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/cyclope205/suivi-stock-pellet/validate.yml?branch=main)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
 </td>
 <td width="110" align="right">
@@ -109,11 +109,9 @@ Ou utilise directement les services :
 
 ## Licence
 
-MIT
+MIT — voir [LICENSE](LICENSE).
 
 ---
-
-<div align="center">
 
 ### ☕ Cette intégration te fait gagner du temps ?
 
