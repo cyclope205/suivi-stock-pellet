@@ -1,9 +1,23 @@
 # Suivi Stock Pellet
 
+<table>
+<tr>
+<td>
+
 ![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)
 ![Build](https://img.shields.io/github/actions/workflow/status/cyclope205/suivi-stock-pellet/validate.yml?branch=main)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)
+
+</td>
+<td width="110" align="right">
+<img src="custom_components/suivi_stock_pellet/brand/logo.png" width="90" alt="logo">
+</td>
+</tr>
+</table>
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/cyclope205)
+[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/cyclope205)
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
@@ -38,10 +52,12 @@ dans docs/screenshots/ (même noms de fichiers) et elles s'afficheront ici.
 
 ### Via HACS (dépôt personnalisé)
 
-1. HACS → menu (⋮) → **Dépôts personnalisés**.
-2. URL : `https://github.com/cyclope205/suivi-stock-pellet`, catégorie **Intégration**.
-3. Installer **Suivi Stock Pellet**, puis redémarrer Home Assistant.
-4. **Paramètres → Appareils et services → Ajouter une intégration** → rechercher "Suivi Stock Pellet".
+1. Ajouter ce dépôt à HACS :
+
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
+
+2. Installer **Suivi Stock Pellet**, puis redémarrer Home Assistant.
+3. **Paramètres → Appareils et services → Ajouter une intégration** → rechercher "Suivi Stock Pellet".
 
 ### Configuration
 
@@ -93,3 +109,16 @@ Ou utilise directement les services :
 ## Licence
 
 MIT
+
+---
+
+<div align="center">
+
+### ☕ Cette intégration te fait gagner du temps ?
+
+Un petit don est toujours apprécié : ça m'aide à maintenir le projet et à ajouter de nouvelles fonctionnalités.
+
+<a href="https://buymeacoffee.com/cyclope205"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
+<a href="https://paypal.me/cyclope205"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
+
+</div>
