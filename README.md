@@ -23,18 +23,26 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 
 ## Captures d'écran
 
-<!--
-Remplace les liens ci-dessous par tes propres captures : dépose les images
-dans docs/screenshots/ (même noms de fichiers) et elles s'afficheront ici.
--->
+---
+Vue d'ensemble:
 
-| Vue d'ensemble | Sélecteur de saison |
-|---|---|
-| ![Vue d'ensemble de la carte](docs/screenshots/carte-vue-ensemble.png) | ![Sélecteur de saison](docs/screenshots/selecteur-saison.png) |
+<img width="466" height="792" alt="Capture d&#39;écran 2026-09-02 223146" src="https://github.com/user-attachments/assets/06d83d5b-e23d-4259-a1b4-a96af8e0f811" />
 
-| Graphique quantité / coût | Configurateur de carte |
-|---|---|
-| ![Graphique évolution consommation avec bascule quantité/coût](docs/screenshots/graphique-quantite-cout.png) | ![Configurateur visuel de la carte](docs/screenshots/configurateur.png) |
+---
+Sélecteur de saison:
+
+<img width="660" height="1434" alt="IMG_7192" src="https://github.com/user-attachments/assets/b7601633-da65-4398-9388-c134108cc862" />
+
+---
+Graphique quantité:
+
+<img width="452" height="666" alt="Capture d&#39;écran 2026-09-02 223329" src="https://github.com/user-attachments/assets/b258be1c-8840-430c-b7d5-3d07a3f068ab" />
+
+---
+Configurateur de carte:
+
+<img width="1271" height="798" alt="Capture d&#39;écran 2026-09-02 224819" src="https://github.com/user-attachments/assets/983c57b5-c4b3-49b2-b948-4f9841721614" />
+
 
 ## Fonctionnalités
 
