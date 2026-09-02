@@ -57,6 +57,7 @@ class _BasePelletSensor(SensorEntity):
     ) -> None:
         self._entry = entry
         self._journal = journal
+        self._key = key
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_name = name
         self._attr_device_info = DeviceInfo(
@@ -91,6 +92,11 @@ class _BasePelletSensor(SensorEntity):
     def _handle_update(self) -> None:
         self.async_write_ha_state()
 
+    def _base_attrs(self) -> dict:
+        # Stable marker the Lovelace card uses to find this entity, immune to
+        # entity_id changes caused by renaming the friendly name / slugification.
+        return {"suivi_stock_pellet_key": self._key}
+
 
 class PelletStockSensor(_BasePelletSensor):
     _attr_icon = "mdi:silo"
@@ -109,12 +115,16 @@ class PelletStockSensor(_BasePelletSensor):
     def extra_state_attributes(self) -> dict:
         totals = self._journal.totals(self._season)
         last = self._journal.last_entry(self._season)
-        return {
-            "stock_sacs": totals["stock_bags"],
-            "saison": self._season,
-            "poids_sac_kg": self._bag_weight,
-            "derniere_saisie": _summarize_entry(last),
-        }
+        attrs = self._base_attrs()
+        attrs.update(
+            {
+                "stock_sacs": totals["stock_bags"],
+                "saison": self._season,
+                "poids_sac_kg": self._bag_weight,
+                "derniere_saisie": _summarize_entry(last),
+            }
+        )
+        return attrs
 
 
 class PelletConsumedKgSensor(_BasePelletSensor):
@@ -134,7 +144,9 @@ class PelletConsumedKgSensor(_BasePelletSensor):
     @property
     def extra_state_attributes(self) -> dict:
         totals = self._journal.totals(self._season)
-        return {"consomme_sacs": totals["consumed_bags"], "saison": self._season}
+        attrs = self._base_attrs()
+        attrs.update({"consomme_sacs": totals["consumed_bags"], "saison": self._season})
+        return attrs
 
 
 class PelletConsumedEnergySensor(_BasePelletSensor):
@@ -155,10 +167,14 @@ class PelletConsumedEnergySensor(_BasePelletSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return {
-            "saison": self._season,
-            "pouvoir_calorifique_kwh_par_kg": self._calorific_value,
-        }
+        attrs = self._base_attrs()
+        attrs.update(
+            {
+                "saison": self._season,
+                "pouvoir_calorifique_kwh_par_kg": self._calorific_value,
+            }
+        )
+        return attrs
 
 
 class PelletPurchasedSensor(_BasePelletSensor):
@@ -178,7 +194,9 @@ class PelletPurchasedSensor(_BasePelletSensor):
     @property
     def extra_state_attributes(self) -> dict:
         totals = self._journal.totals(self._season)
-        return {"achete_sacs": totals["purchased_bags"], "saison": self._season}
+        attrs = self._base_attrs()
+        attrs.update({"achete_sacs": totals["purchased_bags"], "saison": self._season})
+        return attrs
 
 
 class PelletSpentSensor(_BasePelletSensor):
@@ -195,7 +213,9 @@ class PelletSpentSensor(_BasePelletSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return {"saison": self._season}
+        attrs = self._base_attrs()
+        attrs.update({"saison": self._season})
+        return attrs
 
 
 class PelletDaysUsedSensor(_BasePelletSensor):
@@ -211,7 +231,9 @@ class PelletDaysUsedSensor(_BasePelletSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return {"saison": self._season}
+        attrs = self._base_attrs()
+        attrs.update({"saison": self._season})
+        return attrs
 
 
 def _summarize_entry(entry: dict | None) -> str | None:
