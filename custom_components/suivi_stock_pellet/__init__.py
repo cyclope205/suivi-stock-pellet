@@ -36,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
 
 CARD_URL_PATH = "/suivi_stock_pellet/suivi-stock-pellet-card.js"
-CARD_VERSION = "1.3.0"
+CARD_VERSION = "1.3.1"
 
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
@@ -50,6 +50,16 @@ LOG_PURCHASE_SCHEMA = vol.Schema(
         vol.Required(ATTR_QTY_BAGS): vol.Coerce(float),
         vol.Optional(ATTR_PRICE_EUR): vol.Coerce(float),
         vol.Optional(ATTR_DATE): cv.date,
+    }
+)
+
+UNDO_LAST_ENTRY_SCHEMA = vol.Schema(
+    {
+        # Optional so calling with no data keeps undoing whichever season
+        # "today" falls into (unchanged default behaviour) - passing an
+        # explicit season lets this correct a historical season's journal
+        # instead (e.g. fixing a backfill mistake).
+        vol.Optional("season"): str,
     }
 )
 
@@ -90,7 +100,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _notify()
 
     async def _handle_undo_last_entry(call: ServiceCall) -> None:
-        season = season_for_date(date_cls.today(), _start_month())
+        season = call.data.get("season") or season_for_date(
+            date_cls.today(), _start_month()
+        )
         removed = await journal.async_undo_last(season)
         if removed is None:
             raise HomeAssistantError(
@@ -108,7 +120,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         DOMAIN, SERVICE_LOG_PURCHASE, _handle_log_purchase, schema=LOG_PURCHASE_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_UNDO_LAST_ENTRY, _handle_undo_last_entry
+        DOMAIN,
+        SERVICE_UNDO_LAST_ENTRY,
+        _handle_undo_last_entry,
+        schema=UNDO_LAST_ENTRY_SCHEMA,
     )
 
     async_register_ws_api(hass)
