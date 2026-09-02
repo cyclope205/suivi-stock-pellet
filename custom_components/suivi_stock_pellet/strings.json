@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Suivi Stock Pellet",
+        "description": "Enter your pellet bag characteristics to automatically compute stock, energy and cost.",
+        "data": {
+          "bag_weight_kg": "Bag weight (kg)",
+          "bag_price": "Average bag price (EUR)",
+          "calorific_value_kwh_per_kg": "Calorific value (kWh/kg)",
+          "season_start_month": "Season start month (1-12)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one instance of Suivi Stock Pellet is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Suivi Stock Pellet",
+        "data": {
+          "bag_weight_kg": "Bag weight (kg)",
+          "bag_price": "Average bag price (EUR)",
+          "calorific_value_kwh_per_kg": "Calorific value (kWh/kg)",
+          "season_start_month": "Season start month (1-12)"
+        }
+      }
+    }
+  }
+}
