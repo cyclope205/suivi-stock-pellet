@@ -53,4 +53,12 @@ log_purchase:
 
 undo_last_entry:
   name: Annuler la dernière saisie
-  description: Annule la dernière entrée (achat ou consommation) de la saison en cours.
+  description: Annule la dernière entrée (achat ou consommation) de la saison en cours (ou d'une saison précisée).
+  fields:
+    season:
+      name: Saison
+      description: Saison à corriger, au format AAAA-AAAA (ex. 2024-2025). Par défaut, la saison en cours.
+      required: false
+      example: "2024-2025"
+      selector:
+        text: {}
