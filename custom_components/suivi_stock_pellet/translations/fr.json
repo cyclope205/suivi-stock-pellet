@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Suivi Stock Pellet",
+        "description": "Renseigne les caractéristiques de tes sacs de granulés pour calculer automatiquement le stock, l'énergie et le coût.",
+        "data": {
+          "bag_weight_kg": "Poids d'un sac (kg)",
+          "bag_price": "Prix moyen d'un sac (EUR)",
+          "calorific_value_kwh_per_kg": "Pouvoir calorifique (kWh/kg)",
+          "season_start_month": "Mois de début de saison (1-12)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Une seule instance de Suivi Stock Pellet est autorisée."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Suivi Stock Pellet",
+        "data": {
+          "bag_weight_kg": "Poids d'un sac (kg)",
+          "bag_price": "Prix moyen d'un sac (EUR)",
+          "calorific_value_kwh_per_kg": "Pouvoir calorifique (kWh/kg)",
+          "season_start_month": "Mois de début de saison (1-12)"
+        }
+      }
+    }
+  }
+}
