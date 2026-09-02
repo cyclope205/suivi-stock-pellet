@@ -1,0 +1,56 @@
+log_consumption:
+  name: Enregistrer une consommation
+  description: Ajoute une entrée de consommation de granulés au journal de la saison en cours.
+  fields:
+    qty_bags:
+      name: Nombre de sacs
+      description: Nombre de sacs consommés.
+      required: true
+      default: 1
+      selector:
+        number:
+          min: 0.1
+          max: 100
+          step: 0.1
+          mode: box
+    date:
+      name: Date
+      description: Date de la consommation (par défaut aujourd'hui).
+      required: false
+      selector:
+        date: {}
+
+log_purchase:
+  name: Enregistrer un achat
+  description: Ajoute une entrée d'achat de granulés au journal de la saison en cours.
+  fields:
+    qty_bags:
+      name: Nombre de sacs
+      description: Nombre de sacs achetés.
+      required: true
+      selector:
+        number:
+          min: 0.1
+          max: 1000
+          step: 0.1
+          mode: box
+    price_eur:
+      name: Prix total
+      description: Prix total de l'achat en euros (facultatif).
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    date:
+      name: Date
+      description: Date de l'achat (par défaut aujourd'hui).
+      required: false
+      selector:
+        date: {}
+
+undo_last_entry:
+  name: Annuler la dernière saisie
+  description: Annule la dernière entrée (achat ou consommation) de la saison en cours.
