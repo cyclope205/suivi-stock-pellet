@@ -12,6 +12,16 @@
  *   show_monthly_chart: true|false  Graphique "Évolution de la consommation"
  *   show_price_chart: true|false    Graphique "Prix moyen du sac par saison"
  *   show_history: true|false        Liste "Dernières saisies"
+ *
+ * Un sélecteur de saison est affiché dans l'en-tête (à droite du titre) :
+ * il permet de consulter les tuiles, l'historique et le graphique mensuel
+ * d'une saison passée. Les boutons de saisie (achat/consommation) restent
+ * désactivés sur ces saisons car ils s'appliquent toujours à la date du
+ * jour, donc à la saison en cours.
+ *
+ * Le graphique "Évolution de la consommation" superpose deux courbes
+ * (sacs consommés / coût en €) : deux boutons sous le graphique
+ * permettent d'afficher les deux, ou une seule à la fois.
  */
 (function () {
   "use strict";
@@ -21,7 +31,10 @@
     ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }",
     ".header-title { display: flex; align-items: center; gap: 8px; }",
     ".header-title ha-icon { color: var(--pellet-amber); }",
-    ".season { font-size: 0.68em; font-weight: 600; opacity: 0.85; background: var(--secondary-background-color, rgba(127,127,127,0.15)); padding: 4px 10px; border-radius: 999px; }",
+    ".season { font-size: 0.68em; font-weight: 600; opacity: 0.85; background: var(--secondary-background-color, rgba(127,127,127,0.15)); padding: 4px 10px; border-radius: 999px; border: none; color: inherit; -webkit-appearance: none; appearance: none; cursor: pointer; font-family: inherit; }",
+    ".season option { color: initial; }",
+    ".season-note { font-size: 0.72em; opacity: 0.7; text-align: right; margin: -8px 0 12px; }",
+    ".hidden { display: none !important; }",
     ".hero { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(255,167,38,0.16), rgba(255,167,38,0.03)); }",
     ".hero-icon { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,167,38,0.22); }",
     ".hero-icon ha-icon { color: var(--pellet-amber); --mdc-icon-size: 28px; }",
@@ -64,9 +77,14 @@
     ".chart-bar.empty { background: var(--divider-color, rgba(127,127,127,0.25)); }",
     ".chart-label { font-size: 0.62em; opacity: 0.65; }",
     ".chart-label.current { opacity: 1; font-weight: 700; color: var(--pellet-amber); }",
-    ".chart-legend { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-size: 0.72em; opacity: 0.75; }",
+    ".chart-legend { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 8px; font-size: 0.72em; }",
+    ".chart-legend-item { display: inline-flex; align-items: center; gap: 6px; border: none; background: none; cursor: pointer; padding: 3px 8px; border-radius: 999px; color: inherit; font-family: inherit; font-size: 1em; opacity: 0.9; }",
+    ".chart-legend-item.inactive { opacity: 0.3; }",
     ".chart-legend-dot { width: 9px; height: 9px; border-radius: 2px; background: rgb(66,165,245); }",
     ".chart-legend-dot.amber { border-radius: 50%; background: var(--pellet-amber); }",
+    ".chart-svg-wrap { height: 100px; }",
+    ".chart-svg-wrap svg { width: 100%; height: 100%; overflow: visible; }",
+    ".chart-empty-note { opacity: 0.6; font-style: italic; font-size: 0.78em; padding: 16px 0; text-align: center; }",
     ".price-chart { position: relative; height: 110px; }",
     ".price-chart svg { width: 100%; height: 100%; overflow: visible; }",
     ".price-chart-empty { opacity: 0.6; font-style: italic; font-size: 0.82em; padding: 10px 0; }",
@@ -238,11 +256,20 @@
       var title = document.createElement("span");
       title.textContent = "Granulés";
       titleWrap.appendChild(title);
-      var season = document.createElement("span");
+      var season = document.createElement("select");
       season.className = "season";
+      season.addEventListener("change", function (ev) {
+        self._season = ev.target.value;
+        self._seasonDataFetchedFor = null;
+        self._refreshSelectedSeason();
+      });
       header.appendChild(titleWrap);
       header.appendChild(season);
       card.appendChild(header);
+
+      var seasonNote = document.createElement("div");
+      seasonNote.className = "season-note";
+      card.appendChild(seasonNote);
 
       var hero = document.createElement("div");
       hero.className = "hero";
@@ -260,6 +287,7 @@
 
       var els = {
         season: season,
+        seasonNote: seasonNote,
         stock: stock,
         stockSub: stockSub
       };
@@ -302,6 +330,10 @@
       }
 
       if (cfg.show_actions) {
+        var actionsWrap = document.createElement("div");
+        els.actionsWrap = actionsWrap;
+        card.appendChild(actionsWrap);
+
         var actions = document.createElement("div");
         actions.className = "actions";
         var btnConso = document.createElement("button");
@@ -315,12 +347,12 @@
         btnAchat.appendChild(document.createTextNode("Achat"));
         actions.appendChild(btnConso);
         actions.appendChild(btnAchat);
-        card.appendChild(actions);
+        actionsWrap.appendChild(actions);
 
         var formConso = this._buildForm("consumption");
         var formAchat = this._buildForm("purchase");
-        card.appendChild(formConso.el);
-        card.appendChild(formAchat.el);
+        actionsWrap.appendChild(formConso.el);
+        actionsWrap.appendChild(formAchat.el);
 
         btnConso.addEventListener("click", function () {
           formAchat.el.classList.remove("visible");
@@ -340,7 +372,7 @@
         undoLabel.textContent = "Annuler la dernière saisie";
         undoBtn.appendChild(undoLabel);
         undoRow.appendChild(undoBtn);
-        card.appendChild(undoRow);
+        actionsWrap.appendChild(undoRow);
         undoBtn.addEventListener("click", function () {
           if (undoBtn.dataset.confirm === "1") {
             self._hass.callService("suivi_stock_pellet", "undo_last_entry", {});
@@ -365,20 +397,54 @@
         chartTitle.appendChild(icon("mdi:chart-line"));
         chartTitle.appendChild(document.createTextNode("Évolution de la consommation"));
         var chart = document.createElement("div");
-        chart.className = "chart";
+        chart.className = "chart-svg-wrap";
         var chartLegend = document.createElement("div");
         chartLegend.className = "chart-legend";
-        var chartLegendDot = document.createElement("span");
-        chartLegendDot.className = "chart-legend-dot";
-        var chartLegendLabel = document.createElement("span");
-        chartLegendLabel.textContent = "Sacs consommés";
-        chartLegend.appendChild(chartLegendDot);
-        chartLegend.appendChild(chartLegendLabel);
+
+        var qtyBtn = document.createElement("button");
+        qtyBtn.type = "button";
+        qtyBtn.className = "chart-legend-item";
+        var qtyDot = document.createElement("span");
+        qtyDot.className = "chart-legend-dot";
+        qtyBtn.appendChild(qtyDot);
+        qtyBtn.appendChild(document.createTextNode("Sacs consommés"));
+
+        var costBtn = document.createElement("button");
+        costBtn.type = "button";
+        costBtn.className = "chart-legend-item";
+        var costDot = document.createElement("span");
+        costDot.className = "chart-legend-dot amber";
+        costBtn.appendChild(costDot);
+        costBtn.appendChild(document.createTextNode("Coût (€)"));
+
+        chartLegend.appendChild(qtyBtn);
+        chartLegend.appendChild(costBtn);
+
         chartSection.appendChild(chartTitle);
         chartSection.appendChild(chart);
         chartSection.appendChild(chartLegend);
         card.appendChild(chartSection);
         els.chart = chart;
+
+        this._chartVisible = { qty: true, cost: true };
+
+        var toggleSeries = function (key, btn) {
+          self._chartVisible[key] = !self._chartVisible[key];
+          btn.classList.toggle("inactive", !self._chartVisible[key]);
+          if (self._lastChartData) {
+            self._renderChart(
+              self._lastChartData.entries,
+              self._lastChartData.startMonth,
+              self._lastChartData.avgPricePerBag
+            );
+          }
+        };
+        qtyBtn.addEventListener("click", function () {
+          toggleSeries("qty", qtyBtn);
+        });
+        costBtn.addEventListener("click", function () {
+          toggleSeries("cost", costBtn);
+        });
       }
 
       if (cfg.show_price_chart) {
@@ -495,60 +561,99 @@
       var cfg = this._config || DEFAULT_CONFIG;
 
       var stockId = findEntity(hass, KEYS.stock);
-      var consommeId = findEntity(hass, KEYS.consomme_kg);
       var energieId = findEntity(hass, KEYS.consomme_kwh);
-      var acheteId = findEntity(hass, KEYS.achete_kg);
-      var depenseId = findEntity(hass, KEYS.depense);
-      var joursId = findEntity(hass, KEYS.jours);
 
       if (!stockId) {
         els.stock.textContent = "Intégration non configurée";
         return;
       }
 
-      var stockState = hass.states[stockId];
-      var attrs = stockState.attributes || {};
-      var stockKg = parseFloat(stockState.state);
-      var bagWeight = attrs.poids_sac_kg || 15;
-      var stockBags =
-        attrs.stock_sacs !== undefined ? attrs.stock_sacs : stockKg / bagWeight;
+      var stockAttrs = hass.states[stockId].attributes || {};
+      this._currentSeason = stockAttrs.saison || "";
+      this._bagWeight = stockAttrs.poids_sac_kg || 15;
+      this._calorificValue =
+        (energieId &&
+          hass.states[energieId].attributes &&
+          hass.states[energieId].attributes.pouvoir_calorifique_kwh_par_kg) ||
+        4.8;
 
-      els.season.textContent = attrs.saison || "";
+      if (!this._season) {
+        this._season = this._currentSeason;
+      }
+
+      this._refreshSelectedSeason();
+      if (cfg.show_price_chart) {
+        this._refreshSeasonsSummary();
+      }
+    }
+
+    _refreshSelectedSeason() {
+      var self = this;
+      if (!this._hass || !this._hass.connection || !this._season) return;
+      var season = this._season;
+      var now = Date.now();
+      if (this._seasonDataPending) return;
+      if (
+        this._seasonDataFetchedFor === season &&
+        this._seasonDataFetchedAt &&
+        now - this._seasonDataFetchedAt < 15000
+      ) {
+        return;
+      }
+      this._seasonDataPending = true;
+      this._hass.connection
+        .sendMessagePromise({ type: "suivi_stock_pellet/journal", season: season })
+        .then(function (result) {
+          self._seasonDataPending = false;
+          self._seasonDataFetchedFor = season;
+          self._seasonDataFetchedAt = Date.now();
+          self._applySeasonData(result);
+        })
+        .catch(function () {
+          self._seasonDataPending = false;
+        });
+    }
+
+    _applySeasonData(result) {
+      var els = this._els;
+      var cfg = this._config || DEFAULT_CONFIG;
+      var totals = result.totals || {};
+      var entries = result.entries || [];
+      var startMonth = result.start_month || 9;
+      var bagWeight = this._bagWeight || 15;
+      var calorificValue = this._calorificValue || 4.8;
+
+      var seasons = (result.seasons || []).slice();
+      if (this._currentSeason && seasons.indexOf(this._currentSeason) === -1) {
+        seasons.push(this._currentSeason);
+      }
+      this._populateSeasonSelect(seasons);
+
+      var stockBags = totals.stock_bags || 0;
+      var consumedBags = totals.consumed_bags || 0;
+      var purchasedBags = totals.purchased_bags || 0;
+      var spentEur = totals.spent_eur || 0;
+      var daysLogged = totals.days_logged || 0;
+
+      var stockKg = stockBags * bagWeight;
+      var consommeKg = consumedBags * bagWeight;
+      var consommeKwh = consommeKg * calorificValue;
+
       els.stock.textContent = fmt(stockKg, 1) + " kg";
       els.stockSub.textContent = fmt(stockBags, 1) + " sac(s) restant(s)";
 
+      var avgPricePerBag = purchasedBags > 0 ? spentEur / purchasedBags : 0;
+
       if (cfg.show_stats) {
-        if (consommeId) {
-          els.statConsomme.textContent = fmt(hass.states[consommeId].state, 1) + " kg";
-        }
-        if (energieId) {
-          els.statEnergie.textContent = fmt(hass.states[energieId].state, 1) + " kWh";
-        }
-        if (depenseId) {
-          els.statDepense.textContent = fmt(hass.states[depenseId].state, 2) + " €";
-        }
-        if (joursId) {
-          els.statJours.textContent = hass.states[joursId].state;
-        }
+        els.statConsomme.textContent = fmt(consommeKg, 1) + " kg";
+        els.statEnergie.textContent = fmt(consommeKwh, 1) + " kWh";
+        els.statDepense.textContent = fmt(spentEur, 2) + " €";
+        els.statJours.textContent = String(daysLogged);
       }
 
       if (cfg.show_cost_stats) {
-        var acheteSacs =
-          acheteId && hass.states[acheteId].attributes.achete_sacs !== undefined
-            ? hass.states[acheteId].attributes.achete_sacs
-            : null;
-        var consommeSacs =
-          consommeId && hass.states[consommeId].attributes.consomme_sacs !== undefined
-            ? hass.states[consommeId].attributes.consomme_sacs
-            : null;
-        var depenseTotal = depenseId ? parseFloat(hass.states[depenseId].state) : 0;
-        var joursLogged = joursId ? parseFloat(hass.states[joursId].state) : 0;
-
-        var avgPricePerBag =
-          acheteSacs && acheteSacs > 0 ? depenseTotal / acheteSacs : 0;
-        var costToDate =
-          consommeSacs && avgPricePerBag ? consommeSacs * avgPricePerBag : 0;
-        var costPerDay = joursLogged > 0 ? costToDate / joursLogged : 0;
+        var costToDate = avgPricePerBag ? consumedBags * avgPricePerBag : 0;
+        var costPerDay = daysLogged > 0 ? costToDate / daysLogged : 0;
         var costPerMonth = costPerDay * 30.44;
 
         els.statCoutJour.textContent = fmt(costPerDay, 2) + " €";
@@ -556,34 +661,37 @@
         els.statCoutSac.textContent = avgPricePerBag ? fmt(avgPricePerBag, 2) + " €" : "--";
       }
 
-      this._refreshHistory();
-      if (cfg.show_price_chart) {
-        this._refreshSeasonsSummary();
+      if (els.historyList) {
+        this._renderHistory(entries);
+      }
+      if (els.chart) {
+        this._renderChart(entries, startMonth, avgPricePerBag);
+      }
+
+      var isCurrent = this._season === this._currentSeason;
+      if (els.actionsWrap) {
+        els.actionsWrap.classList.toggle("hidden", !isCurrent);
+      }
+      if (els.seasonNote) {
+        els.seasonNote.textContent = isCurrent
+          ? ""
+          : "Saisies désactivées : vous consultez une saison passée.";
       }
     }
 
-    _refreshHistory() {
+    _populateSeasonSelect(seasons) {
+      var select = this._els.season;
+      if (!select) return;
       var self = this;
-      if (this._historyPending) return;
-      var now = Date.now();
-      if (this._historyFetchedAt && now - this._historyFetchedAt < 15000) return;
-      if (!this._hass || !this._hass.connection) return;
-      this._historyPending = true;
-      this._hass.connection
-        .sendMessagePromise({ type: "suivi_stock_pellet/journal" })
-        .then(function (result) {
-          self._historyPending = false;
-          self._historyFetchedAt = Date.now();
-          if (self._els.historyList) {
-            self._renderHistory(result.entries || []);
-          }
-          if (self._els.chart) {
-            self._renderChart(result.entries || [], result.start_month || 9);
-          }
-        })
-        .catch(function () {
-          self._historyPending = false;
-        });
+      var ordered = seasons.slice().sort().reverse();
+      select.innerHTML = "";
+      ordered.forEach(function (s) {
+        var opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s === self._currentSeason ? s + " (actuelle)" : s;
+        select.appendChild(opt);
+      });
+      select.value = this._season;
     }
 
     _refreshSeasonsSummary() {
@@ -646,57 +754,134 @@
       });
     }
 
-    _renderChart(entries, startMonth) {
-      var chart = this._els.chart;
-      if (!chart) return;
-      chart.innerHTML = "";
+    _renderChart(entries, startMonth, avgPricePerBag) {
+      var container = this._els.chart;
+      if (!container) return;
+      this._lastChartData = {
+        entries: entries,
+        startMonth: startMonth,
+        avgPricePerBag: avgPricePerBag
+      };
+      container.innerHTML = "";
+
+      var visible = this._chartVisible || { qty: true, cost: true };
 
       var months = [];
       for (var i = 0; i < 10; i++) {
         months.push(((startMonth - 1 + i) % 12) + 1);
       }
 
-      var buckets = months.map(function () {
+      var qtyBuckets = months.map(function () {
         return 0;
       });
       entries.forEach(function (entry) {
         if (entry.type !== "consumption") return;
         var m = parseInt(entry.date.split("-")[1], 10);
         var idx = months.indexOf(m);
-        if (idx !== -1) buckets[idx] += entry.qty_bags;
+        if (idx !== -1) qtyBuckets[idx] += entry.qty_bags;
+      });
+      var costBuckets = qtyBuckets.map(function (q) {
+        return avgPricePerBag ? q * avgPricePerBag : 0;
       });
 
-      var maxValue = Math.max.apply(null, buckets.concat([0]));
+      if (!visible.qty && !visible.cost) {
+        var note = document.createElement("div");
+        note.className = "chart-empty-note";
+        note.textContent = "Sélectionnez au moins une courbe.";
+        container.appendChild(note);
+        return;
+      }
+
+      var width = 300;
+      var height = 78;
+      var padX = 12;
+      var padTop = 10;
+      var padBottom = 20;
+      var plotHeight = height - padTop;
+      var n = months.length;
+      var slotW = (width - padX * 2) / n;
+
+      function xCenter(idx) {
+        return padX + slotW * (idx + 0.5);
+      }
+
+      var qtyMax = Math.max.apply(null, qtyBuckets.concat([0.0001]));
+      var costMax = Math.max.apply(null, costBuckets.concat([0.0001]));
+      var minBarPx = 3;
       var currentMonth = new Date().getMonth() + 1;
-      var maxBarHeight = 74;
-      var minBarHeight = 4;
+
+      var svgNS = "http://www.w3.org/2000/svg";
+      var svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("viewBox", "0 0 " + width + " " + (height + padBottom));
+      svg.setAttribute("preserveAspectRatio", "none");
+
+      if (visible.qty) {
+        var barW = slotW * 0.5;
+        months.forEach(function (m, idx) {
+          var v = qtyBuckets[idx];
+          var h = qtyMax > 0 ? Math.max(minBarPx, (v / qtyMax) * plotHeight) : minBarPx;
+          var x = xCenter(idx) - barW / 2;
+          var y = padTop + (plotHeight - h);
+          var rect = document.createElementNS(svgNS, "rect");
+          rect.setAttribute("x", x);
+          rect.setAttribute("y", y);
+          rect.setAttribute("width", barW);
+          rect.setAttribute("height", h);
+          rect.setAttribute("rx", 2);
+          rect.setAttribute("fill", v === 0 ? "rgba(127,127,127,0.3)" : "rgb(66,165,245)");
+          var t = document.createElementNS(svgNS, "title");
+          t.textContent = MONTHS_FR[m] + " : " + fmt(v, 1) + " sac(s)";
+          rect.appendChild(t);
+          svg.appendChild(rect);
+        });
+      }
+
+      if (visible.cost) {
+        var yForCost = function (v) {
+          return padTop + (costMax > 0 ? (1 - v / costMax) * plotHeight : plotHeight);
+        };
+        var pathD = months
+          .map(function (m, idx) {
+            return (idx === 0 ? "M" : "L") + xCenter(idx) + " " + yForCost(costBuckets[idx]);
+          })
+          .join(" ");
+        var path = document.createElementNS(svgNS, "path");
+        path.setAttribute("d", pathD);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#ffa726");
+        path.setAttribute("stroke-width", "2");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(path);
+
+        months.forEach(function (m, idx) {
+          var cy = yForCost(costBuckets[idx]);
+          var dot = document.createElementNS(svgNS, "circle");
+          dot.setAttribute("cx", xCenter(idx));
+          dot.setAttribute("cy", cy);
+          dot.setAttribute("r", "2.6");
+          dot.setAttribute("fill", "#ffa726");
+          var t = document.createElementNS(svgNS, "title");
+          t.textContent = MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " €";
+          dot.appendChild(t);
+          svg.appendChild(dot);
+        });
+      }
 
       months.forEach(function (m, idx) {
-        var value = buckets[idx];
-        var height =
-          maxValue > 0
-            ? Math.max(minBarHeight, Math.round((value / maxValue) * maxBarHeight))
-            : minBarHeight;
-
-        var col = document.createElement("div");
-        col.className = "chart-col";
-        col.title = MONTHS_FR[m] + " : " + value + " sac(s)";
-
-        var barWrap = document.createElement("div");
-        barWrap.className = "chart-bar-wrap";
-        var bar = document.createElement("div");
-        bar.className = "chart-bar" + (value === 0 ? " empty" : "");
-        bar.style.height = height + "px";
-        barWrap.appendChild(bar);
-
-        var label = document.createElement("div");
-        label.className = "chart-label" + (m === currentMonth ? " current" : "");
+        var label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", xCenter(idx));
+        label.setAttribute("y", height + padBottom - 4);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-size", "8");
+        label.setAttribute("fill", m === currentMonth ? "#ffa726" : "currentColor");
+        label.setAttribute("opacity", m === currentMonth ? "1" : "0.65");
+        label.setAttribute("font-weight", m === currentMonth ? "700" : "400");
         label.textContent = MONTHS_FR[m];
-
-        col.appendChild(barWrap);
-        col.appendChild(label);
-        chart.appendChild(col);
+        svg.appendChild(label);
       });
+
+      container.appendChild(svg);
     }
 
     _renderPriceChart(seasons) {
