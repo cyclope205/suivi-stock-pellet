@@ -41,8 +41,43 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
             "seasons": journal.seasons(),
             "entries": journal.entries(season),
             "totals": journal.totals(season),
+            "start_month": start_month,
         },
     )
+
+
+@websocket_api.websocket_command({vol.Required("type"): "suivi_stock_pellet/seasons_summary"})
+@websocket_api.async_response
+async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
+    stored = list(hass.data.get(DOMAIN, {}).items())
+    if not stored:
+        connection.send_error(msg["id"], "not_found", "Integration not set up")
+        return
+
+    entry_id, journal = stored[0]
+    config_entry = hass.config_entries.async_get_entry(entry_id)
+    start_month = (
+        config_entry.options.get(CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH)
+        if config_entry
+        else DEFAULT_SEASON_START_MONTH
+    )
+    current_season = season_for_date(date_cls.today(), start_month)
+
+    summary = []
+    for season in journal.seasons():
+        totals = journal.totals(season)
+        purchased = totals["purchased_bags"]
+        avg_price = round(totals["spent_eur"] / purchased, 2) if purchased else None
+        summary.append(
+            {
+                "season": season,
+                "avg_price_eur": avg_price,
+                "current": season == current_season,
+                **totals,
+            }
+        )
+
+    connection.send_result(msg["id"], {"seasons": summary})
 
 
 def async_register_ws_api(hass: HomeAssistant) -> None:
@@ -52,3 +87,4 @@ def async_register_ws_api(hass: HomeAssistant) -> None:
         return
     hass.data[flag] = True
     websocket_api.async_register_command(hass, _ws_get_journal)
+    websocket_api.async_register_command(hass, _ws_get_seasons_summary)
