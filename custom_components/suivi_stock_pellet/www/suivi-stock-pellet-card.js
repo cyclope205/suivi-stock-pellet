@@ -9,33 +9,55 @@
   "use strict";
 
   var STYLE = [
-    "ha-card { padding: 16px; }",
-    ".header { font-size: 1.2em; font-weight: 600; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: baseline; }",
-    ".season { font-size: 0.75em; font-weight: 400; opacity: 0.7; }",
-    ".stock { font-size: 2.4em; font-weight: 700; margin: 8px 0 4px; }",
-    ".stock-sub { font-size: 0.85em; opacity: 0.7; margin-bottom: 16px; }",
-    ".stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }",
-    ".stat { flex: 1 1 100px; background: var(--secondary-background-color, #2a2a2a); border-radius: 8px; padding: 8px 10px; }",
-    ".stat-label { font-size: 0.72em; opacity: 0.75; text-transform: uppercase; }",
-    ".stat-value { font-size: 1.15em; font-weight: 600; margin-top: 2px; }",
-    ".actions { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }",
-    ".actions button { flex: 1 1 auto; border: none; border-radius: 8px; padding: 10px 12px; font-size: 0.95em; font-weight: 600; cursor: pointer; background: var(--primary-color, #03a9f4); color: #fff; }",
-    ".actions button.secondary { background: var(--secondary-background-color, #2a2a2a); color: var(--primary-text-color, #fff); }",
-    ".form { display: none; flex-direction: column; gap: 8px; margin-top: 8px; padding: 12px; border-radius: 8px; background: var(--secondary-background-color, #2a2a2a); }",
+    "ha-card { padding: 18px 18px 14px; border-radius: 18px; overflow: hidden; position: relative; }",
+    ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }",
+    ".header-title { display: flex; align-items: center; gap: 8px; }",
+    ".header-title ha-icon { color: var(--pellet-amber); }",
+    ".season { font-size: 0.68em; font-weight: 600; opacity: 0.85; background: var(--secondary-background-color, rgba(127,127,127,0.15)); padding: 4px 10px; border-radius: 999px; }",
+    ".hero { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(255,167,38,0.16), rgba(255,167,38,0.03)); }",
+    ".hero-icon { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,167,38,0.22); }",
+    ".hero-icon ha-icon { color: var(--pellet-amber); --mdc-icon-size: 28px; }",
+    ".hero-text { flex: 1; min-width: 0; }",
+    ".stock { font-size: 1.9em; font-weight: 700; line-height: 1.1; }",
+    ".stock-sub { font-size: 0.82em; opacity: 0.7; margin-top: 2px; }",
+    ".stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }",
+    ".stat { display: flex; align-items: center; gap: 10px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border-radius: 12px; padding: 10px 12px; }",
+    ".stat-icon { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }",
+    ".stat-icon ha-icon { --mdc-icon-size: 18px; }",
+    ".stat-text { min-width: 0; }",
+    ".stat-label { font-size: 0.68em; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.02em; }",
+    ".stat-value { font-size: 1.05em; font-weight: 700; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
+    ".actions { display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }",
+    ".actions button { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 12px; padding: 11px 12px; font-size: 0.92em; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; transition: filter 0.15s ease, transform 0.05s ease; }",
+    ".actions button ha-icon { --mdc-icon-size: 18px; }",
+    ".actions button:hover { filter: brightness(1.06); }",
+    ".actions button:active { transform: scale(0.98); }",
+    ".actions button.secondary { background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: var(--primary-text-color, inherit); }",
+    ".form { display: none; flex-direction: column; gap: 10px; margin-top: 6px; padding: 14px; border-radius: 14px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".form.visible { display: flex; }",
-    ".form label { font-size: 0.8em; opacity: 0.8; }",
-    ".form input { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 6px; border: 1px solid var(--divider-color, #444); background: var(--card-background-color, #1c1c1c); color: inherit; font-size: 1em; }",
+    ".form label { font-size: 0.75em; opacity: 0.75; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }",
+    ".form input { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--divider-color, rgba(127,127,127,0.3)); background: var(--card-background-color, transparent); color: inherit; font-size: 1em; margin-top: 4px; }",
+    ".form input:focus { outline: none; border-color: var(--pellet-amber); box-shadow: 0 0 0 2px rgba(255,167,38,0.25); }",
     ".form-row { display: flex; gap: 8px; }",
     ".form-row > div { flex: 1; }",
-    ".form-actions { display: flex; gap: 8px; margin-top: 4px; }",
-    ".form-actions button { flex: 1; }",
-    ".history { margin-top: 8px; font-size: 0.85em; }",
-    ".history-title { font-weight: 600; opacity: 0.8; margin-bottom: 4px; }",
-    ".history-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--divider-color, #333); }",
+    ".form-actions { display: flex; gap: 8px; margin-top: 2px; }",
+    ".form-actions button { flex: 1; border: none; border-radius: 10px; padding: 10px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; }",
+    ".history { margin-top: 12px; font-size: 0.85em; }",
+    ".history-title { font-weight: 700; opacity: 0.85; margin-bottom: 6px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; }",
+    ".history-row { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.15)); }",
+    ".history-row:last-child { border-bottom: none; }",
+    ".history-dot { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }",
+    ".history-dot ha-icon { --mdc-icon-size: 13px; }",
+    ".history-label { flex: 1; opacity: 0.85; }",
+    ".history-value { font-weight: 600; }",
     ".history-empty { opacity: 0.6; font-style: italic; }",
-    ".undo-row { text-align: right; margin-top: 4px; }",
-    ".undo-row button { background: none; border: none; color: var(--secondary-text-color, #999); font-size: 0.8em; cursor: pointer; text-decoration: underline; padding: 4px; }"
+    ".undo-row { text-align: right; margin-top: 6px; }",
+    ".undo-row button { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--secondary-text-color, #999); font-size: 0.78em; cursor: pointer; padding: 4px; }",
+    ".undo-row button ha-icon { --mdc-icon-size: 14px; }",
+    ".undo-row button:hover { color: var(--primary-text-color, inherit); }"
   ].join("\n");
+
+  var ROOT_VARS = "--pellet-amber: #ffa726;";
 
   var SUFFIXES = {
     stock: "_stock",
@@ -69,6 +91,30 @@
     return d.getFullYear() + "-" + m + "-" + day;
   }
 
+  function icon(name) {
+    var el = document.createElement("ha-icon");
+    el.setAttribute("icon", name);
+    return el;
+  }
+
+  function badge(name, color, size) {
+    var wrap = document.createElement("div");
+    wrap.className = size === "hero" ? "hero-icon" : "stat-icon";
+    wrap.style.background = "rgba(" + color + ", 0.18)";
+    var ic = icon(name);
+    ic.style.color = "rgb(" + color + ")";
+    wrap.appendChild(ic);
+    return wrap;
+  }
+
+  var COLORS = {
+    amber: "255, 167, 38",
+    red: "239, 83, 80",
+    blue: "66, 165, 245",
+    green: "102, 187, 106",
+    purple: "171, 71, 188"
+  };
+
   class SuiviStockPelletCard extends HTMLElement {
     setConfig(config) {
       this._config = config || {};
@@ -88,6 +134,7 @@
       if (this._built) return;
       this._built = true;
       this.innerHTML = "";
+      this.style.cssText = ROOT_VARS;
 
       var style = document.createElement("style");
       style.textContent = STYLE;
@@ -100,54 +147,70 @@
 
       var header = document.createElement("div");
       header.className = "header";
+      var titleWrap = document.createElement("div");
+      titleWrap.className = "header-title";
+      titleWrap.appendChild(icon("mdi:pine-tree"));
       var title = document.createElement("span");
       title.textContent = "Granulés";
+      titleWrap.appendChild(title);
       var season = document.createElement("span");
       season.className = "season";
-      header.appendChild(title);
+      header.appendChild(titleWrap);
       header.appendChild(season);
       card.appendChild(header);
 
+      var hero = document.createElement("div");
+      hero.className = "hero";
+      hero.appendChild(badge("mdi:package-variant-closed", COLORS.amber, "hero"));
+      var heroText = document.createElement("div");
+      heroText.className = "hero-text";
       var stock = document.createElement("div");
       stock.className = "stock";
-      card.appendChild(stock);
-
       var stockSub = document.createElement("div");
       stockSub.className = "stock-sub";
-      card.appendChild(stockSub);
+      heroText.appendChild(stock);
+      heroText.appendChild(stockSub);
+      hero.appendChild(heroText);
+      card.appendChild(hero);
 
       var stats = document.createElement("div");
       stats.className = "stats";
       card.appendChild(stats);
 
-      function addStat(label) {
+      function addStat(label, iconName, color) {
         var stat = document.createElement("div");
         stat.className = "stat";
+        stat.appendChild(badge(iconName, color));
+        var text = document.createElement("div");
+        text.className = "stat-text";
         var lab = document.createElement("div");
         lab.className = "stat-label";
         lab.textContent = label;
         var val = document.createElement("div");
         val.className = "stat-value";
-        stat.appendChild(lab);
-        stat.appendChild(val);
+        text.appendChild(lab);
+        text.appendChild(val);
+        stat.appendChild(text);
         stats.appendChild(stat);
         return val;
       }
 
-      var statConsomme = addStat("Consommé");
-      var statEnergie = addStat("Énergie");
-      var statDepense = addStat("Dépensé");
-      var statJours = addStat("Jours");
+      var statConsomme = addStat("Consommé", "mdi:fire", COLORS.red);
+      var statEnergie = addStat("Énergie", "mdi:lightning-bolt", COLORS.purple);
+      var statDepense = addStat("Dépensé", "mdi:currency-eur", COLORS.green);
+      var statJours = addStat("Jours chauffés", "mdi:calendar-range", COLORS.blue);
 
       var actions = document.createElement("div");
       actions.className = "actions";
       var btnConso = document.createElement("button");
       btnConso.type = "button";
-      btnConso.textContent = "+ Consommation";
+      btnConso.appendChild(icon("mdi:fire"));
+      btnConso.appendChild(document.createTextNode("Consommation"));
       var btnAchat = document.createElement("button");
       btnAchat.type = "button";
       btnAchat.className = "secondary";
-      btnAchat.textContent = "+ Achat";
+      btnAchat.appendChild(icon("mdi:cart-plus"));
+      btnAchat.appendChild(document.createTextNode("Achat"));
       actions.appendChild(btnConso);
       actions.appendChild(btnAchat);
       card.appendChild(actions);
@@ -170,20 +233,23 @@
       undoRow.className = "undo-row";
       var undoBtn = document.createElement("button");
       undoBtn.type = "button";
-      undoBtn.textContent = "Annuler la dernière saisie";
+      undoBtn.appendChild(icon("mdi:undo"));
+      var undoLabel = document.createElement("span");
+      undoLabel.textContent = "Annuler la dernière saisie";
+      undoBtn.appendChild(undoLabel);
       undoRow.appendChild(undoBtn);
       card.appendChild(undoRow);
       undoBtn.addEventListener("click", function () {
         if (undoBtn.dataset.confirm === "1") {
           self._hass.callService("suivi_stock_pellet", "undo_last_entry", {});
           undoBtn.dataset.confirm = "";
-          undoBtn.textContent = "Annuler la dernière saisie";
+          undoLabel.textContent = "Annuler la dernière saisie";
         } else {
           undoBtn.dataset.confirm = "1";
-          undoBtn.textContent = "Sûr ? Cliquer à nouveau pour confirmer";
+          undoLabel.textContent = "Sûr ? Cliquer à nouveau pour confirmer";
           setTimeout(function () {
             undoBtn.dataset.confirm = "";
-            undoBtn.textContent = "Annuler la dernière saisie";
+            undoLabel.textContent = "Annuler la dernière saisie";
           }, 4000);
         }
       });
@@ -362,12 +428,27 @@
       recent.forEach(function (entry) {
         var row = document.createElement("div");
         row.className = "history-row";
-        var label = document.createElement("span");
         var isConso = entry.type === "consumption";
-        label.textContent = (isConso ? "Conso" : "Achat") + " · " + entry.date;
+
+        var dot = document.createElement("div");
+        dot.className = "history-dot";
+        dot.style.background = isConso
+          ? "rgba(" + COLORS.red + ", 0.2)"
+          : "rgba(" + COLORS.green + ", 0.2)";
+        var dotIcon = icon(isConso ? "mdi:fire" : "mdi:cart");
+        dotIcon.style.color = isConso ? "rgb(" + COLORS.red + ")" : "rgb(" + COLORS.green + ")";
+        dot.appendChild(dotIcon);
+
+        var label = document.createElement("span");
+        label.className = "history-label";
+        label.textContent = (isConso ? "Consommation" : "Achat") + " · " + entry.date;
+
         var value = document.createElement("span");
+        value.className = "history-value";
         value.textContent =
           entry.qty_bags + " sac(s)" + (entry.price_eur ? " · " + entry.price_eur + " €" : "");
+
+        row.appendChild(dot);
         row.appendChild(label);
         row.appendChild(value);
         list.appendChild(row);
