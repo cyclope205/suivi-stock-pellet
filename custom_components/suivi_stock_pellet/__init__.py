@@ -36,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
 
 CARD_URL_PATH = "/suivi_stock_pellet/suivi-stock-pellet-card.js"
-CARD_VERSION = "1.3.1"
+CARD_VERSION = "1.3.2"
 
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
@@ -134,16 +134,75 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_register_card(hass: HomeAssistant) -> None:
-    """Serve the Lovelace card as a static resource, once per HA run."""
+    """Serve the Lovelace card from this integration and auto-register it.
+
+    This avoids asking the user to manually add a Lovelace resource: the
+    card is served locally by Home Assistant and injected on every
+    dashboard load, the same way built-in frontend assets are.
+    """
     flag = f"{DOMAIN}_card_registered"
-    if hass.data.get(flag):
+    if not hass.data.get(flag):
+        hass.data[flag] = True
+        card_path = Path(__file__).parent / "www" / "suivi-stock-pellet-card.js"
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(CARD_URL_PATH, str(card_path), cache_headers=False)]
+        )
+        add_extra_js_url(hass, f"{CARD_URL_PATH}?v={CARD_VERSION}")
+
+    await _async_sync_lovelace_resource(hass)
+
+
+async def _async_sync_lovelace_resource(hass: HomeAssistant) -> None:
+    """Additionally register the card as a real Lovelace resource.
+
+    add_extra_js_url only injects a <script type="module"> tag into the
+    frontend's index.html, which the browser only re-evaluates on a
+    genuine full page reload. If the custom element registration loses
+    the race against Lovelace's own view construction (more likely on
+    slower devices or dashboards with many other custom resources), the
+    browser is stuck showing "Custom element doesn't exist" until the
+    user manually hard-refreshes - some users have reported needing to
+    add the resource by hand for it to work at all.
+
+    A real Lovelace resource (type: module) is loaded by the frontend's
+    own resource loader every time a dashboard/view connects within the
+    running session, giving it another chance to register without a
+    full reload. This is purely additive on top of add_extra_js_url
+    (kept for the very first load) and best-effort: any failure here is
+    logged and does not affect the rest of setup, since it only touches
+    storage-mode Lovelace resources (a fresh install with no dashboards
+    configured yet, or YAML-mode resources, are silently skipped).
+    """
+    lovelace_data = hass.data.get("lovelace")
+    resources = getattr(lovelace_data, "resources", None)
+    if resources is None or not hasattr(resources, "async_create_item"):
         return
-    hass.data[flag] = True
-    card_path = Path(__file__).parent / "www" / "suivi-stock-pellet-card.js"
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL_PATH, str(card_path), cache_headers=False)]
-    )
-    add_extra_js_url(hass, f"{CARD_URL_PATH}?v={CARD_VERSION}")
+
+    target_url = f"{CARD_URL_PATH}?v={CARD_VERSION}"
+    try:
+        if not getattr(resources, "loaded", False):
+            await resources.async_load()
+
+        existing = next(
+            (
+                item
+                for item in resources.async_items()
+                if str(item.get("url", "")).split("?", 1)[0] == CARD_URL_PATH
+            ),
+            None,
+        )
+        if existing is None:
+            await resources.async_create_item(
+                {"res_type": "module", "url": target_url}
+            )
+        elif existing.get("url") != target_url:
+            await resources.async_update_item(existing["id"], {"url": target_url})
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug(
+            "Could not auto-register the Lovelace resource for the card; "
+            "add_extra_js_url is still active as a fallback.",
+            exc_info=True,
+        )
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
