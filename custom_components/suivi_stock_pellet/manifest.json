@@ -1,0 +1,13 @@
+{
+  "domain": "suivi_stock_pellet",
+  "name": "Suivi Stock Pellet",
+  "codeowners": ["@cyclope205"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "websocket_api"],
+  "documentation": "https://github.com/cyclope205/suivi-stock-pellet",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/cyclope205/suivi-stock-pellet/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}
