@@ -701,7 +701,7 @@ return;
         els.statCoutSac.textContent = avgPricePerBag ? fmt(avgPricePerBag, 2) + " €" : "--";
       }
 
-      if (els.historyList) {
+      if (els.historyList && !this._openEditRow) {
         this._renderHistory(entries);
       }
       if (els.chart) {
@@ -775,7 +775,7 @@ return;
       var indexed = entries.map(function (entry, idx) {
         return { entry: entry, index: idx };
       });
-      var recent = indexed.slice().reverse();
+      var recent = indexed.slice().reverse().slice(0, 15);
       recent.forEach(function (item) {
         var entry = item.entry;
         var entryIndex = item.index;
