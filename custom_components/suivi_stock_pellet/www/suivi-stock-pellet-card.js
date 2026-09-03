@@ -97,7 +97,19 @@
     ".history-dot ha-icon { --mdc-icon-size: 13px; }",
     ".history-label { flex: 1; opacity: 0.85; }",
     ".history-value { font-weight: 600; }",
-    ".history-empty { opacity: 0.6; font-style: italic; }"
+    ".history-empty { opacity: 0.6; font-style: italic; }",
+".history-edit-btn { flex: 0 0 auto; background: none; border: none; opacity: 0.4; cursor: pointer; padding: 4px; color: inherit; }",
+".history-edit-btn ha-icon { --mdc-icon-size: 15px; }",
+".history-edit-btn:hover { opacity: 1; }",
+".history-row.editing { flex-wrap: wrap; }",
+".history-edit-form { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 4px 0 2px; }",
+".history-edit-form-row { display: flex; gap: 6px; }",
+".history-edit-form-row input { flex: 1; min-width: 0; box-sizing: border-box; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--divider-color, rgba(127,127,127,0.3)); background: var(--card-background-color, transparent); color: inherit; font-size: 0.85em; }",
+".history-edit-form-actions { display: flex; gap: 6px; justify-content: flex-end; }",
+".history-edit-form-actions button { border: none; border-radius: 8px; padding: 6px 10px; cursor: pointer; background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: inherit; }",
+".history-edit-form-actions button:first-child { background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; }",
+".history-edit-form-actions button ha-icon { --mdc-icon-size: 16px; display: block; }",
+".actions button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }"
   ].join("\n");
 
   var EDITOR_STYLE = [
@@ -347,6 +359,7 @@
         btnAchat.appendChild(icon("mdi:cart-plus"));
         btnAchat.appendChild(document.createTextNode("Achat"));
         actions.appendChild(btnConso);
+els.btnConso = btnConso;
         actions.appendChild(btnAchat);
         actionsWrap.appendChild(actions);
 
@@ -542,6 +555,10 @@
       submitBtn.addEventListener("click", function () {
         var qty = parseFloat(qtyInput.value);
         if (!qty || qty <= 0) return;
+if (kind !== "purchase" && self._currentStockBags !== undefined && self._currentStockBags <= 0) {
+alert("Stock à 0 : impossible d'enregistrer une consommation.");
+return;
+}
         var data = { qty_bags: qty, date: dateInput.value };
         if (kind === "purchase") {
           if (priceInput.value) {
@@ -649,6 +666,10 @@
       this._populateSeasonSelect(seasons);
 
       var stockBags = totals.stock_bags || 0;
+      this._currentStockBags = stockBags;
+      if (els.btnConso) {
+        els.btnConso.disabled = stockBags <= 0;
+      }
       var consumedBags = totals.consumed_bags || 0;
       var purchasedBags = totals.purchased_bags || 0;
       var spentEur = totals.spent_eur || 0;
@@ -741,6 +762,7 @@
     }
 
     _renderHistory(entries) {
+      var self = this;
       var list = this._els.historyList;
       list.innerHTML = "";
       if (!entries.length) {
@@ -750,8 +772,13 @@
         list.appendChild(empty);
         return;
       }
-      var recent = entries.slice().reverse();
-      recent.forEach(function (entry) {
+      var indexed = entries.map(function (entry, idx) {
+        return { entry: entry, index: idx };
+      });
+      var recent = indexed.slice().reverse();
+      recent.forEach(function (item) {
+        var entry = item.entry;
+        var entryIndex = item.index;
         var row = document.createElement("div");
         row.className = "history-row";
         var isConso = entry.type === "consumption";
@@ -774,10 +801,124 @@
         value.textContent =
           entry.qty_bags + " sac(s)" + (entry.price_eur ? " · " + entry.price_eur + " €" : "");
 
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "history-edit-btn";
+        editBtn.appendChild(icon("mdi:pencil"));
+
         row.appendChild(dot);
         row.appendChild(label);
         row.appendChild(value);
+        row.appendChild(editBtn);
         list.appendChild(row);
+
+        editBtn.addEventListener("click", function () {
+          self._toggleEditEntry(row, entry, entryIndex);
+        });
+      });
+    }
+
+    _toggleEditEntry(row, entry, index) {
+      var self = this;
+      if (row.dataset.editing === "1") {
+        if (row._restoreRow) row._restoreRow();
+        row.dataset.editing = "";
+        row.classList.remove("editing");
+        this._openEditRow = null;
+        return;
+      }
+      if (this._openEditRow && this._openEditRow._restoreRow) {
+        this._openEditRow._restoreRow();
+        this._openEditRow.dataset.editing = "";
+        this._openEditRow.classList.remove("editing");
+      }
+      row.dataset.editing = "1";
+      row.classList.add("editing");
+      this._openEditRow = row;
+
+      var isPurchase = entry.type === "purchase";
+      var qtyNow = entry.qty_bags;
+      var pricePerBagNow = isPurchase && entry.price_eur ? entry.price_eur / qtyNow : "";
+
+      var toHide = [].slice.call(row.children);
+      toHide.forEach(function (el) {
+        el.style.display = "none";
+      });
+
+      var form = document.createElement("div");
+      form.className = "history-edit-form";
+
+      var row1 = document.createElement("div");
+      row1.className = "history-edit-form-row";
+
+      var qtyInput = document.createElement("input");
+      qtyInput.type = "number";
+      qtyInput.step = "0.1";
+      qtyInput.min = "0.1";
+      qtyInput.value = qtyNow;
+      row1.appendChild(qtyInput);
+
+      var dateInput = document.createElement("input");
+      dateInput.type = "date";
+      dateInput.value = entry.date;
+      row1.appendChild(dateInput);
+
+      var priceInput = null;
+      if (isPurchase) {
+        priceInput = document.createElement("input");
+        priceInput.type = "number";
+        priceInput.step = "0.01";
+        priceInput.min = "0";
+        priceInput.placeholder = "Prix/sac";
+        priceInput.value = pricePerBagNow ? Number(pricePerBagNow).toFixed(2) : "";
+        row1.appendChild(priceInput);
+      }
+
+      form.appendChild(row1);
+
+      var row2 = document.createElement("div");
+      row2.className = "history-edit-form-actions";
+      var saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.appendChild(icon("mdi:check"));
+      var cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.appendChild(icon("mdi:close"));
+      row2.appendChild(saveBtn);
+      row2.appendChild(cancelBtn);
+      form.appendChild(row2);
+
+      row.appendChild(form);
+
+      row._restoreRow = function () {
+        toHide.forEach(function (el) {
+          el.style.display = "";
+        });
+        if (form.parentNode) form.parentNode.removeChild(form);
+      };
+
+      cancelBtn.addEventListener("click", function () {
+        row._restoreRow();
+        row.dataset.editing = "";
+        row.classList.remove("editing");
+        self._openEditRow = null;
+      });
+
+      saveBtn.addEventListener("click", function () {
+        var qty = parseFloat(qtyInput.value);
+        if (!qty || qty <= 0) return;
+        var data = { season: self._season, index: index, qty_bags: qty, date: dateInput.value };
+        if (isPurchase && priceInput.value) {
+          data.price_eur = parseFloat(priceInput.value) * qty;
+        }
+        self._hass.callService("suivi_stock_pellet", "edit_entry", data);
+        self._seasonDataFetchedAt = 0;
+        self._seasonDataDirty = true;
+        self._seasonsFetchedAt = 0;
+        self._seasonsDirty = true;
+        row.dataset.editing = "";
+        row.classList.remove("editing");
+        self._openEditRow = null;
       });
     }
 
