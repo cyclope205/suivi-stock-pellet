@@ -380,34 +380,6 @@ els.btnConso = btnConso;
           formAchat.el.classList.toggle("visible");
         });
 
-        var undoRow = document.createElement("div");
-        undoRow.className = "undo-row";
-        var undoBtn = document.createElement("button");
-        undoBtn.type = "button";
-        undoBtn.appendChild(icon("mdi:undo"));
-        var undoLabel = document.createElement("span");
-        undoLabel.textContent = "Annuler la dernière saisie";
-        undoBtn.appendChild(undoLabel);
-        undoRow.appendChild(undoBtn);
-        actionsWrap.appendChild(undoRow);
-        undoBtn.addEventListener("click", function () {
-          if (undoBtn.dataset.confirm === "1") {
-            self._hass.callService("suivi_stock_pellet", "undo_last_entry", {});
-              self._seasonDataFetchedAt = 0;
-              self._seasonDataDirty = true;
-              self._seasonsFetchedAt = 0;
-              self._seasonsDirty = true;
-            undoBtn.dataset.confirm = "";
-            undoLabel.textContent = "Annuler la dernière saisie";
-          } else {
-            undoBtn.dataset.confirm = "1";
-            undoLabel.textContent = "Sûr ? Cliquer à nouveau pour confirmer";
-            setTimeout(function () {
-              undoBtn.dataset.confirm = "";
-              undoLabel.textContent = "Annuler la dernière saisie";
-            }, 4000);
-          }
-        });
       }
 
       if (cfg.show_monthly_chart) {
@@ -684,14 +656,14 @@ return;
       var consommeKg = consumedBags * bagWeight;
       var consommeKwh = consommeKg * calorificValue;
 
-      els.stock.textContent = fmt(stockKg, 1) + " kg";
-      els.stockSub.textContent = fmt(stockBags, 1) + " sac(s) restant(s)";
+      els.stock.textContent = fmt(stockBags, 1) + " sac(s)";
+      els.stockSub.textContent = fmt(stockKg, 1) + " kg restant(s)";
 
       var avgPricePerBag = purchasedBags > 0 ? spentEur / purchasedBags : 0;
       this._currentAvgPricePerBag = avgPricePerBag;
 
       if (cfg.show_stats) {
-        els.statConsomme.textContent = fmt(consommeKg, 1) + " kg";
+        els.statConsomme.textContent = fmt(consumedBags, 1) + " sac(s)";
         els.statEnergie.textContent = fmt(consommeKwh, 1) + " kWh";
         els.statDepense.textContent = fmt(spentEur, 2) + " €";
         els.statJours.textContent = String(daysLogged);
