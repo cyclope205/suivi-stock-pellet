@@ -378,7 +378,9 @@
           if (undoBtn.dataset.confirm === "1") {
             self._hass.callService("suivi_stock_pellet", "undo_last_entry", {});
               self._seasonDataFetchedAt = 0;
+              self._seasonDataDirty = true;
               self._seasonsFetchedAt = 0;
+              self._seasonsDirty = true;
             undoBtn.dataset.confirm = "";
             undoLabel.textContent = "Annuler la dernière saisie";
           } else {
@@ -550,7 +552,9 @@
           self._hass.callService("suivi_stock_pellet", "log_consumption", data);
         }
         self._seasonDataFetchedAt = 0;
+        self._seasonDataDirty = true;
         self._seasonsFetchedAt = 0;
+        self._seasonsDirty = true;
         el.classList.remove("visible");
         qtyInput.value = "1";
         dateInput.value = todayIso();
@@ -598,14 +602,19 @@
       if (!this._hass || !this._hass.connection || !this._season) return;
       var season = this._season;
       var now = Date.now();
-      if (this._seasonDataPending) return;
+      if (this._seasonDataPending) {
+        this._seasonDataDirty = true;
+        return;
+      }
       if (
+        !this._seasonDataDirty &&
         this._seasonDataFetchedFor === season &&
         this._seasonDataFetchedAt &&
         now - this._seasonDataFetchedAt < 15000
       ) {
         return;
       }
+      this._seasonDataDirty = false;
       this._seasonDataPending = true;
       this._hass.connection
         .sendMessagePromise({ type: "suivi_stock_pellet/journal", season: season })
@@ -614,6 +623,10 @@
           self._seasonDataFetchedFor = season;
           self._seasonDataFetchedAt = Date.now();
           self._applySeasonData(result);
+          if (self._seasonDataDirty) {
+            self._seasonDataDirty = false;
+            self._refreshSelectedSeason();
+          }
         })
         .catch(function () {
           self._seasonDataPending = false;
@@ -702,10 +715,14 @@
 
     _refreshSeasonsSummary() {
       var self = this;
-      if (this._seasonsPending) return;
+      if (this._seasonsPending) {
+        this._seasonsDirty = true;
+        return;
+      }
       var now = Date.now();
-      if (this._seasonsFetchedAt && now - this._seasonsFetchedAt < 15000) return;
+      if (!this._seasonsDirty && this._seasonsFetchedAt && now - this._seasonsFetchedAt < 15000) return;
       if (!this._hass || !this._hass.connection || !this._els.priceChart) return;
+      this._seasonsDirty = false;
       this._seasonsPending = true;
       this._hass.connection
         .sendMessagePromise({ type: "suivi_stock_pellet/seasons_summary" })
@@ -713,6 +730,10 @@
           self._seasonsPending = false;
           self._seasonsFetchedAt = Date.now();
           self._renderPriceChart(result.seasons || []);
+          if (self._seasonsDirty) {
+            self._seasonsDirty = false;
+            self._refreshSeasonsSummary();
+          }
         })
         .catch(function () {
           self._seasonsPending = false;
