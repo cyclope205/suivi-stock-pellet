@@ -377,6 +377,8 @@
         undoBtn.addEventListener("click", function () {
           if (undoBtn.dataset.confirm === "1") {
             self._hass.callService("suivi_stock_pellet", "undo_last_entry", {});
+              self._seasonDataFetchedAt = 0;
+              self._seasonsFetchedAt = 0;
             undoBtn.dataset.confirm = "";
             undoLabel.textContent = "Annuler la dernière saisie";
           } else {
@@ -547,6 +549,8 @@
         } else {
           self._hass.callService("suivi_stock_pellet", "log_consumption", data);
         }
+        self._seasonDataFetchedAt = 0;
+        self._seasonsFetchedAt = 0;
         el.classList.remove("visible");
         qtyInput.value = "1";
         dateInput.value = todayIso();
