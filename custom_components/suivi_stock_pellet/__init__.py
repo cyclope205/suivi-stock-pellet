@@ -26,6 +26,7 @@ from .const import (
     DOMAIN,
     ENTRY_TYPE_CONSUMPTION,
     ENTRY_TYPE_PURCHASE,
+    SERVICE_DELETE_ENTRY,
     SERVICE_EDIT_ENTRY,
     SERVICE_LOG_CONSUMPTION,
     SERVICE_LOG_PURCHASE,
@@ -74,6 +75,13 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
         vol.Optional(ATTR_QTY_BAGS): vol.Coerce(float),
         vol.Optional(ATTR_PRICE_EUR): vol.Coerce(float),
         vol.Optional(ATTR_DATE): cv.date,
+    }
+)
+
+DELETE_ENTRY_SCHEMA = vol.Schema(
+    {
+        vol.Required("season"): str,
+        vol.Required(ATTR_INDEX): vol.Coerce(int),
     }
 )
 
@@ -143,6 +151,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         _notify()
 
+    async def _handle_delete_entry(call: ServiceCall) -> None:
+        season = call.data["season"]
+        index = call.data[ATTR_INDEX]
+        removed = await journal.async_delete_entry(season, index)
+        if removed is None:
+            raise HomeAssistantError(
+                f"Entree introuvable (saison {season}, index {index})"
+            )
+        _notify()
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_LOG_CONSUMPTION,
@@ -163,6 +181,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         SERVICE_EDIT_ENTRY,
         _handle_edit_entry,
         schema=EDIT_ENTRY_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DELETE_ENTRY,
+        _handle_delete_entry,
+        schema=DELETE_ENTRY_SCHEMA,
     )
 
     async_register_ws_api(hass)
