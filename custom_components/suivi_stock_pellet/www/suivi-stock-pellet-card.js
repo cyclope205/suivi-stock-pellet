@@ -516,7 +516,7 @@
       if (kind === "purchase") {
         var priceWrap = document.createElement("div");
         var priceLabel = document.createElement("label");
-        priceLabel.textContent = "Prix total (€, facultatif)";
+        priceLabel.textContent = "Prix par sac (€, facultatif)";
         priceInput = document.createElement("input");
         priceInput.type = "number";
         priceInput.step = "0.01";
@@ -541,7 +541,7 @@
         var data = { qty_bags: qty, date: dateInput.value };
         if (kind === "purchase") {
           if (priceInput.value) {
-            data.price_eur = parseFloat(priceInput.value);
+            data.price_eur = parseFloat(priceInput.value) * qty;
           }
           self._hass.callService("suivi_stock_pellet", "log_purchase", data);
         } else {
@@ -766,6 +766,21 @@
       };
       container.innerHTML = "";
 
+      container.style.position = "relative";
+      var tapTip = document.createElement("div");
+      tapTip.className = "chart-tap-tip";
+      tapTip.style.cssText = "display:none;position:absolute;top:2px;transform:translateX(-50%);background:rgba(28,28,28,0.92);color:#fff;font-size:11px;padding:3px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:2;";
+      container.appendChild(tapTip);
+      var showTapTip = function (evt, text) {
+        var box = container.getBoundingClientRect();
+        var px = (evt.touches && evt.touches[0] ? evt.touches[0].clientX : evt.clientX) - box.left;
+        tapTip.textContent = text;
+        tapTip.style.left = Math.max(20, Math.min(px, box.width - 20)) + "px";
+        tapTip.style.display = "block";
+        clearTimeout(tapTip._hideTimer);
+        tapTip._hideTimer = setTimeout(function () { tapTip.style.display = "none"; }, 2200);
+      };
+
       var visible = this._chartVisible || { qty: true, cost: true };
 
       var months = [];
@@ -834,6 +849,9 @@
           var t = document.createElementNS(svgNS, "title");
           t.textContent = MONTHS_FR[m] + " : " + fmt(v, 1) + " sac(s)";
           rect.appendChild(t);
+          rect.addEventListener("pointerdown", function (evt) {
+            showTapTip(evt, MONTHS_FR[m] + " : " + fmt(v, 1) + " sac(s)");
+          });
           svg.appendChild(rect);
         });
       }
@@ -866,6 +884,9 @@
           var t = document.createElementNS(svgNS, "title");
           t.textContent = MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " €";
           dot.appendChild(t);
+          dot.addEventListener("pointerdown", function (evt) {
+            showTapTip(evt, MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " €");
+          });
           svg.appendChild(dot);
         });
       }
