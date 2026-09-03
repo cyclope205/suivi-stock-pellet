@@ -62,3 +62,50 @@ undo_last_entry:
       example: "2024-2025"
       selector:
         text: {}
+
+edit_entry:
+  name: Modifier une saisie
+  description: Modifie une entree existante (achat ou consommation) du journal d'une saison.
+  fields:
+    season:
+      name: Saison
+      description: Saison contenant la saisie a modifier, au format AAAA-AAAA (ex. 2024-2025).
+      required: true
+      example: "2024-2025"
+      selector:
+        text: {}
+    index:
+      name: Index
+      description: Position de la saisie dans le journal de la saison (0 = la plus ancienne).
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 10000
+          mode: box
+    qty_bags:
+      name: Nombre de sacs
+      description: Nouvelle quantite de sacs (facultatif, inchangee si absente).
+      required: false
+      selector:
+        number:
+          min: 0.1
+          max: 1000
+          step: 0.1
+          mode: box
+    price_eur:
+      name: Prix total
+      description: Nouveau prix total en euros, uniquement pour un achat (facultatif, inchange si absent).
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    date:
+      name: Date
+      description: Nouvelle date de la saisie (facultatif, inchangee si absente).
+      required: false
+      selector:
+        date: {}
