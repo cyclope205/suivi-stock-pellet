@@ -6,6 +6,7 @@ journal on read, so there is nothing that can drift out of sync.
 """
 from __future__ import annotations
 
+from calendar import monthrange
 from datetime import date
 from typing import Any
 
@@ -13,6 +14,34 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import ENTRY_TYPE_CONSUMPTION, ENTRY_TYPE_PURCHASE, STORAGE_VERSION
+
+
+def _heating_days(entries: list[dict[str, Any]]) -> int:
+    """Calendar days spanning the full months of logged consumption.
+
+    Mirrors the spreadsheet method this integration replaces: every month
+    that has at least one consumption entry counts in full (all its
+    calendar days), from the month of the first consumption entry through
+    the month of the last one. This avoids the wild early-season swings of
+    counting raw log-entry occurrences (e.g. a single first entry giving
+    "1 day" and an absurd extrapolated monthly cost).
+    """
+    conso_dates = sorted(
+        e["date"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION
+    )
+    if not conso_dates:
+        return 0
+    first = date.fromisoformat(conso_dates[0])
+    last = date.fromisoformat(conso_dates[-1])
+    total = 0
+    y, m = first.year, first.month
+    while (y, m) <= (last.year, last.month):
+        total += monthrange(y, m)[1]
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return total
 
 
 def season_for_date(d: date, season_start_month: int) -> str:
@@ -98,7 +127,7 @@ class PelletJournal:
         spent = sum(
             (e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_PURCHASE
         )
-        days = sum(1 for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
+        days = _heating_days(entries)
         return {
             "purchased_bags": purchased,
             "consumed_bags": consumed,
