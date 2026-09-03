@@ -112,11 +112,14 @@ Ou utilise directement les services :
 
 MIT — voir [LICENSE](LICENSE).
 
----
+<div align="center">
 
-### ☕ Cette intégration te fait gagner du temps ?
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+### ☕ Cette intégration te plaît ?
 
-Un petit don est toujours apprécié : ça m'aide à maintenir le projet et à ajouter de nouvelles fonctionnalités.
+Si elle te fait gagner du temps, un petit don est toujours apprécié : ça m'aide à maintenir le projet et à ajouter de nouvelles fonctionnalités.
 
 <a href="https://buymeacoffee.com/cyclope205"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
 <a href="https://paypal.me/cyclope205"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
+
+</div>
