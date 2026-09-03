@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date as date_cls
+import json
 import logging
 from pathlib import Path
 
@@ -36,7 +37,8 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
 
 CARD_URL_PATH = "/suivi_stock_pellet/suivi-stock-pellet-card.js"
-CARD_VERSION = "1.3.2"
+_MANIFEST_PATH = Path(__file__).parent / "manifest.json"
+CARD_VERSION = json.loads(_MANIFEST_PATH.read_text())["version"]
 
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
