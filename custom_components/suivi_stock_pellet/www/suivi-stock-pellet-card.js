@@ -672,12 +672,12 @@
 
       var isCurrent = this._season === this._currentSeason;
       if (els.actionsWrap) {
-        els.actionsWrap.classList.toggle("hidden", !isCurrent);
+        els.actionsWrap.classList.remove("hidden");
       }
       if (els.seasonNote) {
         els.seasonNote.textContent = isCurrent
           ? ""
-          : "Saisies désactivées : vous consultez une saison passée.";
+          : "Vous consultez une saison passée : la date choisie dans le formulaire détermine la saison de la saisie.";
       }
     }
 
