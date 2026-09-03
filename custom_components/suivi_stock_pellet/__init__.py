@@ -18,6 +18,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
     ATTR_DATE,
+    ATTR_INDEX,
     ATTR_PRICE_EUR,
     ATTR_QTY_BAGS,
     CONF_SEASON_START_MONTH,
@@ -25,6 +26,7 @@ from .const import (
     DOMAIN,
     ENTRY_TYPE_CONSUMPTION,
     ENTRY_TYPE_PURCHASE,
+    SERVICE_EDIT_ENTRY,
     SERVICE_LOG_CONSUMPTION,
     SERVICE_LOG_PURCHASE,
     SERVICE_UNDO_LAST_ENTRY,
@@ -62,6 +64,16 @@ UNDO_LAST_ENTRY_SCHEMA = vol.Schema(
         # explicit season lets this correct a historical season's journal
         # instead (e.g. fixing a backfill mistake).
         vol.Optional("season"): str,
+    }
+)
+
+EDIT_ENTRY_SCHEMA = vol.Schema(
+    {
+        vol.Required("season"): str,
+        vol.Required(ATTR_INDEX): vol.Coerce(int),
+        vol.Optional(ATTR_QTY_BAGS): vol.Coerce(float),
+        vol.Optional(ATTR_PRICE_EUR): vol.Coerce(float),
+        vol.Optional(ATTR_DATE): cv.date,
     }
 )
 
@@ -112,6 +124,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         _notify()
 
+    async def _handle_edit_entry(call: ServiceCall) -> None:
+        season = call.data["season"]
+        index = call.data[ATTR_INDEX]
+        qty = call.data.get(ATTR_QTY_BAGS)
+        price = call.data.get(ATTR_PRICE_EUR)
+        entry_date = call.data.get(ATTR_DATE)
+        updated = await journal.async_edit_entry(
+            season,
+            index,
+            qty_bags=qty,
+            price_eur=price,
+            entry_date=entry_date.isoformat() if entry_date else None,
+        )
+        if updated is None:
+            raise HomeAssistantError(
+                f"Entree introuvable (saison {season}, index {index})"
+            )
+        _notify()
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_LOG_CONSUMPTION,
@@ -126,6 +157,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         SERVICE_UNDO_LAST_ENTRY,
         _handle_undo_last_entry,
         schema=UNDO_LAST_ENTRY_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_EDIT_ENTRY,
+        _handle_edit_entry,
+        schema=EDIT_ENTRY_SCHEMA,
     )
 
     async_register_ws_api(hass)
