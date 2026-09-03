@@ -341,6 +341,7 @@
         els.statCoutJour = addStat(costStats, "Coût / jour", "mdi:cash-clock", COLORS.green);
         els.statCoutMois = addStat(costStats, "Coût / mois", "mdi:calendar-month", COLORS.blue);
         els.statCoutSac = addStat(costStats, "Coût du sac", "mdi:sack", COLORS.amber);
+        els.statCoutAnnee = addStat(costStats, "Coût / année", "mdi:cash-multiple", COLORS.purple);
         card.appendChild(costStats);
       }
 
@@ -704,6 +705,7 @@ return;
         els.statCoutJour.textContent = fmt(costPerDay, 2) + " €";
         els.statCoutMois.textContent = fmt(costPerMonth, 2) + " €";
         els.statCoutSac.textContent = avgPricePerBag ? fmt(avgPricePerBag, 2) + " €" : "--";
+        els.statCoutAnnee.textContent = fmt(costToDate, 2) + " €";
       }
 
       if (els.historyList && !this._openEditRow) {
