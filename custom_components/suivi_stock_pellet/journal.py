@@ -120,6 +120,16 @@ class PelletJournal:
         await self._async_save()
         return entry
 
+    async def async_delete_entry(
+        self, season: str, index: int
+    ) -> dict[str, Any] | None:
+        entries = self._season_entries(season)
+        if index < 0 or index >= len(entries):
+            return None
+        removed = entries.pop(index)
+        await self._async_save()
+        return removed
+
     def totals(self, season: str) -> dict[str, float]:
         entries = self._data.get("seasons", {}).get(season, {}).get("entries", [])
         purchased = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
