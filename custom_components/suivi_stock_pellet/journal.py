@@ -70,6 +70,27 @@ class PelletJournal:
         await self._async_save()
         return removed
 
+    async def async_edit_entry(
+        self,
+        season: str,
+        index: int,
+        qty_bags: float | None = None,
+        price_eur: float | None = None,
+        entry_date: str | None = None,
+    ) -> dict[str, Any] | None:
+        entries = self._season_entries(season)
+        if index < 0 or index >= len(entries):
+            return None
+        entry = entries[index]
+        if qty_bags is not None:
+            entry["qty_bags"] = qty_bags
+        if entry_date is not None:
+            entry["date"] = entry_date
+        if entry["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
+            entry["price_eur"] = price_eur
+        await self._async_save()
+        return entry
+
     def totals(self, season: str) -> dict[str, float]:
         entries = self._data.get("seasons", {}).get(season, {}).get("entries", [])
         purchased = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
