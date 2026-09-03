@@ -1,10 +1,10 @@
 log_consumption:
   name: Enregistrer une consommation
-  description: Ajoute une entrée de consommation de granulés au journal de la saison en cours.
+  description: Ajoute une entrÃ©e de consommation de granulÃ©s au journal de la saison en cours.
   fields:
     qty_bags:
       name: Nombre de sacs
-      description: Nombre de sacs consommés.
+      description: Nombre de sacs consommÃ©s.
       required: true
       default: 1
       selector:
@@ -15,18 +15,18 @@ log_consumption:
           mode: box
     date:
       name: Date
-      description: Date de la consommation (par défaut aujourd'hui).
+      description: Date de la consommation (par dÃ©faut aujourd'hui).
       required: false
       selector:
         date: {}
 
 log_purchase:
   name: Enregistrer un achat
-  description: Ajoute une entrée d'achat de granulés au journal de la saison en cours.
+  description: Ajoute une entrÃ©e d'achat de granulÃ©s au journal de la saison en cours.
   fields:
     qty_bags:
       name: Nombre de sacs
-      description: Nombre de sacs achetés.
+      description: Nombre de sacs achetÃ©s.
       required: true
       selector:
         number:
@@ -46,18 +46,18 @@ log_purchase:
           mode: box
     date:
       name: Date
-      description: Date de l'achat (par défaut aujourd'hui).
+      description: Date de l'achat (par dÃ©faut aujourd'hui).
       required: false
       selector:
         date: {}
 
 undo_last_entry:
-  name: Annuler la dernière saisie
-  description: Annule la dernière entrée (achat ou consommation) de la saison en cours (ou d'une saison précisée).
+  name: Annuler la derniÃ¨re saisie
+  description: Annule la derniÃ¨re entrÃ©e (achat ou consommation) de la saison en cours (ou d'une saison prÃ©cisÃ©e).
   fields:
     season:
       name: Saison
-      description: Saison à corriger, au format AAAA-AAAA (ex. 2024-2025). Par défaut, la saison en cours.
+      description: Saison Ã  corriger, au format AAAA-AAAA (ex. 2024-2025). Par dÃ©faut, la saison en cours.
       required: false
       example: "2024-2025"
       selector:
@@ -109,3 +109,24 @@ edit_entry:
       required: false
       selector:
         date: {}
+
+delete_entry:
+  name: Supprimer une saisie
+  description: Supprime definitivement une entree (achat ou consommation) du journal d'une saison.
+  fields:
+    season:
+      name: Saison
+      description: Saison contenant la saisie a supprimer, au format AAAA-AAAA (ex. 2024-2025).
+      required: true
+      example: "2024-2025"
+      selector:
+        text: {}
+    index:
+      name: Index
+      description: Position de la saisie dans le journal de la saison (0 = la plus ancienne).
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 10000
+          mode: box
