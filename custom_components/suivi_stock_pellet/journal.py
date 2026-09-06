@@ -76,7 +76,37 @@ class PelletJournal:
         await self._store.async_save(self._data)
 
     def _season_entries(self, season: str) -> list[dict[str, Any]]:
-        return self._data["seasons"].setdefault(season, {"entries": []})["entries"]
+        return self._get_season(season)["entries"]
+
+    def _get_season(self, season: str) -> dict[str, Any]:
+        seasons = self._data["seasons"]
+        if season not in seasons:
+            seasons[season] = {
+                "entries": [],
+                "stock_initial": self._carry_over_stock(season),
+            }
+        return seasons[season]
+
+    def _carry_over_stock(self, season: str) -> float:
+        """Auto-carry the previous season's leftover stock into a brand
+        new season's starting stock, the first time that season is
+        touched (a purchase or consumption is logged in it).
+
+        Only applies when the previous season already exists in storage
+        - a season that already existed before this feature shipped
+        keeps whatever stock_initial it already has (0, unless set
+        explicitly via async_set_stock_initial), since retroactively
+        rewriting an already-active season's starting stock could
+        silently change numbers the user has already seen and trusted.
+        """
+        try:
+            year_start, year_end = (int(part) for part in season.split("-"))
+        except ValueError:
+            return 0.0
+        previous_season = f"{year_start - 1}-{year_end - 1}"
+        if previous_season not in self._data["seasons"]:
+            return 0.0
+        return self.totals(previous_season)["stock_bags"]
 
     async def async_add_entry(
         self,
@@ -144,13 +174,28 @@ class PelletJournal:
         await self._async_save()
         return removed
 
+    async def async_set_stock_initial(self, season: str, value: float) -> None:
+        """Manually (re)set a season's starting stock.
+
+        Used to backfill a season that already existed before the
+        stock-carry-over feature shipped, or to correct the
+        auto-carried value (e.g. a manual physical stock count).
+        """
+        self._get_season(season)["stock_initial"] = value
+        await self._async_save()
+
     def totals(
         self,
         season: str,
+        as_of_date: str | None = None,
         default_bag_weight_kg: float = DEFAULT_BAG_WEIGHT_KG,
         default_calorific_value: float = DEFAULT_CALORIFIC_VALUE,
     ) -> dict[str, float]:
-        entries = self._data.get("seasons", {}).get(season, {}).get("entries", [])
+        season_data = self._data.get("seasons", {}).get(season, {})
+        entries = season_data.get("entries", [])
+        if as_of_date is not None:
+            entries = [e for e in entries if e["date"] <= as_of_date]
+        stock_initial = season_data.get("stock_initial", 0.0)
         purchased = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
         consumed = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         spent = sum(
@@ -172,7 +217,8 @@ class PelletJournal:
         return {
             "purchased_bags": purchased,
             "consumed_bags": consumed,
-            "stock_bags": max(purchased - consumed, 0),
+            "stock_bags": max(stock_initial + purchased - consumed, 0),
+            "stock_initial_bags": stock_initial,
             "spent_eur": round(spent, 2),
             "days_logged": days,
             "consumed_kg": round(consumed_kg, 2),
