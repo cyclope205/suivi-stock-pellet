@@ -19,11 +19,13 @@ SERVICE_LOG_PURCHASE = "log_purchase"
 SERVICE_UNDO_LAST_ENTRY = "undo_last_entry"
 SERVICE_EDIT_ENTRY = "edit_entry"
 SERVICE_DELETE_ENTRY = "delete_entry"
+SERVICE_SET_STOCK_INITIAL = "set_stock_initial"
 
 ATTR_QTY_BAGS = "qty_bags"
 ATTR_PRICE_EUR = "price_eur"
 ATTR_DATE = "date"
 ATTR_INDEX = "index"
+ATTR_STOCK_INITIAL_BAGS = "stock_initial_bags"
 
 ENTRY_TYPE_CONSUMPTION = "consumption"
 ENTRY_TYPE_PURCHASE = "purchase"
