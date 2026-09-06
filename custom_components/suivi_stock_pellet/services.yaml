@@ -1,6 +1,6 @@
 log_consumption:
   name: Enregistrer une consommation
-  description: Ajoute une entrée de consommation de granulés au journal de la saison en cours.
+  description: Ajoute une entrée de consommation de granulés au journal. La saison est déterminée automatiquement à partir de la date (celle du jour par défaut, ou celle fournie).
   fields:
     qty_bags:
       name: Nombre de sacs
@@ -22,7 +22,7 @@ log_consumption:
 
 log_purchase:
   name: Enregistrer un achat
-  description: Ajoute une entrée d'achat de granulés au journal de la saison en cours.
+  description: Ajoute une entrée d'achat de granulés au journal. La saison est déterminée automatiquement à partir de la date (celle du jour par défaut, ou celle fournie).
   fields:
     qty_bags:
       name: Nombre de sacs
