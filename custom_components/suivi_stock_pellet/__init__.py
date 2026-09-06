@@ -38,10 +38,12 @@ from .const import (
     DOMAIN,
     ENTRY_TYPE_CONSUMPTION,
     ENTRY_TYPE_PURCHASE,
+    ATTR_STOCK_INITIAL_BAGS,
     SERVICE_DELETE_ENTRY,
     SERVICE_EDIT_ENTRY,
     SERVICE_LOG_CONSUMPTION,
     SERVICE_LOG_PURCHASE,
+    SERVICE_SET_STOCK_INITIAL,
     SERVICE_UNDO_LAST_ENTRY,
 )
 from .journal import PelletJournal, season_for_date
@@ -97,6 +99,15 @@ DELETE_ENTRY_SCHEMA = vol.Schema(
     }
 )
 
+SET_STOCK_INITIAL_SCHEMA = vol.Schema(
+    {
+        vol.Required("season"): str,
+        vol.Required(ATTR_STOCK_INITIAL_BAGS): vol.All(
+            vol.Coerce(float), vol.Range(min=0)
+        ),
+    }
+)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Suivi Stock Pellet from a config entry."""
@@ -124,7 +135,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         qty = call.data[ATTR_QTY_BAGS]
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
         season = season_for_date(entry_date, _start_month())
-        current_stock = journal.totals(season)["stock_bags"]
+        current_stock = journal.totals(season, as_of_date=entry_date.isoformat())[
+            "stock_bags"
+        ]
         if qty > current_stock:
             raise HomeAssistantError(
                 f"Stock insuffisant pour la saison {season} : "
@@ -196,6 +209,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         _notify()
 
+    async def _handle_set_stock_initial(call: ServiceCall) -> None:
+        season = call.data["season"]
+        value = call.data[ATTR_STOCK_INITIAL_BAGS]
+        await journal.async_set_stock_initial(season, value)
+        _notify()
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_LOG_CONSUMPTION,
@@ -222,6 +241,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         SERVICE_DELETE_ENTRY,
         _handle_delete_entry,
         schema=DELETE_ENTRY_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_STOCK_INITIAL,
+        _handle_set_stock_initial,
+        schema=SET_STOCK_INITIAL_SCHEMA,
     )
 
     async_register_ws_api(hass)
