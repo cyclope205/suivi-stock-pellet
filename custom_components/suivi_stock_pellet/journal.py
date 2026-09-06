@@ -13,7 +13,13 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import ENTRY_TYPE_CONSUMPTION, ENTRY_TYPE_PURCHASE, STORAGE_VERSION
+from .const import (
+    DEFAULT_BAG_WEIGHT_KG,
+    DEFAULT_CALORIFIC_VALUE,
+    ENTRY_TYPE_CONSUMPTION,
+    ENTRY_TYPE_PURCHASE,
+    STORAGE_VERSION,
+)
 
 
 def _heating_days(entries: list[dict[str, Any]]) -> int:
@@ -79,6 +85,8 @@ class PelletJournal:
         qty_bags: float,
         entry_date: str,
         price_eur: float | None = None,
+        bag_weight_kg: float | None = None,
+        calorific_value: float | None = None,
     ) -> None:
         entries = self._season_entries(season)
         entries.append(
@@ -87,6 +95,8 @@ class PelletJournal:
                 "qty_bags": qty_bags,
                 "date": entry_date,
                 "price_eur": price_eur,
+                "bag_weight_kg": bag_weight_kg,
+                "calorific_value": calorific_value,
             }
         )
         await self._async_save()
@@ -106,6 +116,7 @@ class PelletJournal:
         qty_bags: float | None = None,
         price_eur: float | None = None,
         entry_date: str | None = None,
+        new_season: str | None = None,
     ) -> dict[str, Any] | None:
         entries = self._season_entries(season)
         if index < 0 or index >= len(entries):
@@ -117,6 +128,9 @@ class PelletJournal:
             entry["date"] = entry_date
         if entry["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
             entry["price_eur"] = price_eur
+        if new_season is not None and new_season != season:
+            entries.pop(index)
+            self._season_entries(new_season).append(entry)
         await self._async_save()
         return entry
 
@@ -130,12 +144,29 @@ class PelletJournal:
         await self._async_save()
         return removed
 
-    def totals(self, season: str) -> dict[str, float]:
+    def totals(
+        self,
+        season: str,
+        default_bag_weight_kg: float = DEFAULT_BAG_WEIGHT_KG,
+        default_calorific_value: float = DEFAULT_CALORIFIC_VALUE,
+    ) -> dict[str, float]:
         entries = self._data.get("seasons", {}).get(season, {}).get("entries", [])
         purchased = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
         consumed = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         spent = sum(
             (e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_PURCHASE
+        )
+        consumed_kg = sum(
+            e["qty_bags"] * (e.get("bag_weight_kg") or default_bag_weight_kg)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
+        consumed_kwh = sum(
+            e["qty_bags"]
+            * (e.get("bag_weight_kg") or default_bag_weight_kg)
+            * (e.get("calorific_value") or default_calorific_value)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_CONSUMPTION
         )
         days = _heating_days(entries)
         return {
@@ -144,6 +175,8 @@ class PelletJournal:
             "stock_bags": max(purchased - consumed, 0),
             "spent_eur": round(spent, 2),
             "days_logged": days,
+            "consumed_kg": round(consumed_kg, 2),
+            "consumed_kwh": round(consumed_kwh, 2),
         }
 
     def last_entry(self, season: str) -> dict[str, Any] | None:
