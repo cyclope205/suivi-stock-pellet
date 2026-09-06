@@ -16,8 +16,8 @@
  * Un sélecteur de saison est affiché dans l'en-tête (à droite du titre) :
  * il permet de consulter les tuiles, l'historique et le graphique mensuel
  * d'une saison passée. Les boutons de saisie (achat/consommation) restent
- * désactivés sur ces saisons car ils s'appliquent toujours à la date du
- * jour, donc à la saison en cours.
+ * visibles et actifs même sur ces saisons : ils s'appliquent toujours à la
+ * date du jour (donc à la saison en cours), jamais à la saison affichée.
  *
  * Le graphique "Évolution de la consommation" superpose deux courbes
  * (sacs consommés / coût en €) : deux boutons sous le graphique
@@ -341,7 +341,7 @@
         els.statCoutJour = addStat(costStats, "Coût / jour", "mdi:cash-clock", COLORS.green);
         els.statCoutMois = addStat(costStats, "Coût / mois", "mdi:calendar-month", COLORS.blue);
         els.statCoutSac = addStat(costStats, "Coût du sac", "mdi:sack", COLORS.amber);
-        els.statCoutAnnee = addStat(costStats, "Coût / année", "mdi:cash-multiple", COLORS.purple);
+        els.statCoutAnnee = addStat(costStats, "Coût saison", "mdi:cash-multiple", COLORS.purple);
         card.appendChild(costStats);
       }
 
