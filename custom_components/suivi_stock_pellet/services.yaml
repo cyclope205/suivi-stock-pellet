@@ -130,3 +130,24 @@ delete_entry:
           min: 0
           max: 10000
           mode: box
+
+set_stock_initial:
+  name: Definir le stock initial
+  description: Definit ou corrige le stock de depart (en sacs) d'une saison, par exemple pour reprendre un stock existant lors du passage a une nouvelle saison ou apres un comptage physique.
+  fields:
+    season:
+      name: Saison
+      description: Saison a corriger, au format AAAA-AAAA (ex. 2024-2025).
+      required: true
+      example: "2024-2025"
+      selector:
+        text: {}
+    stock_initial_bags:
+      name: Stock initial (sacs)
+      description: Nombre de sacs presents au debut de la saison, avant tout achat ou consommation enregistre dans cette saison.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 10000
+          mode: box
