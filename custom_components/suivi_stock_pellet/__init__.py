@@ -11,17 +11,29 @@ import voluptuous as vol
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import (
+    CoreState,
+    EVENT_HOMEASSISTANT_STARTED,
+    HomeAssistant,
+    ServiceCall,
+)
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_call_later
 
 from .const import (
     ATTR_DATE,
     ATTR_INDEX,
     ATTR_PRICE_EUR,
     ATTR_QTY_BAGS,
+    CONF_BAG_PRICE,
+    CONF_BAG_WEIGHT_KG,
+    CONF_CALORIFIC_VALUE,
     CONF_SEASON_START_MONTH,
+    DEFAULT_BAG_PRICE,
+    DEFAULT_BAG_WEIGHT_KG,
+    DEFAULT_CALORIFIC_VALUE,
     DEFAULT_SEASON_START_MONTH,
     DOMAIN,
     ENTRY_TYPE_CONSUMPTION,
@@ -45,15 +57,15 @@ CARD_VERSION = json.loads(_MANIFEST_PATH.read_text())["version"]
 
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_QTY_BAGS): vol.Coerce(float),
+        vol.Required(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_DATE): cv.date,
     }
 )
 
 LOG_PURCHASE_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_QTY_BAGS): vol.Coerce(float),
-        vol.Optional(ATTR_PRICE_EUR): vol.Coerce(float),
+        vol.Required(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
     }
 )
@@ -72,8 +84,8 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
     {
         vol.Required("season"): str,
         vol.Required(ATTR_INDEX): vol.Coerce(int),
-        vol.Optional(ATTR_QTY_BAGS): vol.Coerce(float),
-        vol.Optional(ATTR_PRICE_EUR): vol.Coerce(float),
+        vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
     }
 )
@@ -99,6 +111,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     def _start_month() -> int:
         return entry.options.get(CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH)
 
+    def _bag_weight() -> float:
+        return entry.options.get(CONF_BAG_WEIGHT_KG, DEFAULT_BAG_WEIGHT_KG)
+
+    def _calorific_value() -> float:
+        return entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE)
+
     def _notify() -> None:
         async_dispatcher_send(hass, f"suivi_stock_pellet_update_{entry.entry_id}")
 
@@ -106,14 +124,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         qty = call.data[ATTR_QTY_BAGS]
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
         season = season_for_date(entry_date, _start_month())
+        current_stock = journal.totals(season)["stock_bags"]
+        if qty > current_stock:
+            raise HomeAssistantError(
+                f"Stock insuffisant pour la saison {season} : "
+                f"{current_stock} sac(s) disponible(s), {qty} demande(s)"
+            )
         await journal.async_add_entry(
-            season, ENTRY_TYPE_CONSUMPTION, qty, entry_date.isoformat()
+            season,
+            ENTRY_TYPE_CONSUMPTION,
+            qty,
+            entry_date.isoformat(),
+            bag_weight_kg=_bag_weight(),
+            calorific_value=_calorific_value(),
         )
         _notify()
 
     async def _handle_log_purchase(call: ServiceCall) -> None:
         qty = call.data[ATTR_QTY_BAGS]
         price = call.data.get(ATTR_PRICE_EUR)
+        if price is None:
+            price = entry.options.get(CONF_BAG_PRICE, DEFAULT_BAG_PRICE) * qty
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
         season = season_for_date(entry_date, _start_month())
         await journal.async_add_entry(
@@ -138,12 +169,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         qty = call.data.get(ATTR_QTY_BAGS)
         price = call.data.get(ATTR_PRICE_EUR)
         entry_date = call.data.get(ATTR_DATE)
+        new_season = (
+            season_for_date(entry_date, _start_month()) if entry_date else None
+        )
         updated = await journal.async_edit_entry(
             season,
             index,
             qty_bags=qty,
             price_eur=price,
             entry_date=entry_date.isoformat() if entry_date else None,
+            new_season=new_season,
         )
         if updated is None:
             raise HomeAssistantError(
@@ -190,7 +225,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     async_register_ws_api(hass)
-    await _async_register_card(hass)
+
+    async def _setup_frontend(_event=None) -> None:
+        await _async_register_card(hass)
+
+    if hass.state == CoreState.running:
+        await _setup_frontend()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _setup_frontend)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -215,7 +257,7 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     await _async_sync_lovelace_resource(hass)
 
 
-async def _async_sync_lovelace_resource(hass: HomeAssistant) -> None:
+async def _async_sync_lovelace_resource(hass: HomeAssistant, _now=None) -> None:
     """Additionally register the card as a real Lovelace resource.
 
     add_extra_js_url only injects a <script type="module"> tag into the
@@ -235,10 +277,17 @@ async def _async_sync_lovelace_resource(hass: HomeAssistant) -> None:
     logged and does not affect the rest of setup, since it only touches
     storage-mode Lovelace resources (a fresh install with no dashboards
     configured yet, or YAML-mode resources, are silently skipped).
+
+    If Lovelace itself isn't ready yet (hass.data["lovelace"] not
+    populated - a startup race, not specific to storage vs YAML mode),
+    this retries every 5 seconds indefinitely rather than giving up
+    after one attempt, since Lovelace always eventually loads.
     """
     lovelace_data = hass.data.get("lovelace")
     resources = getattr(lovelace_data, "resources", None)
     if resources is None or not hasattr(resources, "async_create_item"):
+        _LOGGER.debug("Lovelace not ready yet, retrying resource sync in 5s")
+        async_call_later(hass, 5, _async_sync_lovelace_resource)
         return
 
     target_url = f"{CARD_URL_PATH}?v={CARD_VERSION}"
