@@ -530,7 +530,14 @@ els.btnConso = btnConso;
       submitBtn.addEventListener("click", function () {
         var qty = parseFloat(qtyInput.value);
         if (!qty || qty <= 0) return;
-if (kind !== "purchase" && self._currentStockBags !== undefined && self._currentStockBags <= 0) {
+var formSeason = self._seasonForDate(dateInput.value);
+        var seasonMatchesDisplayed = formSeason === self._season;
+        if (
+          kind !== "purchase" &&
+          seasonMatchesDisplayed &&
+          self._currentStockBags !== undefined &&
+          self._currentStockBags <= 0
+        ) {
 alert("Stock à 0 : impossible d'enregistrer une consommation.");
 return;
 }
@@ -538,7 +545,7 @@ return;
         if (kind === "purchase") {
           if (priceInput.value) {
             data.price_eur = parseFloat(priceInput.value) * qty;
-          } else if (self._currentAvgPricePerBag) {
+          } else if (seasonMatchesDisplayed && self._currentAvgPricePerBag) {
             data.price_eur = self._currentAvgPricePerBag * qty;
           }
           self._hass.callService("suivi_stock_pellet", "log_purchase", data);
@@ -591,6 +598,21 @@ return;
       }
     }
 
+    _seasonForDate(dateStr) {
+      // Mirrors journal.py's season_for_date(): the season a given
+      // calendar date belongs to, independent of whichever season is
+      // currently displayed in the selector. Used so achat/consommation
+      // defaults (price fallback, stock guard) are only applied when the
+      // form's own date actually falls in the displayed season - never
+      // borrowed from a different, currently-viewed season.
+      var parts = String(dateStr || "").split("-");
+      var year = parseInt(parts[0], 10);
+      var month = parseInt(parts[1], 10);
+      var startMonth = this._startMonth || 9;
+      if (!year || !month) return this._season;
+      return month >= startMonth ? year + "-" + (year + 1) : (year - 1) + "-" + year;
+    }
+
     _refreshSelectedSeason() {
       var self = this;
       if (!this._hass || !this._hass.connection || !this._season) return;
@@ -633,6 +655,8 @@ return;
       var totals = result.totals || {};
       var entries = result.entries || [];
       var startMonth = result.start_month || 9;
+      this._startMonth = startMonth;
+      var isCurrentSeason = this._season === this._currentSeason;
       var bagWeight = this._bagWeight || 15;
       var calorificValue = this._calorificValue || 4.8;
 
@@ -645,7 +669,7 @@ return;
       var stockBags = totals.stock_bags || 0;
       this._currentStockBags = stockBags;
       if (els.btnConso) {
-        els.btnConso.disabled = stockBags <= 0;
+        els.btnConso.disabled = isCurrentSeason && stockBags <= 0;
       }
       var consumedBags = totals.consumed_bags || 0;
       var purchasedBags = totals.purchased_bags || 0;
@@ -957,7 +981,7 @@ return;
       var visible = this._chartVisible || { qty: true, cost: true };
 
       var months = [];
-      for (var i = 0; i < 10; i++) {
+      for (var i = 0; i < 12; i++) {
         months.push(((startMonth - 1 + i) % 12) + 1);
       }
 
