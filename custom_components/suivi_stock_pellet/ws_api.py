@@ -18,8 +18,8 @@ from .journal import season_for_date
         vol.Optional("season"): str,
     }
 )
-@websocket_api.async_response
 @websocket_api.require_admin
+@websocket_api.async_response
 async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
     stored = list(hass.data.get(DOMAIN, {}).items())
     if not stored:
@@ -48,8 +48,8 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
 
 
 @websocket_api.websocket_command({vol.Required("type"): "suivi_stock_pellet/seasons_summary"})
-@websocket_api.async_response
 @websocket_api.require_admin
+@websocket_api.async_response
 async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
     stored = list(hass.data.get(DOMAIN, {}).items())
     if not stored:
