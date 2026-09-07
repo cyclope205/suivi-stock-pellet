@@ -480,7 +480,7 @@ def test_prune_empty_seasons_sweep_removes_junk_keeps_manual_and_populated():
     # Simulate a pre-existing junk season from before auto-prune shipped:
     # inject it directly into storage, bypassing the write paths.
     journal._data["seasons"]["2100-2101"] = {"entries": [], "stock_initial": 0}
-    run(journal.async_set_stock_initial("2021-2022", 0))
+    run(journal.async_set_stock_initial("2021-2022", 5))
     run(journal.async_prune_empty_seasons())
     seasons = journal.seasons()
     assert "2024-2025" in seasons
