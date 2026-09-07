@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from calendar import monthrange
 from datetime import date
+import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -20,6 +21,9 @@ from .const import (
     ENTRY_TYPE_PURCHASE,
     STORAGE_VERSION,
 )
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _heating_days(entries: list[dict[str, Any]]) -> int:
@@ -224,13 +228,28 @@ class PelletJournal:
         # contribution necessarily uses the current configured bag weight;
         # only the purchased/consumed portions are pinned to their own
         # historical weight snapshots.
+        stock_bags_raw = stock_initial + purchased - consumed
         stock_kg = max(
             stock_initial * default_bag_weight_kg + purchased_kg - consumed_kg, 0
         )
+        if stock_bags_raw < 0:
+            # A historical edit/delete made purchases+initial stock fall
+            # short of what's been logged as consumed for this season.
+            # stock_bags below is floored at 0 for display, but the raw
+            # value is kept (stock_bags_raw) and logged so the
+            # inconsistency isn't silently invisible.
+            _LOGGER.warning(
+                "Stock incoherent pour la saison %s : %.2f sac(s) manquant(s) "
+                "(achats + stock initial ne couvrent pas les consommations "
+                "enregistrees) - verifiez les saisies de cette saison",
+                season,
+                -stock_bags_raw,
+            )
         return {
             "purchased_bags": purchased,
             "consumed_bags": consumed,
-            "stock_bags": max(stock_initial + purchased - consumed, 0),
+            "stock_bags": max(stock_bags_raw, 0),
+            "stock_bags_raw": round(stock_bags_raw, 2),
             "stock_initial_bags": stock_initial,
             "spent_eur": round(spent, 2),
             "days_logged": days,
