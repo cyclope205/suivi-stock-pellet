@@ -94,6 +94,8 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_history` | Liste des dernières saisies |
 | `show_comparison` | Comparaison avec la saison précédente à date égale |
 
+Les formulaires Achat/Consommation de la carte incluent aussi un champ "Saison" optionnel (AAAA-AAAA) pour rattacher la saisie à une saison différente de celle déduite de la date, et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
+
 Ou utilise directement les services :
 
 - `suivi_stock_pellet.log_consumption` (`qty_bags`, `date` facultative, `season` facultative pour forcer la saison de destination si elle diffère de celle déduite de la date)
