@@ -426,3 +426,55 @@ def test_stock_initial_manual_override_survives_even_when_emptied():
     # Manual override must stick even though the season has zero entries
     # and the previous season's stock later changed.
     assert journal.totals("2022-2023")["stock_initial_bags"] == 50
+
+
+def test_undo_last_prunes_empty_uncorrected_season():
+    journal = _make_journal()
+    run(journal.async_add_entry("2099-2100", "purchase", 5, "2099-09-05"))
+    assert "2099-2100" in journal.seasons()
+    run(journal.async_undo_last("2099-2100"))
+    assert "2099-2100" not in journal.seasons()
+
+
+def test_delete_entry_prunes_empty_uncorrected_season():
+    journal = _make_journal()
+    run(journal.async_add_entry("2099-2100", "consumption", 1, "2099-10-01"))
+    run(journal.async_delete_entry("2099-2100", 0))
+    assert "2099-2100" not in journal.seasons()
+
+
+def test_manually_corrected_season_survives_emptying():
+    journal = _make_journal()
+    run(journal.async_add_entry("2099-2100", "consumption", 1, "2099-10-01"))
+    run(journal.async_set_stock_initial("2099-2100", 10))
+    run(journal.async_delete_entry("2099-2100", 0))
+    assert "2099-2100" in journal.seasons()
+    assert journal.totals("2099-2100")["stock_initial_bags"] == 10
+
+
+def test_edit_entry_prunes_old_season_when_emptied_by_season_move():
+    journal = _make_journal()
+    run(journal.async_add_entry("2099-2100", "purchase", 5, "2099-09-05"))
+    run(
+        journal.async_edit_entry(
+            "2099-2100", 0, entry_date="2100-09-05", new_season="2100-2101"
+        )
+    )
+    assert "2099-2100" not in journal.seasons()
+    assert "2100-2101" in journal.seasons()
+
+
+def test_prune_empty_seasons_sweep_removes_junk_keeps_manual_and_populated():
+    journal = _make_journal()
+    run(journal.async_add_entry("2024-2025", "purchase", 5, "2024-09-05"))
+    run(journal.async_add_entry("2099-2100", "purchase", 1, "2099-09-05"))
+    run(journal.async_undo_last("2099-2100"))
+    # Simulate a pre-existing junk season from before auto-prune shipped:
+    # inject it directly into storage, bypassing the write paths.
+    journal._data["seasons"]["2100-2101"] = {"entries": [], "stock_initial": 0}
+    run(journal.async_set_stock_initial("2021-2022", 0))
+    run(journal.async_prune_empty_seasons())
+    seasons = journal.seasons()
+    assert "2024-2025" in seasons
+    assert "2021-2022" in seasons
+    assert "2100-2101" not in seasons
