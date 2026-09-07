@@ -15,8 +15,9 @@
  *   show_comparison:  true|false        Bloc comparaison a la saison precedente, a date egale
  *
  * Un sélecteur de saison est affiché dans l'en-tête (à droite du titre) :
- * il permet de consulter les tuiles, l'historique et le graphique mensuel
- * d'une saison passée. Les boutons de saisie (achat/consommation) restent
+ * il permet de consulter les tuiles, l'historique, le graphique mensuel et
+ * le bloc de comparaison d'une saison passée (comparée à la saison encore
+ * précédente, à date équivalente). Les boutons de saisie (achat/consommation) restent
  * visibles et actifs même sur ces saisons : ils s'appliquent toujours à la
  * date du jour (donc à la saison en cours), jamais à la saison affichée.
  *
@@ -289,6 +290,8 @@
         self._season = ev.target.value;
         self._seasonDataFetchedFor = null;
         self._refreshSelectedSeason();
+        self._comparisonFetchedAt = 0;
+        self._refreshComparison();
       });
       header.appendChild(titleWrap);
       header.appendChild(season);
@@ -813,11 +816,11 @@ return;
 	}
 	var now = Date.now();
 	if (!this._comparisonDirty && this._comparisonFetchedAt && now - this._comparisonFetchedAt < 15000) return;
-	if (!this._hass || !this._hass.connection || !this._els.comparison) return;
+	if (!this._hass || !this._hass.connection || !this._els.comparison || !this._season) return;
 	this._comparisonDirty = false;
 	this._comparisonPending = true;
 	this._hass.connection
-		.sendMessagePromise({ type: "suivi_stock_pellet/season_comparison" })
+		.sendMessagePromise({ type: "suivi_stock_pellet/season_comparison", season: this._season })
 		.then(function (result) {
 			self._comparisonPending = false;
 			self._comparisonFetchedAt = Date.now();
