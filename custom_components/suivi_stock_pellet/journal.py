@@ -216,19 +216,21 @@ class PelletJournal:
 
     def _prune_if_empty(self, season: str) -> None:
         """Remove a season's storage entry entirely once it has no
-        entries left and was never manually corrected via
-        async_set_stock_initial - an empty, uncorrected season is
-        indistinguishable from one that never existed, so there is no
-        reason to keep cluttering the season list with it. A manually
-        corrected season (e.g. a physical stock count) is intentional
-        and kept even if it currently has zero entries.
+        entries left and no meaningful manual correction either - an
+        empty season with no entries and no non-zero manually-set
+        stock_initial is indistinguishable from one that never existed,
+        so there is no reason to keep cluttering the season list with
+        it. A manual correction to a non-zero value (e.g. a physical
+        stock count for a season that hasn't started logging entries
+        yet) is intentional and kept even with zero entries; a manual
+        correction back to exactly 0 (e.g. undoing an earlier bad
+        carry-over) carries no more information than never having
+        touched the season at all, so it does not block pruning.
         """
         seasons = self._data.get("seasons", {})
         data = seasons.get(season)
-        if (
-            data is not None
-            and not data.get("entries")
-            and not data.get("stock_initial_manual")
+        if data is not None and not data.get("entries") and not (
+            data.get("stock_initial_manual") and data.get("stock_initial", 0.0) != 0
         ):
             del seasons[season]
 
@@ -243,7 +245,8 @@ class PelletJournal:
         to_remove = [
             s
             for s, data in seasons.items()
-            if not data.get("entries") and not data.get("stock_initial_manual")
+            if not data.get("entries")
+            and not (data.get("stock_initial_manual") and data.get("stock_initial", 0.0) != 0)
         ]
         if not to_remove:
             return
