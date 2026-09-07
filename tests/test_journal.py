@@ -398,3 +398,31 @@ def test_season_start_date_default_month():
 
 def test_season_start_date_custom_month():
     assert season_start_date("2025-2026", 3) == date(2025, 3, 1)
+
+
+def test_stock_initial_unfreezes_when_season_emptied_back_out():
+    # A season that was touched (an entry added, freezing its carried-over
+    # stock_initial) and then had that entry fully removed again must NOT
+    # keep serving the stale frozen value forever - once it is back to
+    # zero entries (and was never manually corrected), it should re-derive
+    # its carry-over live from whatever the previous season looks like now.
+    journal = _make_journal()
+    run(journal.async_add_entry("2021-2022", "purchase", 122, "2022-06-07"))
+    run(journal.async_add_entry("2022-2023", "consumption", 1, "2022-10-01"))
+    assert journal.totals("2022-2023")["stock_initial_bags"] == 122
+    run(journal.async_delete_entry("2022-2023", 0))
+    run(journal.async_delete_entry("2021-2022", 0))
+    assert journal.totals("2021-2022")["stock_bags"] == 0
+    assert journal.totals("2022-2023")["stock_initial_bags"] == 0
+
+
+def test_stock_initial_manual_override_survives_even_when_emptied():
+    journal = _make_journal()
+    run(journal.async_add_entry("2021-2022", "purchase", 122, "2022-06-07"))
+    run(journal.async_add_entry("2022-2023", "consumption", 1, "2022-10-01"))
+    run(journal.async_delete_entry("2022-2023", 0))
+    run(journal.async_set_stock_initial("2022-2023", 50))
+    run(journal.async_delete_entry("2021-2022", 0))
+    # Manual override must stick even though the season has zero entries
+    # and the previous season's stock later changed.
+    assert journal.totals("2022-2023")["stock_initial_bags"] == 50
