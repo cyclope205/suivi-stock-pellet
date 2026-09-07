@@ -1,6 +1,6 @@
 log_consumption:
   name: Enregistrer une consommation
-  description: Ajoute une entrée de consommation de granulés au journal. La saison est déterminée automatiquement à partir de la date (celle du jour par défaut, ou celle fournie).
+  description: Ajoute une entrée de consommation de granulés au journal. La saison est déterminée automatiquement à partir de la date (celle du jour par défaut, ou celle fournie), sauf si une saison est précisée explicitement.
   fields:
     qty_bags:
       name: Nombre de sacs
@@ -19,10 +19,17 @@ log_consumption:
       required: false
       selector:
         date: {}
+    season:
+      name: Saison
+      description: Force la saison de destination, au format AAAA-AAAA (ex. 2024-2025), si elle doit différer de celle déduite de la date (facultatif).
+      required: false
+      example: "2024-2025"
+      selector:
+        text: {}
 
 log_purchase:
   name: Enregistrer un achat
-  description: Ajoute une entrée d'achat de granulés au journal. La saison est déterminée automatiquement à partir de la date (celle du jour par défaut, ou celle fournie).
+  description: Ajoute une entrée d'achat de granulés au journal. La saison est déterminée automatiquement à partir de la date (celle du jour par défaut, ou celle fournie), sauf si une saison est précisée explicitement — utile pour un achat fait en avance pour la saison suivante (ex. achat en juin pour l'hiver qui commence en septembre).
   fields:
     qty_bags:
       name: Nombre de sacs
@@ -50,6 +57,13 @@ log_purchase:
       required: false
       selector:
         date: {}
+    season:
+      name: Saison
+      description: Force la saison de destination, au format AAAA-AAAA (ex. 2024-2025), si elle doit différer de celle déduite de la date (facultatif).
+      required: false
+      example: "2024-2025"
+      selector:
+        text: {}
 
 undo_last_entry:
   name: Annuler la dernière saisie
