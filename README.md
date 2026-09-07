@@ -44,6 +44,7 @@ Configurateur de carte:
 - Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et des boutons pour n'afficher que l'une des deux.
 - Graphique "Prix moyen du sac par saison" pour suivre l'évolution du coût des granulés d'une saison à l'autre.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
+- Stock initial d'une saison automatiquement repris du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service `set_stock_initial` (comptage physique, saison déjà entamée avant l'ajout de cette fonctionnalité...).
 - Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat", annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
 
 ## Installation
@@ -98,6 +99,7 @@ Ou utilise directement les services :
 - `suivi_stock_pellet.undo_last_entry`
 - `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier)
 - `suivi_stock_pellet.delete_entry` (`season`, `index`)
+- `suivi_stock_pellet.set_stock_initial` (`season`, `stock_initial_bags`) — définit ou corrige le stock de départ d'une saison
 
 ## Entités créées
 
