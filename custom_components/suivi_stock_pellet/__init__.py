@@ -78,13 +78,13 @@ UNDO_LAST_ENTRY_SCHEMA = vol.Schema(
         # "today" falls into (unchanged default behaviour) - passing an
         # explicit season lets this correct a historical season's journal
         # instead (e.g. fixing a backfill mistake).
-        vol.Optional("season"): str,
+        vol.Optional("season"): vol.Match(r"^\d{4}-\d{4}$"),
     }
 )
 
 EDIT_ENTRY_SCHEMA = vol.Schema(
     {
-        vol.Required("season"): str,
+        vol.Required("season"): vol.Match(r"^\d{4}-\d{4}$"),
         vol.Required(ATTR_INDEX): vol.Coerce(int),
         vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
@@ -94,14 +94,14 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
 
 DELETE_ENTRY_SCHEMA = vol.Schema(
     {
-        vol.Required("season"): str,
+        vol.Required("season"): vol.Match(r"^\d{4}-\d{4}$"),
         vol.Required(ATTR_INDEX): vol.Coerce(int),
     }
 )
 
 SET_STOCK_INITIAL_SCHEMA = vol.Schema(
     {
-        vol.Required("season"): str,
+        vol.Required("season"): vol.Match(r"^\d{4}-\d{4}$"),
         vol.Required(ATTR_STOCK_INITIAL_BAGS): vol.All(
             vol.Coerce(float), vol.Range(min=0)
         ),
