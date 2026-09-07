@@ -173,6 +173,7 @@ class PelletJournal:
         if not entries:
             return None
         removed = entries.pop()
+        self._prune_if_empty(season)
         await self._async_save()
         return removed
 
@@ -198,6 +199,7 @@ class PelletJournal:
         if new_season is not None and new_season != season:
             entries.pop(index)
             self._season_entries(new_season).append(entry)
+            self._prune_if_empty(season)
         await self._async_save()
         return entry
 
@@ -208,8 +210,46 @@ class PelletJournal:
         if index < 0 or index >= len(entries):
             return None
         removed = entries.pop(index)
+        self._prune_if_empty(season)
         await self._async_save()
         return removed
+
+    def _prune_if_empty(self, season: str) -> None:
+        """Remove a season's storage entry entirely once it has no
+        entries left and was never manually corrected via
+        async_set_stock_initial - an empty, uncorrected season is
+        indistinguishable from one that never existed, so there is no
+        reason to keep cluttering the season list with it. A manually
+        corrected season (e.g. a physical stock count) is intentional
+        and kept even if it currently has zero entries.
+        """
+        seasons = self._data.get("seasons", {})
+        data = seasons.get(season)
+        if (
+            data is not None
+            and not data.get("entries")
+            and not data.get("stock_initial_manual")
+        ):
+            del seasons[season]
+
+    async def async_prune_empty_seasons(self) -> None:
+        """One-shot sweep for already-empty, uncorrected seasons left
+        over in storage (e.g. from a season that was emptied out before
+        this auto-prune behavior existed). Safe to call on every
+        startup: a season that fails the prune condition is left
+        untouched.
+        """
+        seasons = self._data.get("seasons", {})
+        to_remove = [
+            s
+            for s, data in seasons.items()
+            if not data.get("entries") and not data.get("stock_initial_manual")
+        ]
+        if not to_remove:
+            return
+        for s in to_remove:
+            del seasons[s]
+        await self._async_save()
 
     async def async_set_stock_initial(self, season: str, value: float) -> None:
         """Manually (re)set a season's starting stock.
