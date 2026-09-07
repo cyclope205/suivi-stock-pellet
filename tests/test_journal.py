@@ -203,6 +203,41 @@ def test_carry_over_ignores_malformed_season_key():
     assert journal.totals("not-a-season")["stock_initial_bags"] == 0.0
 
 
+def test_totals_previews_carry_over_for_season_not_yet_created():
+    # A season that has never been touched yet must still show what it
+    # WOULD carry over from the previous season when read via totals() -
+    # otherwise a stock-sufficiency check on its very first entry always
+    # sees 0 before that season is actually created.
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05"))
+    totals = journal.totals("2026-2027")
+    assert totals["stock_initial_bags"] == 10
+    assert totals["stock_bags"] == 10
+    # Reading it must not have created/persisted the season as a side effect.
+    assert "2026-2027" not in journal.seasons()
+
+
+def test_totals_preview_uses_full_previous_season_not_as_of_date():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05"))
+    run(journal.async_add_entry("2025-2026", "consumption", 4, "2026-06-01"))
+    totals = journal.totals("2026-2027")
+    assert totals["stock_initial_bags"] == 6
+
+
+def test_consumption_stock_check_sees_carried_stock_before_season_exists():
+    # Regression test for a real reported bug: logging the very first
+    # consumption of a brand new season (before any purchase has been
+    # logged in that season) was rejected as "stock insufficient" even
+    # though pellets carried over from the previous season were
+    # available, because the stock check read totals() for a season
+    # that didn't exist in storage yet and saw stock_initial default to 0.
+    journal = _make_journal()
+    run(journal.async_add_entry("2022-2023", "purchase", 122, "2022-09-01", price_eur=658.80))
+    available = journal.totals("2023-2024", as_of_date="2023-10-15")["stock_bags"]
+    assert available == 122
+
+
 # --- as_of_date chronological filter (new behaviour) -------------------
 
 
