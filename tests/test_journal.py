@@ -460,6 +460,41 @@ def test_season_manually_reset_to_zero_is_pruned_when_emptied():
     assert "2099-2100" not in journal.seasons()
 
 
+def test_delete_entry_out_of_range_on_nonexistent_season_leaves_no_trace():
+    journal = _make_journal()
+    result = run(journal.async_delete_entry("9999-0000", 0))
+    assert result is None
+    assert "9999-0000" not in journal.seasons()
+
+
+def test_stale_duplicate_delete_after_season_already_emptied_does_not_recreate_it():
+    journal = _make_journal()
+    run(journal.async_add_entry("2099-2100", "purchase", 5, "2099-09-05"))
+    run(journal.async_add_entry("2099-2100", "consumption", 1, "2099-10-01"))
+    run(journal.async_delete_entry("2099-2100", 1))
+    run(journal.async_delete_entry("2099-2100", 0))
+    assert "2099-2100" not in journal.seasons()
+    # Simulates a UI that retried the same (now out-of-range) delete
+    # after the season had already been emptied and pruned.
+    result = run(journal.async_delete_entry("2099-2100", 0))
+    assert result is None
+    assert "2099-2100" not in journal.seasons()
+
+
+def test_edit_entry_out_of_range_on_nonexistent_season_leaves_no_trace():
+    journal = _make_journal()
+    result = run(journal.async_edit_entry("9999-0000", 0, qty_bags=5))
+    assert result is None
+    assert "9999-0000" not in journal.seasons()
+
+
+def test_undo_last_on_nonexistent_season_leaves_no_trace():
+    journal = _make_journal()
+    result = run(journal.async_undo_last("9999-0000"))
+    assert result is None
+    assert "9999-0000" not in journal.seasons()
+
+
 def test_edit_entry_prunes_old_season_when_emptied_by_season_move():
     journal = _make_journal()
     run(journal.async_add_entry("2099-2100", "purchase", 5, "2099-09-05"))
