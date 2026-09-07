@@ -171,6 +171,13 @@ class PelletJournal:
     async def async_undo_last(self, season: str) -> dict[str, Any] | None:
         entries = self._season_entries(season)
         if not entries:
+            # Merely reading _season_entries() above may have auto-
+            # vivified an empty season dict in storage (see _get_season)
+            # even though nothing was actually removed - prune it back
+            # out so a no-op undo can never leave a stray empty season
+            # behind.
+            self._prune_if_empty(season)
+            await self._async_save()
             return None
         removed = entries.pop()
         self._prune_if_empty(season)
@@ -188,6 +195,11 @@ class PelletJournal:
     ) -> dict[str, Any] | None:
         entries = self._season_entries(season)
         if index < 0 or index >= len(entries):
+            # Same auto-vivification concern as async_undo_last/
+            # async_delete_entry: an out-of-range edit must not leave a
+            # stray empty season behind.
+            self._prune_if_empty(season)
+            await self._async_save()
             return None
         entry = entries[index]
         if qty_bags is not None:
@@ -208,6 +220,14 @@ class PelletJournal:
     ) -> dict[str, Any] | None:
         entries = self._season_entries(season)
         if index < 0 or index >= len(entries):
+            # Merely reading _season_entries() above may have auto-
+            # vivified an empty season dict in storage (see _get_season)
+            # even though nothing was actually deleted - prune it back
+            # out so a stale/duplicate delete call (e.g. a UI that
+            # retried after the entry was already removed) can never
+            # leave a stray empty season behind.
+            self._prune_if_empty(season)
+            await self._async_save()
             return None
         removed = entries.pop(index)
         self._prune_if_empty(season)
