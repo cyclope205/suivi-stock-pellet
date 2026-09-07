@@ -810,6 +810,19 @@ return;
       if (!select) return;
       var self = this;
       var ordered = seasons.slice().sort().reverse();
+      if (this._season && ordered.indexOf(this._season) === -1) {
+        // The season currently being browsed has no entries yet (e.g. a
+        // past season with nothing logged, or a submission that just
+        // failed) and is therefore absent from the backend's seasons
+        // list. Without a matching <option>, "select.value = this._season"
+        // below silently no-ops and the browser falls back to showing the
+        // first option (the current season) - which looks like the
+        // selector jumped away from the season the user is on, even
+        // though _season itself never changed. Add a synthetic option so
+        // the visible selector always matches what is actually browsed.
+        ordered.push(this._season);
+        ordered.sort().reverse();
+      }
       select.innerHTML = "";
       ordered.forEach(function (s) {
         var opt = document.createElement("option");
