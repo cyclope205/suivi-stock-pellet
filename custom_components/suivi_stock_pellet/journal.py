@@ -119,8 +119,9 @@ class PelletJournal:
         creating anything.
         """
         seasons = self._data.get("seasons", {})
-        if season in seasons:
-            return seasons[season].get("stock_initial", 0.0)
+        data = seasons.get(season)
+        if data is not None and (data.get("entries") or data.get("stock_initial_manual")):
+            return data.get("stock_initial", 0.0)
         return self._carry_over_stock(season)
 
     def _carry_over_stock(self, season: str) -> float:
@@ -217,7 +218,9 @@ class PelletJournal:
         stock-carry-over feature shipped, or to correct the
         auto-carried value (e.g. a manual physical stock count).
         """
-        self._get_season(season)["stock_initial"] = value
+        season_data = self._get_season(season)
+        season_data["stock_initial"] = value
+        season_data["stock_initial_manual"] = True
         await self._async_save()
 
     def totals(
