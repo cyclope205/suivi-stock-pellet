@@ -122,11 +122,14 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
     result = {
         "current_season": season,
         "current_consumed_bags": current_totals["consumed_bags"],
+        "current_spent_eur": current_totals["spent_eur"],
         "previous_season": previous_season,
         "previous_consumed_bags": None,
+        "previous_spent_eur": None,
         "as_of_current": as_of_current.isoformat(),
         "as_of_previous": None,
         "pct_diff": None,
+        "eur_diff": None,
     }
 
     if previous_season in journal.seasons():
@@ -138,8 +141,11 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
             previous_season, as_of_date=as_of_previous.isoformat()
         )
         previous_consumed = previous_totals["consumed_bags"]
+        previous_spent = previous_totals["spent_eur"]
         result["previous_consumed_bags"] = previous_consumed
+        result["previous_spent_eur"] = previous_spent
         result["as_of_previous"] = as_of_previous.isoformat()
+        result["eur_diff"] = round(current_totals["spent_eur"] - previous_spent, 2)
         if previous_consumed:
             result["pct_diff"] = round(
                 (current_totals["consumed_bags"] - previous_consumed)
