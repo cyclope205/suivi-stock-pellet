@@ -1,7 +1,7 @@
 """Sensor platform for Suivi Stock Pellet."""
 from __future__ import annotations
 
-from datetime import date as date_cls
+from datetime import date as date_cls, datetime
 import logging
 
 from homeassistant.components.sensor import (
@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_BAG_WEIGHT_KG,
@@ -75,6 +76,22 @@ class _BasePelletSensor(SensorEntity):
         return season_for_date(date_cls.today(), start_month)
 
     @property
+    def _season_start(self) -> datetime:
+        """Start of the current season, as a tz-aware local midnight.
+
+        Used as `last_reset` by the TOTAL-class accumulator sensors, so
+        Home Assistant's long-term statistics correctly zero out at each
+        season boundary instead of guessing from value decreases (which
+        can also happen mid-season from a historical entry correction,
+        not just a real season reset).
+        """
+        start_month = self._entry.options.get(
+            CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH
+        )
+        year_start = int(self._season.split("-")[0])
+        return dt_util.start_of_local_day(date_cls(year_start, start_month, 1))
+
+    @property
     def _bag_weight(self) -> float:
         return self._entry.options.get(CONF_BAG_WEIGHT_KG, DEFAULT_BAG_WEIGHT_KG)
 
@@ -132,11 +149,15 @@ class PelletStockSensor(_BasePelletSensor):
 class PelletConsumedKgSensor(_BasePelletSensor):
     _attr_icon = "mdi:fire"
     _attr_native_unit_of_measurement = "kg"
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_state_class = SensorStateClass.TOTAL
     _attr_suggested_display_precision = 1
 
     def __init__(self, entry: ConfigEntry, journal: PelletJournal) -> None:
         super().__init__(entry, journal, "consomme_kg", "Consommé")
+
+    @property
+    def last_reset(self) -> datetime:
+        return self._season_start
 
     @property
     def native_value(self) -> float:
@@ -159,11 +180,15 @@ class PelletConsumedEnergySensor(_BasePelletSensor):
     _attr_icon = "mdi:lightning-bolt"
     _attr_native_unit_of_measurement = "kWh"
     _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_state_class = SensorStateClass.TOTAL
     _attr_suggested_display_precision = 1
 
     def __init__(self, entry: ConfigEntry, journal: PelletJournal) -> None:
         super().__init__(entry, journal, "consomme_kwh", "Énergie consommée")
+
+    @property
+    def last_reset(self) -> datetime:
+        return self._season_start
 
     @property
     def native_value(self) -> float:
@@ -189,11 +214,15 @@ class PelletConsumedEnergySensor(_BasePelletSensor):
 class PelletPurchasedSensor(_BasePelletSensor):
     _attr_icon = "mdi:truck-delivery"
     _attr_native_unit_of_measurement = "kg"
-    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_state_class = SensorStateClass.TOTAL
     _attr_suggested_display_precision = 1
 
     def __init__(self, entry: ConfigEntry, journal: PelletJournal) -> None:
         super().__init__(entry, journal, "achete_kg", "Acheté")
+
+    @property
+    def last_reset(self) -> datetime:
+        return self._season_start
 
     @property
     def native_value(self) -> float:
