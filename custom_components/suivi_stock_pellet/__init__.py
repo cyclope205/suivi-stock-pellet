@@ -161,7 +161,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
         season = season_for_date(entry_date, _start_month())
         await journal.async_add_entry(
-            season, ENTRY_TYPE_PURCHASE, qty, entry_date.isoformat(), price_eur=price
+            season,
+            ENTRY_TYPE_PURCHASE,
+            qty,
+            entry_date.isoformat(),
+            price_eur=price,
+            bag_weight_kg=_bag_weight(),
         )
         _notify()
 
