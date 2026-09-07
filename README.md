@@ -36,11 +36,12 @@ Configurateur de carte:
 ## Fonctionnalités
 
 - Suivi du stock en temps réel (kg et sacs), calculé à partir d'un journal d'achats/consommations — jamais de compteur qui dérive.
-- Capteur d'énergie consommée en kWh (`device_class: energy`, `state_class: total_increasing`) compatible avec le tableau de bord Énergie de Home Assistant, comme source "Gaz/Autre".
+- Capteur d'énergie consommée en kWh (`device_class: energy`, `state_class: total` avec réinitialisation au début de chaque saison) compatible avec le tableau de bord Énergie de Home Assistant, comme source "Gaz/Autre".
 - Suivi des dépenses (€) et du nombre de jours d'utilisation, par saison de chauffe, avec tuiles de coût dérivées (coût / jour, coût / mois, coût du sac).
 - Saisons calculées automatiquement à partir d'un mois de départ configurable (pas d'années codées en dur à ajouter chaque année).
 - Historique conservé indéfiniment : aucune saison n'est jamais supprimée ou écrasée au changement de saison, chaque saison passée reste consultable (tuiles, historique, graphiques) via le sélecteur de saison.
 - Sélecteur de saison dans l'en-tête de la carte : consulte les tuiles, l'historique et le graphique mensuel de n'importe quelle saison passée (les saisies restent verrouillées sur la saison en cours).
+- Comparaison saison précédente à date égale : affiche la consommation de la saison en cours face à celle de la saison précédente au même nombre de jours écoulés depuis le début de saison, avec un badge en pourcentage (masquable via `show_comparison`).
 - Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et des boutons pour n'afficher que l'une des deux.
 - Graphique "Prix moyen du sac par saison" pour suivre l'évolution du coût des granulés d'une saison à l'autre.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
@@ -91,6 +92,7 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
 | `show_price_chart` | Graphique "Prix moyen du sac par saison" |
 | `show_history` | Liste des dernières saisies |
+| `show_comparison` | Comparaison avec la saison précédente à date égale |
 
 Ou utilise directement les services :
 
