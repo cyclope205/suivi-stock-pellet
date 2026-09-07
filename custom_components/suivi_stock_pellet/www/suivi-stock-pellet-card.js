@@ -122,7 +122,10 @@
 ".comparison-sub { font-size: 0.72em; opacity: 0.7; margin-top: 1px; }",
 ".comparison-badge { flex: 0 0 auto; font-size: 0.85em; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--divider-color, rgba(127,127,127,0.2)); }",
 ".comparison-badge.up { background: rgba(239, 83, 80, 0.18); color: rgb(239, 83, 80); }",
-".comparison-badge.down { background: rgba(102, 187, 106, 0.18); color: rgb(102, 187, 106); }"
+".comparison-badge.down { background: rgba(102, 187, 106, 0.18); color: rgb(102, 187, 106); }",
+    ".comparison-euro { font-size: 0.72em; opacity: 0.8; margin-top: 2px; font-weight: 600; }",
+    ".comparison-euro.up { color: rgb(239, 83, 80); }",
+    ".comparison-euro.down { color: rgb(102, 187, 106); }"
   ].join("\n");
 
   var EDITOR_STYLE = [
@@ -336,6 +339,9 @@
 	comparisonSub.className = "comparison-sub";
 	comparisonText.appendChild(comparisonMain);
 	comparisonText.appendChild(comparisonSub);
+	var comparisonEuro = document.createElement("div");
+	comparisonEuro.className = "comparison-euro";
+	comparisonText.appendChild(comparisonEuro);
 	var comparisonBadge = document.createElement("div");
 	comparisonBadge.className = "comparison-badge";
 	comparison.appendChild(comparisonIconWrap);
@@ -345,6 +351,7 @@
 	els.comparison = comparison;
 	els.comparisonMain = comparisonMain;
 	els.comparisonSub = comparisonSub;
+	els.comparisonEuro = comparisonEuro;
 	els.comparisonBadge = comparisonBadge;
 }
 
@@ -879,11 +886,25 @@ _renderComparison(result) {
 		els.comparisonSub.textContent = "Pas de saison précédente pour comparer à date égale.";
 		els.comparisonBadge.textContent = "";
 		els.comparisonBadge.className = "comparison-badge";
+		els.comparisonEuro.textContent = "";
 		return;
 	}
 
 	els.comparisonMain.textContent = fmt(current, 1) + " sac(s) vs " + fmt(previous, 1) + " l'an dernier";
 	els.comparisonSub.textContent = "à la même date (saison " + result.previous_season + ")";
+
+	var currentEur = result.current_spent_eur;
+	var previousEur = result.previous_spent_eur;
+	if (previousEur === null || previousEur === undefined) {
+		els.comparisonEuro.textContent = "";
+	} else {
+		var eurDiff = result.eur_diff;
+		var eurSign = eurDiff > 0 ? "+" : "";
+		els.comparisonEuro.textContent =
+			fmt(currentEur, 2) + " € vs " + fmt(previousEur, 2) + " € l'an dernier (" + eurSign + fmt(eurDiff, 2) + " €)";
+		els.comparisonEuro.className =
+			"comparison-euro " + (eurDiff > 0 ? "up" : eurDiff < 0 ? "down" : "");
+	}
 
 	if (pct === null || pct === undefined) {
 		els.comparisonBadge.textContent = "";
