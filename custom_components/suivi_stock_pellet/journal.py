@@ -61,6 +61,17 @@ def season_for_date(d: date, season_start_month: int) -> str:
     return f"{d.year - 1}-{d.year}"
 
 
+def previous_season_key(season: str) -> str:
+    """Return the season key immediately preceding the given one (e.g. '2024-2025' -> '2023-2024')."""
+    year_start, year_end = (int(part) for part in season.split("-"))
+    return f"{year_start - 1}-{year_end - 1}"
+
+
+def season_start_date(season: str, season_start_month: int) -> date:
+    """Return the calendar date a season key (e.g. '2025-2026') starts on."""
+    year_start = int(season.split("-")[0])
+    return date(year_start, season_start_month, 1)
+
 class PelletJournal:
     """Owns the persisted journal and exposes computed season totals."""
 
