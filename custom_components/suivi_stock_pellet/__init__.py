@@ -61,6 +61,7 @@ LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_DATE): cv.date,
+        vol.Optional("season"): vol.Match(r"^\d{4}-\d{4}$"),
     }
 )
 
@@ -69,6 +70,7 @@ LOG_PURCHASE_SCHEMA = vol.Schema(
         vol.Required(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
+        vol.Optional("season"): vol.Match(r"^\d{4}-\d{4}$"),
     }
 )
 
@@ -134,7 +136,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _handle_log_consumption(call: ServiceCall) -> None:
         qty = call.data[ATTR_QTY_BAGS]
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
-        season = season_for_date(entry_date, _start_month())
+        season = call.data.get("season") or season_for_date(
+            entry_date, _start_month()
+        )
         current_stock = journal.totals(season, as_of_date=entry_date.isoformat())[
             "stock_bags"
         ]
@@ -159,7 +163,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if price is None:
             price = entry.options.get(CONF_BAG_PRICE, DEFAULT_BAG_PRICE) * qty
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
-        season = season_for_date(entry_date, _start_month())
+        season = call.data.get("season") or season_for_date(
+            entry_date, _start_month()
+        )
         await journal.async_add_entry(
             season,
             ENTRY_TYPE_PURCHASE,
