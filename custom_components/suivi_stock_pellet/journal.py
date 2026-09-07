@@ -98,9 +98,30 @@ class PelletJournal:
         if season not in seasons:
             seasons[season] = {
                 "entries": [],
-                "stock_initial": self._carry_over_stock(season),
+                "stock_initial": self._effective_stock_initial(season),
             }
         return seasons[season]
+
+    def _effective_stock_initial(self, season: str) -> float:
+        """Stock a season starts with, including a preview for seasons
+        that don't exist in storage yet.
+
+        A season's stock_initial is only computed and persisted the
+        first time it's touched (via _get_season). But a stock-
+        sufficiency check for the very first entry about to be logged in
+        a brand new season needs to see that value BEFORE the season is
+        created - otherwise it always sees 0 and incorrectly rejects a
+        legitimate consumption that should inherit stock carried over
+        from the previous season (a real reported bug: backfilling
+        history season-by-season hit this on the first consumption of a
+        season that hadn't had a purchase logged in it yet). This mirrors
+        _carry_over_stock's read-only preview without persisting or
+        creating anything.
+        """
+        seasons = self._data.get("seasons", {})
+        if season in seasons:
+            return seasons[season].get("stock_initial", 0.0)
+        return self._carry_over_stock(season)
 
     def _carry_over_stock(self, season: str) -> float:
         """Auto-carry the previous season's leftover stock into a brand
@@ -210,7 +231,7 @@ class PelletJournal:
         entries = season_data.get("entries", [])
         if as_of_date is not None:
             entries = [e for e in entries if e["date"] <= as_of_date]
-        stock_initial = season_data.get("stock_initial", 0.0)
+        stock_initial = self._effective_stock_initial(season)
         purchased = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
         consumed = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         spent = sum(
