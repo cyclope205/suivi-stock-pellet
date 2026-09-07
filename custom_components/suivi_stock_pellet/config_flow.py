@@ -22,11 +22,15 @@ from .const import (
 
 USER_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_BAG_WEIGHT_KG, default=DEFAULT_BAG_WEIGHT_KG): vol.Coerce(float),
-        vol.Required(CONF_BAG_PRICE, default=DEFAULT_BAG_PRICE): vol.Coerce(float),
+        vol.Required(CONF_BAG_WEIGHT_KG, default=DEFAULT_BAG_WEIGHT_KG): vol.All(
+            vol.Coerce(float), vol.Range(min=0.1)
+        ),
+        vol.Required(CONF_BAG_PRICE, default=DEFAULT_BAG_PRICE): vol.All(
+            vol.Coerce(float), vol.Range(min=0)
+        ),
         vol.Required(
             CONF_CALORIFIC_VALUE, default=DEFAULT_CALORIFIC_VALUE
-        ): vol.Coerce(float),
+        ): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
         vol.Required(
             CONF_SEASON_START_MONTH, default=DEFAULT_SEASON_START_MONTH
         ): vol.All(vol.Coerce(int), vol.Range(min=1, max=12)),
@@ -69,15 +73,15 @@ class SuiviStockPelletOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_BAG_WEIGHT_KG,
                     default=current.get(CONF_BAG_WEIGHT_KG, DEFAULT_BAG_WEIGHT_KG),
-                ): vol.Coerce(float),
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
                 vol.Required(
                     CONF_BAG_PRICE,
                     default=current.get(CONF_BAG_PRICE, DEFAULT_BAG_PRICE),
-                ): vol.Coerce(float),
+                ): vol.All(vol.Coerce(float), vol.Range(min=0)),
                 vol.Required(
                     CONF_CALORIFIC_VALUE,
                     default=current.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE),
-                ): vol.Coerce(float),
+                ): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
                 vol.Required(
                     CONF_SEASON_START_MONTH,
                     default=current.get(
