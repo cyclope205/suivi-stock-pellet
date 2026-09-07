@@ -115,6 +115,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Suivi Stock Pellet from a config entry."""
     journal = PelletJournal(hass, entry.entry_id)
     await journal.async_load()
+    await journal.async_prune_empty_seasons()
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = journal
