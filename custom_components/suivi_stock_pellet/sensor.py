@@ -108,8 +108,10 @@ class PelletStockSensor(_BasePelletSensor):
 
     @property
     def native_value(self) -> float:
-        totals = self._journal.totals(self._season)
-        return round(totals["stock_bags"] * self._bag_weight, 1)
+        totals = self._journal.totals(
+            self._season, default_bag_weight_kg=self._bag_weight
+        )
+        return round(totals["stock_kg"], 1)
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -195,8 +197,10 @@ class PelletPurchasedSensor(_BasePelletSensor):
 
     @property
     def native_value(self) -> float:
-        totals = self._journal.totals(self._season)
-        return round(totals["purchased_bags"] * self._bag_weight, 1)
+        totals = self._journal.totals(
+            self._season, default_bag_weight_kg=self._bag_weight
+        )
+        return round(totals["purchased_kg"], 1)
 
     @property
     def extra_state_attributes(self) -> dict:
