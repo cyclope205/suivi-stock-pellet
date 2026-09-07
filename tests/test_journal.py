@@ -13,7 +13,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.suivi_stock_pellet.journal import PelletJournal, season_for_date
+from custom_components.suivi_stock_pellet.journal import (
+    PelletJournal,
+    previous_season_key,
+    season_for_date,
+    season_start_date,
+)
 
 
 def run(coro):
@@ -339,3 +344,22 @@ def test_seasons_returns_sorted_season_keys():
     run(journal.async_add_entry("2026-2027", "purchase", 1, "2026-09-05"))
     run(journal.async_add_entry("2024-2025", "purchase", 1, "2024-09-05"))
     assert journal.seasons() == ["2024-2025", "2026-2027"]
+
+
+# --- previous_season_key / season_start_date ---------------------------
+
+
+def test_previous_season_key_basic():
+    assert previous_season_key("2025-2026") == "2024-2025"
+
+
+def test_previous_season_key_year_boundary():
+    assert previous_season_key("2026-2027") == "2025-2026"
+
+
+def test_season_start_date_default_month():
+    assert season_start_date("2025-2026", 9) == date(2025, 9, 1)
+
+
+def test_season_start_date_custom_month():
+    assert season_start_date("2025-2026", 3) == date(2025, 3, 1)
