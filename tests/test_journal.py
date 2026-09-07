@@ -452,6 +452,14 @@ def test_manually_corrected_season_survives_emptying():
     assert journal.totals("2099-2100")["stock_initial_bags"] == 10
 
 
+def test_season_manually_reset_to_zero_is_pruned_when_emptied():
+    journal = _make_journal()
+    run(journal.async_add_entry("2099-2100", "consumption", 1, "2099-10-01"))
+    run(journal.async_set_stock_initial("2099-2100", 0))
+    run(journal.async_delete_entry("2099-2100", 0))
+    assert "2099-2100" not in journal.seasons()
+
+
 def test_edit_entry_prunes_old_season_when_emptied_by_season_move():
     journal = _make_journal()
     run(journal.async_add_entry("2099-2100", "purchase", 5, "2099-09-05"))
