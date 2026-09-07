@@ -206,6 +206,11 @@ class PelletJournal:
             for e in entries
             if e["type"] == ENTRY_TYPE_CONSUMPTION
         )
+        purchased_kg = sum(
+            e["qty_bags"] * (e.get("bag_weight_kg") or default_bag_weight_kg)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_PURCHASE
+        )
         consumed_kwh = sum(
             e["qty_bags"]
             * (e.get("bag_weight_kg") or default_bag_weight_kg)
@@ -214,6 +219,14 @@ class PelletJournal:
             if e["type"] == ENTRY_TYPE_CONSUMPTION
         )
         days = _heating_days(entries)
+        # stock_initial has no per-entry weight snapshot of its own (it is
+        # a manual starting bag count, not a logged purchase), so its kg
+        # contribution necessarily uses the current configured bag weight;
+        # only the purchased/consumed portions are pinned to their own
+        # historical weight snapshots.
+        stock_kg = max(
+            stock_initial * default_bag_weight_kg + purchased_kg - consumed_kg, 0
+        )
         return {
             "purchased_bags": purchased,
             "consumed_bags": consumed,
@@ -222,6 +235,8 @@ class PelletJournal:
             "spent_eur": round(spent, 2),
             "days_logged": days,
             "consumed_kg": round(consumed_kg, 2),
+            "purchased_kg": round(purchased_kg, 2),
+            "stock_kg": round(stock_kg, 2),
             "consumed_kwh": round(consumed_kwh, 2),
         }
 
