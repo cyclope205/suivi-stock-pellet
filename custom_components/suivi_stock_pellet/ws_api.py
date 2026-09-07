@@ -83,7 +83,10 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): "suivi_stock_pellet/season_comparison"}
+    {
+        vol.Required("type"): "suivi_stock_pellet/season_comparison",
+        vol.Optional("season"): str,
+    }
 )
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -101,22 +104,33 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
         else DEFAULT_SEASON_START_MONTH
     )
     today = date_cls.today()
-    current_season = season_for_date(today, start_month)
-    previous_season = previous_season_key(current_season)
+    real_current_season = season_for_date(today, start_month)
+    season = msg.get("season") or real_current_season
+    previous_season = previous_season_key(season)
 
-    current_totals = journal.totals(current_season, as_of_date=today.isoformat())
+    if season == real_current_season:
+        as_of_current = today
+    else:
+        entry_dates = [e["date"] for e in journal.entries(season)]
+        as_of_current = (
+            date_cls.fromisoformat(max(entry_dates))
+            if entry_dates
+            else season_start_date(season, start_month)
+        )
+
+    current_totals = journal.totals(season, as_of_date=as_of_current.isoformat())
     result = {
-        "current_season": current_season,
+        "current_season": season,
         "current_consumed_bags": current_totals["consumed_bags"],
         "previous_season": previous_season,
         "previous_consumed_bags": None,
-        "as_of_current": today.isoformat(),
+        "as_of_current": as_of_current.isoformat(),
         "as_of_previous": None,
         "pct_diff": None,
     }
 
     if previous_season in journal.seasons():
-        days_elapsed = (today - season_start_date(current_season, start_month)).days
+        days_elapsed = (as_of_current - season_start_date(season, start_month)).days
         as_of_previous = season_start_date(previous_season, start_month) + timedelta(
             days=days_elapsed
         )
