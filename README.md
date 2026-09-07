@@ -96,8 +96,8 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 
 Ou utilise directement les services :
 
-- `suivi_stock_pellet.log_consumption` (`qty_bags`, `date` facultative)
-- `suivi_stock_pellet.log_purchase` (`qty_bags`, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative)
+- `suivi_stock_pellet.log_consumption` (`qty_bags`, `date` facultative, `season` facultative pour forcer la saison de destination si elle diffère de celle déduite de la date)
+- `suivi_stock_pellet.log_purchase` (`qty_bags`, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative, `season` facultative — utile pour un achat fait à l'avance pour la saison suivante, ex. achat en juin pour l'hiver qui commence en septembre)
 - `suivi_stock_pellet.undo_last_entry`
 - `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier)
 - `suivi_stock_pellet.delete_entry` (`season`, `index`)
