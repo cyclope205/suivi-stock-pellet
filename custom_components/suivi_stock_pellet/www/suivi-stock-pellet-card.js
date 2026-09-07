@@ -546,6 +546,7 @@ els.btnConso = btnConso;
       el.appendChild(row1);
 
       var priceInput = null;
+      var totalPriceInput = null;
       if (kind === "purchase") {
         var priceWrap = document.createElement("div");
         var priceLabel = document.createElement("label");
@@ -557,7 +558,28 @@ els.btnConso = btnConso;
         priceWrap.appendChild(priceLabel);
         priceWrap.appendChild(priceInput);
         el.appendChild(priceWrap);
+
+        var totalPriceWrap = document.createElement("div");
+        var totalPriceLabel = document.createElement("label");
+        totalPriceLabel.textContent = "OU prix total du bon de livraison (€, remplace le prix par sac)";
+        totalPriceInput = document.createElement("input");
+        totalPriceInput.type = "number";
+        totalPriceInput.step = "0.01";
+        totalPriceInput.min = "0";
+        totalPriceWrap.appendChild(totalPriceLabel);
+        totalPriceWrap.appendChild(totalPriceInput);
+        el.appendChild(totalPriceWrap);
       }
+
+      var seasonWrap = document.createElement("div");
+      var seasonLabel = document.createElement("label");
+      seasonLabel.textContent = "Saison (optionnel, ex: 2022-2023 — pour rattacher cette saisie à une saison différente de celle de la date)";
+      var seasonInput = document.createElement("input");
+      seasonInput.type = "text";
+      seasonInput.placeholder = "AAAA-AAAA";
+      seasonWrap.appendChild(seasonLabel);
+      seasonWrap.appendChild(seasonInput);
+      el.appendChild(seasonWrap);
 
       var formActions = document.createElement("div");
       formActions.className = "form-actions";
@@ -571,7 +593,12 @@ els.btnConso = btnConso;
       submitBtn.addEventListener("click", function () {
         var qty = parseFloat(qtyInput.value);
         if (!qty || qty <= 0) return;
-var formSeason = self._seasonForDate(dateInput.value);
+        var seasonOverride = seasonInput.value.trim();
+        if (seasonOverride && !/^\d{4}-\d{4}$/.test(seasonOverride)) {
+          alert("Format de saison invalide (attendu AAAA-AAAA).");
+          return;
+        }
+        var formSeason = seasonOverride || self._seasonForDate(dateInput.value);
         var seasonMatchesDisplayed = formSeason === self._season;
         if (
           kind !== "purchase" &&
@@ -583,8 +610,11 @@ alert("Stock à 0 : impossible d'enregistrer une consommation.");
 return;
 }
         var data = { qty_bags: qty, date: dateInput.value };
+        if (seasonOverride) data.season = seasonOverride;
         if (kind === "purchase") {
-          if (priceInput.value) {
+          if (totalPriceInput && totalPriceInput.value) {
+            data.price_eur = parseFloat(totalPriceInput.value);
+          } else if (priceInput.value) {
             data.price_eur = parseFloat(priceInput.value) * qty;
           } else if (seasonMatchesDisplayed && self._currentAvgPricePerBag) {
             data.price_eur = self._currentAvgPricePerBag * qty;
@@ -601,6 +631,8 @@ return;
         qtyInput.value = "1";
         dateInput.value = todayIso();
         if (priceInput) priceInput.value = "";
+        if (totalPriceInput) totalPriceInput.value = "";
+        seasonInput.value = "";
       });
 
       return { el: el };
