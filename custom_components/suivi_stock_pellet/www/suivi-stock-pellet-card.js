@@ -12,6 +12,7 @@
  *   show_monthly_chart: true|false  Graphique "Évolution de la consommation"
  *   show_price_chart: true|false    Graphique "Prix moyen du sac par saison"
  *   show_history: true|false        Liste "Dernières saisies"
+ *   show_comparison:  true|false        Bloc comparaison a la saison precedente, a date egale
  *
  * Un sélecteur de saison est affiché dans l'en-tête (à droite du titre) :
  * il permet de consulter les tuiles, l'historique et le graphique mensuel
@@ -111,7 +112,16 @@
 ".history-edit-form-actions button ha-icon { --mdc-icon-size: 16px; display: block; }",
     ".history-delete-btn { background: rgba(239, 83, 80, 0.15) !important; color: rgb(239, 83, 80) !important; }",
     ".history-delete-btn.confirm { background: rgb(239, 83, 80) !important; color: #fff !important; }",
-".actions button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }"
+".actions button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }",
+".comparison { display: flex; align-items: center; gap: 12px; margin: -4px 0 16px; padding: 10px 12px; border-radius: 12px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); }",
+".comparison-icon { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(66,165,245,0.18); }",
+".comparison-icon ha-icon { --mdc-icon-size: 16px; color: rgb(66,165,245); }",
+".comparison-text { flex: 1; min-width: 0; }",
+".comparison-main { font-size: 0.88em; font-weight: 700; }",
+".comparison-sub { font-size: 0.72em; opacity: 0.7; margin-top: 1px; }",
+".comparison-badge { flex: 0 0 auto; font-size: 0.85em; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--divider-color, rgba(127,127,127,0.2)); }",
+".comparison-badge.up { background: rgba(239, 83, 80, 0.18); color: rgb(239, 83, 80); }",
+".comparison-badge.down { background: rgba(102, 187, 106, 0.18); color: rgb(102, 187, 106); }"
   ].join("\n");
 
   var EDITOR_STYLE = [
@@ -147,6 +157,7 @@
     show_stats: true,
     show_cost_stats: true,
     show_actions: true,
+			show_comparison: true,
     show_monthly_chart: true,
     show_price_chart: true,
     show_history: true
@@ -156,6 +167,7 @@
     { key: "show_stats", label: "Tuiles consommé / énergie / dépensé / jours" },
     { key: "show_cost_stats", label: "Tuiles coût / jour, coût / mois, coût du sac" },
     { key: "show_actions", label: "Boutons et formulaires de saisie" },
+		{ key: "show_comparison", label: "Comparaison saison précédente à date égale" },
     { key: "show_monthly_chart", label: "Graphique évolution de la consommation" },
     { key: "show_price_chart", label: "Graphique prix moyen du sac par saison" },
     { key: "show_history", label: "Liste des dernières saisies" }
@@ -307,7 +319,33 @@
         stockSub: stockSub
       };
 
-      function addStat(container, label, iconName, color) {
+      if (cfg.show_comparison) {
+	var comparison = document.createElement("div");
+	comparison.className = "comparison";
+	var comparisonIconWrap = document.createElement("div");
+	comparisonIconWrap.className = "comparison-icon";
+	comparisonIconWrap.appendChild(icon("mdi:swap-vertical-bold"));
+	var comparisonText = document.createElement("div");
+	comparisonText.className = "comparison-text";
+	var comparisonMain = document.createElement("div");
+	comparisonMain.className = "comparison-main";
+	var comparisonSub = document.createElement("div");
+	comparisonSub.className = "comparison-sub";
+	comparisonText.appendChild(comparisonMain);
+	comparisonText.appendChild(comparisonSub);
+	var comparisonBadge = document.createElement("div");
+	comparisonBadge.className = "comparison-badge";
+	comparison.appendChild(comparisonIconWrap);
+	comparison.appendChild(comparisonText);
+	comparison.appendChild(comparisonBadge);
+	card.appendChild(comparison);
+	els.comparison = comparison;
+	els.comparisonMain = comparisonMain;
+	els.comparisonSub = comparisonSub;
+	els.comparisonBadge = comparisonBadge;
+}
+
+		function addStat(container, label, iconName, color) {
         var stat = document.createElement("div");
         stat.className = "stat";
         stat.appendChild(badge(iconName, color));
@@ -595,6 +633,9 @@ return;
       this._refreshSelectedSeason();
       if (cfg.show_price_chart) {
         this._refreshSeasonsSummary();
+		}
+		if (cfg.show_comparison) {
+			this._refreshComparison();
       }
     }
 
@@ -764,7 +805,62 @@ return;
         });
     }
 
-    _renderHistory(entries) {
+    _refreshComparison() {
+	var self = this;
+	if (this._comparisonPending) {
+		this._comparisonDirty = true;
+		return;
+	}
+	var now = Date.now();
+	if (!this._comparisonDirty && this._comparisonFetchedAt && now - this._comparisonFetchedAt < 15000) return;
+	if (!this._hass || !this._hass.connection || !this._els.comparison) return;
+	this._comparisonDirty = false;
+	this._comparisonPending = true;
+	this._hass.connection
+		.sendMessagePromise({ type: "suivi_stock_pellet/season_comparison" })
+		.then(function (result) {
+			self._comparisonPending = false;
+			self._comparisonFetchedAt = Date.now();
+			self._renderComparison(result);
+			if (self._comparisonDirty) {
+				self._comparisonDirty = false;
+				self._refreshComparison();
+			}
+		})
+		.catch(function () {
+			self._comparisonPending = false;
+		});
+}
+
+_renderComparison(result) {
+	var els = this._els;
+	if (!els.comparison) return;
+	var current = result.current_consumed_bags;
+	var previous = result.previous_consumed_bags;
+	var pct = result.pct_diff;
+
+	if (previous === null || previous === undefined) {
+		els.comparisonMain.textContent = fmt(current, 1) + " sac(s) consommé(s)";
+		els.comparisonSub.textContent = "Pas de saison précédente pour comparer à date égale.";
+		els.comparisonBadge.textContent = "";
+		els.comparisonBadge.className = "comparison-badge";
+		return;
+	}
+
+	els.comparisonMain.textContent = fmt(current, 1) + " sac(s) vs " + fmt(previous, 1) + " l'an dernier";
+	els.comparisonSub.textContent = "à la même date (saison " + result.previous_season + ")";
+
+	if (pct === null || pct === undefined) {
+		els.comparisonBadge.textContent = "";
+		els.comparisonBadge.className = "comparison-badge";
+	} else {
+		var sign = pct > 0 ? "+" : "";
+		els.comparisonBadge.textContent = sign + fmt(pct, 1) + " %";
+		els.comparisonBadge.className = "comparison-badge " + (pct > 0 ? "up" : pct < 0 ? "down" : "");
+	}
+}
+
+	_renderHistory(entries) {
       var self = this;
       var list = this._els.historyList;
       list.innerHTML = "";
