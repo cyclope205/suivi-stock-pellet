@@ -1,7 +1,7 @@
 """WebSocket API exposing the pellet journal to the Lovelace card."""
 from __future__ import annotations
 
-from datetime import date as date_cls
+from datetime import date as date_cls, timedelta
 
 import voluptuous as vol
 
@@ -9,7 +9,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH, DOMAIN
-from .journal import season_for_date
+from .journal import previous_season_key, season_for_date, season_start_date
 
 
 @websocket_api.websocket_command(
@@ -82,6 +82,60 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
     connection.send_result(msg["id"], {"seasons": summary})
 
 
+@websocket_api.websocket_command(
+    {vol.Required("type"): "suivi_stock_pellet/season_comparison"}
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> None:
+    stored = list(hass.data.get(DOMAIN, {}).items())
+    if not stored:
+        connection.send_error(msg["id"], "not_found", "Integration not set up")
+        return
+
+    entry_id, journal = stored[0]
+    config_entry = hass.config_entries.async_get_entry(entry_id)
+    start_month = (
+        config_entry.options.get(CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH)
+        if config_entry
+        else DEFAULT_SEASON_START_MONTH
+    )
+    today = date_cls.today()
+    current_season = season_for_date(today, start_month)
+    previous_season = previous_season_key(current_season)
+
+    current_totals = journal.totals(current_season, as_of_date=today.isoformat())
+    result = {
+        "current_season": current_season,
+        "current_consumed_bags": current_totals["consumed_bags"],
+        "previous_season": previous_season,
+        "previous_consumed_bags": None,
+        "as_of_current": today.isoformat(),
+        "as_of_previous": None,
+        "pct_diff": None,
+    }
+
+    if previous_season in journal.seasons():
+        days_elapsed = (today - season_start_date(current_season, start_month)).days
+        as_of_previous = season_start_date(previous_season, start_month) + timedelta(
+            days=days_elapsed
+        )
+        previous_totals = journal.totals(
+            previous_season, as_of_date=as_of_previous.isoformat()
+        )
+        previous_consumed = previous_totals["consumed_bags"]
+        result["previous_consumed_bags"] = previous_consumed
+        result["as_of_previous"] = as_of_previous.isoformat()
+        if previous_consumed:
+            result["pct_diff"] = round(
+                (current_totals["consumed_bags"] - previous_consumed)
+                / previous_consumed
+                * 100,
+                1,
+            )
+
+    connection.send_result(msg["id"], result)
+
 def async_register_ws_api(hass: HomeAssistant) -> None:
     """Register the websocket commands, once per HA run."""
     flag = f"{DOMAIN}_ws_registered"
@@ -90,3 +144,4 @@ def async_register_ws_api(hass: HomeAssistant) -> None:
     hass.data[flag] = True
     websocket_api.async_register_command(hass, _ws_get_journal)
     websocket_api.async_register_command(hass, _ws_get_seasons_summary)
+    websocket_api.async_register_command(hass, _ws_get_season_comparison)
