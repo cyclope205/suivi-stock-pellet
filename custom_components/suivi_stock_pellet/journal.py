@@ -137,10 +137,9 @@ class PelletJournal:
         silently change numbers the user has already seen and trusted.
         """
         try:
-            year_start, year_end = (int(part) for part in season.split("-"))
+            previous_season = previous_season_key(season)
         except ValueError:
             return 0.0
-        previous_season = f"{year_start - 1}-{year_end - 1}"
         if previous_season not in self._data["seasons"]:
             return 0.0
         return self.totals(previous_season)["stock_bags"]
