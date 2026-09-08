@@ -599,7 +599,7 @@ els.btnConso = btnConso;
 
       submitBtn.addEventListener("click", function () {
         var qty = parseFloat(qtyInput.value);
-        if (!qty || qty <= 0) return;
+        if (!qty || qty < 0) return;
         var seasonOverride = seasonInput.value.trim();
         if (seasonOverride && !/^\d{4}-\d{4}$/.test(seasonOverride)) {
           alert("Format de saison invalide (attendu AAAA-AAAA).");
@@ -613,9 +613,9 @@ els.btnConso = btnConso;
           self._currentStockBags !== undefined &&
           self._currentStockBags <= 0
         ) {
-alert("Stock à 0 : impossible d'enregistrer une consommation.");
-return;
-}
+          alert("Stock à 0 : impossible d'enregistrer une consommation.");
+          return;
+        }
         var data = { qty_bags: qty, date: dateInput.value };
         if (seasonOverride) data.season = seasonOverride;
         if (kind === "purchase") {
@@ -626,20 +626,39 @@ return;
           } else if (seasonMatchesDisplayed && self._currentAvgPricePerBag) {
             data.price_eur = self._currentAvgPricePerBag * qty;
           }
-          self._hass.callService("suivi_stock_pellet", "log_purchase", data);
-        } else {
-          self._hass.callService("suivi_stock_pellet", "log_consumption", data);
         }
-        self._seasonDataFetchedAt = 0;
-        self._seasonDataDirty = true;
-        self._seasonsFetchedAt = 0;
-        self._seasonsDirty = true;
-        el.classList.remove("visible");
-        qtyInput.value = "1";
-        dateInput.value = todayIso();
-        if (priceInput) priceInput.value = "";
-        if (totalPriceInput) totalPriceInput.value = "";
-        seasonInput.value = "";
+        var service = kind === "purchase" ? "log_purchase" : "log_consumption";
+        // The service call is async and can be rejected by the backend
+        // (stock insuffisant, saison invalide, etc.) - it used to be
+        // fired without waiting for the result, so the form closed and
+        // reset itself unconditionally a moment later regardless of
+        // whether the write actually succeeded. A failed submission
+        // then looked exactly like a successful one from the user's
+        // side, with no indication anything went wrong.
+        submitBtn.disabled = true;
+        self._hass
+          .callService("suivi_stock_pellet", service, data)
+          .then(function () {
+            self._seasonDataFetchedAt = 0;
+            self._seasonDataDirty = true;
+            self._seasonsFetchedAt = 0;
+            self._seasonsDirty = true;
+            el.classList.remove("visible");
+            qtyInput.value = "1";
+            dateInput.value = todayIso();
+            if (priceInput) priceInput.value = "";
+            if (totalPriceInput) totalPriceInput.value = "";
+            seasonInput.value = "";
+          })
+          .catch(function (err) {
+            alert(
+              "Échec de l'enregistrement : " +
+                ((err && err.message) || String(err))
+            );
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+          });
       });
 
       return { el: el };
