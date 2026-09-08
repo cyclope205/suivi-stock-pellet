@@ -45,6 +45,11 @@ Configurateur de carte:
 - Comparaison à date égale avec la saison précédente : affiche la consommation de la saison sélectionnée (via le sélecteur de saison, saison en cours par défaut) face à celle de la saison précédente au même nombre de jours écoulés depuis le début de saison, avec un badge en pourcentage, ainsi que le coût en € des deux saisons et leur différence en € (masquable via `show_comparison`).
 - Les saisons sans aucune saisie sont automatiquement supprimées de la liste (au démarrage et dès qu'une saison redevient vide) : pas besoin de nettoyer manuellement une saison créée par erreur ou vidée par une correction.
 - Le sélecteur de saison reste toujours cohérent avec la saison consultée, même pour une saison qui n'a encore aucune saisie (saison passée pas encore renseignée, ou saisie qui vient d'échouer) : il n'affiche plus par erreur la saison en cours à sa place.
+- Modifier ou supprimer une saisie ne peut jamais faire passer le stock réel d'une saison sous 0 (plus consommé qu'acheté) : ce cas est refusé avec un message d'erreur explicite plutôt que d'être accepté silencieusement.
+- Les tuiles `sensor.*` (stock, consommé, dépensé...) ignorent les saisies dont la date est dans le futur tant que cette date n'est pas atteinte, pour rester un vrai instantané du stock disponible aujourd'hui.
+- Le mois de début de saison ne peut plus être changé une fois que le journal contient des saisies (pour éviter de désynchroniser les saisons déjà enregistrées de la nouvelle règle).
+- Les tuiles/l'historique/le graphique de la carte restent visibles pour tous les utilisateurs du tableau de bord, pas seulement les administrateurs (seules les actions d'écriture - saisie, modification, suppression - restent réservées à un accès normal).
+- Un échec d'enregistrement (stock insuffisant, saison invalide...) affiche maintenant un message d'erreur au lieu de fermer silencieusement le formulaire comme si tout s'était bien passé.
 - Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et des boutons pour n'afficher que l'une des deux.
 - Graphique "Prix moyen du sac par saison" pour suivre l'évolution du coût des granulés d'une saison à l'autre.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
