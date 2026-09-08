@@ -202,18 +202,90 @@ class PelletJournal:
             await self._async_save()
             return None
         entry = entries[index]
+        updated = dict(entry)
         if qty_bags is not None:
-            entry["qty_bags"] = qty_bags
+            updated["qty_bags"] = qty_bags
         if entry_date is not None:
-            entry["date"] = entry_date
-        if entry["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
-            entry["price_eur"] = price_eur
-        if new_season is not None and new_season != season:
+            updated["date"] = entry_date
+        if updated["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
+            updated["price_eur"] = price_eur
+        target_season = (
+            new_season
+            if (new_season is not None and new_season != season)
+            else season
+        )
+        self._assert_edit_keeps_stock_nonnegative(
+            season, index, updated, target_season
+        )
+        entry.clear()
+        entry.update(updated)
+        if target_season != season:
             entries.pop(index)
-            self._season_entries(new_season).append(entry)
+            self._season_entries(target_season).append(entry)
             self._prune_if_empty(season)
         await self._async_save()
         return entry
+
+    def _stock_for_entries(
+        self, season: str, entries: list[dict[str, Any]]
+    ) -> float:
+        """Real (unfloored) stock a season would have with this exact
+        entries list, using its current effective starting stock. Used
+        to validate a prospective edit/delete before it is applied - see
+        _assert_edit_keeps_stock_nonnegative and
+        _assert_delete_keeps_stock_nonnegative.
+        """
+        purchased = sum(
+            e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE
+        )
+        consumed = sum(
+            e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
+        return self._effective_stock_initial(season) + purchased - consumed
+
+    def _assert_edit_keeps_stock_nonnegative(
+        self,
+        source_season: str,
+        source_index: int,
+        updated_entry: dict[str, Any],
+        target_season: str,
+    ) -> None:
+        """Raise ValueError if replacing entries[source_index] in
+        source_season with updated_entry (optionally moved to
+        target_season) would newly push, or push further, an affected
+        season's real stock below 0 (more consumed than ever
+        purchased/started with).
+
+        Only blocks edits that make an affected season's stock strictly
+        worse than it already is - an edit on a season whose stock is
+        already inconsistent (e.g. legacy data predating this check)
+        can still be corrected freely, as long as it doesn't dig the
+        hole deeper. Only a brand new log_consumption call was ever
+        validated against available stock before this; edit/delete had
+        no equivalent check at all.
+        """
+        seasons = self._data.get("seasons", {})
+        source_entries = list(seasons.get(source_season, {}).get("entries", []))
+        before_source = self._stock_for_entries(source_season, source_entries)
+        del source_entries[source_index]
+        if target_season == source_season:
+            source_entries.append(updated_entry)
+        to_check = {source_season: (before_source, source_entries)}
+        if target_season != source_season:
+            target_entries = list(
+                seasons.get(target_season, {}).get("entries", [])
+            )
+            before_target = self._stock_for_entries(target_season, target_entries)
+            target_entries.append(updated_entry)
+            to_check[target_season] = (before_target, target_entries)
+
+        for season_key, (before, entries) in to_check.items():
+            after = self._stock_for_entries(season_key, entries)
+            if after < -1e-9 and after < before - 1e-9:
+                raise ValueError(
+                    f"Cette modification ferait passer le stock de la saison "
+                    f"{season_key} sous 0 (plus consommé qu'acheté)."
+                )
 
     async def async_delete_entry(
         self, season: str, index: int
@@ -229,10 +301,26 @@ class PelletJournal:
             self._prune_if_empty(season)
             await self._async_save()
             return None
+        self._assert_delete_keeps_stock_nonnegative(season, index)
         removed = entries.pop(index)
         self._prune_if_empty(season)
         await self._async_save()
         return removed
+
+    def _assert_delete_keeps_stock_nonnegative(
+        self, season: str, index: int
+    ) -> None:
+        """Raise ValueError if removing entries[index] would newly push,
+        or push further, this season's real stock below 0."""
+        entries = list(self._data.get("seasons", {}).get(season, {}).get("entries", []))
+        before = self._stock_for_entries(season, entries)
+        del entries[index]
+        after = self._stock_for_entries(season, entries)
+        if after < -1e-9 and after < before - 1e-9:
+            raise ValueError(
+                f"Suppression impossible : le stock de la saison {season} "
+                "passerait sous 0 (plus consommé qu'acheté sans cette entrée)."
+            )
 
     def _prune_if_empty(self, season: str) -> None:
         """Remove a season's storage entry entirely once it has no
