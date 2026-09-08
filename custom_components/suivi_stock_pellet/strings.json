@@ -27,6 +27,9 @@
           "season_start_month": "Season start month (1-12)"
         }
       }
+    },
+    "error": {
+      "season_start_month_locked": "Cannot change the season start month: the journal already has logged entries, and existing seasons are not migrated to a new rule."
     }
   }
 }
