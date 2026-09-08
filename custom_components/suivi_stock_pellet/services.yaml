@@ -123,6 +123,13 @@ edit_entry:
       required: false
       selector:
         date: {}
+    new_season:
+      name: Nouvelle saison
+      description: Deplace deliberement la saisie vers cette saison, au format AAAA-AAAA (facultatif, sinon la saisie reste dans sa saison actuelle meme si la date change).
+      required: false
+      example: "2026-2027"
+      selector:
+        text: {}
 
 delete_entry:
   name: Supprimer une saisie
