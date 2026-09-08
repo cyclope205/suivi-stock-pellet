@@ -110,6 +110,10 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
         vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
+        # Explicit destination season for a deliberate move (e.g. correcting
+        # a purchase filed under the wrong season). Never auto-derived from
+        # ATTR_DATE - see _handle_edit_entry.
+        vol.Optional("new_season"): _valid_season,
     }
 )
 
@@ -209,6 +213,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         qty = call.data.get(ATTR_QTY_BAGS)
         price = call.data.get(ATTR_PRICE_EUR)
         entry_date = call.data.get(ATTR_DATE)
+        new_season = call.data.get("new_season")
         # NOTE: editing an entry never re-derives its season from the
         # (possibly unchanged) date field - a purchase/consumption can be
         # deliberately filed under a season other than the one its date
@@ -227,6 +232,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 qty_bags=qty,
                 price_eur=price,
                 entry_date=entry_date.isoformat() if entry_date else None,
+                new_season=new_season,
             )
         except ValueError as err:
             raise HomeAssistantError(str(err)) from err
