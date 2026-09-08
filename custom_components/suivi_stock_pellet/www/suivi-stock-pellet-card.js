@@ -43,6 +43,7 @@
     ".hero-text { flex: 1; min-width: 0; }",
     ".stock { font-size: 1.9em; font-weight: 700; line-height: 1.1; }",
     ".stock-sub { font-size: 0.82em; opacity: 0.7; margin-top: 2px; }",
+    ".stock-alert { margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: rgba(248,81,73,0.15); color: #f85149; font-size: 0.78em; font-weight: 600; }",
     ".stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }",
     ".stat { display: flex; align-items: center; gap: 10px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border-radius: 12px; padding: 10px 12px; }",
     ".stat-icon { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }",
@@ -313,8 +314,12 @@
       stock.className = "stock";
       var stockSub = document.createElement("div");
       stockSub.className = "stock-sub";
+      var stockAlert = document.createElement("div");
+      stockAlert.className = "stock-alert";
+      stockAlert.style.display = "none";
       heroText.appendChild(stock);
       heroText.appendChild(stockSub);
+      heroText.appendChild(stockAlert);
       hero.appendChild(heroText);
       card.appendChild(hero);
 
@@ -322,7 +327,8 @@
         season: season,
         seasonNote: seasonNote,
         stock: stock,
-        stockSub: stockSub
+        stockSub: stockSub,
+        stockAlert: stockAlert
       };
 
       if (cfg.show_comparison) {
@@ -811,6 +817,15 @@ els.btnConso = btnConso;
 
       var stockBags = totals.stock_bags || 0;
       this._currentStockBags = stockBags;
+      var stockBagsRaw = totals.stock_bags_raw;
+      if (els.stockAlert) {
+        if (typeof stockBagsRaw === "number" && stockBagsRaw < 0) {
+          els.stockAlert.textContent = "\u26A0 Stock incoh\u00e9rent : " + fmt(stockBagsRaw, 1) + " sac(s) r\u00e9el(s) pour cette saison (n\u00e9gatif). V\u00e9rifiez vos saisies (achats/consommations).";
+          els.stockAlert.style.display = "block";
+        } else {
+          els.stockAlert.style.display = "none";
+        }
+      }
       if (els.btnConso) {
         els.btnConso.disabled = isCurrentSeason && stockBags <= 0;
       }
