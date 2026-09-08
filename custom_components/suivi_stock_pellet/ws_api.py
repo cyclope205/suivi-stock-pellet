@@ -1,4 +1,12 @@
-"""WebSocket API exposing the pellet journal to the Lovelace card."""
+"""WebSocket API exposing the pellet journal to the Lovelace card.
+
+These are read-only queries (journal contents, per-season summaries,
+season-over-season comparison) - no require_admin gate, unlike the
+write-side services (edit_entry, delete_entry, set_stock_initial),
+so a non-admin household member can still see the card's history,
+charts and comparison, matching what a Lovelace dashboard viewer
+normally expects to be able to see.
+"""
 from __future__ import annotations
 
 from datetime import date as date_cls, timedelta
@@ -18,7 +26,6 @@ from .journal import previous_season_key, season_for_date, season_start_date
         vol.Optional("season"): str,
     }
 )
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
     stored = list(hass.data.get(DOMAIN, {}).items())
@@ -48,7 +55,6 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
 
 
 @websocket_api.websocket_command({vol.Required("type"): "suivi_stock_pellet/seasons_summary"})
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
     stored = list(hass.data.get(DOMAIN, {}).items())
@@ -88,7 +94,6 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
         vol.Optional("season"): str,
     }
 )
-@websocket_api.require_admin
 @websocket_api.async_response
 async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> None:
     stored = list(hass.data.get(DOMAIN, {}).items())
