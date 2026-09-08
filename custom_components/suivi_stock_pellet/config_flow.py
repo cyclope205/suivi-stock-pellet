@@ -64,10 +64,21 @@ class SuiviStockPelletOptionsFlow(config_entries.OptionsFlow):
     """Handle options for Suivi Stock Pellet."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
         current = self.config_entry.options
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            old_start_month = current.get(
+                CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH
+            )
+            if (
+                user_input.get(CONF_SEASON_START_MONTH) != old_start_month
+                and self._journal_has_data()
+            ):
+                errors["base"] = "season_start_month_locked"
+            else:
+                return self.async_create_entry(title="", data=user_input)
+
         schema = vol.Schema(
             {
                 vol.Required(
@@ -90,4 +101,20 @@ class SuiviStockPelletOptionsFlow(config_entries.OptionsFlow):
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=12)),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(
+            step_id="init", data_schema=schema, errors=errors
+        )
+
+    def _journal_has_data(self) -> bool:
+        """Whether this entry's journal already has any season with
+        logged entries.
+
+        Once true, changing the season start month is locked: journal
+        entries are keyed by whatever season the write-time rule
+        computed for them, and that key is never migrated when the
+        rule changes - a mid-use change would silently desynchronize
+        "which season is current" from how the existing history is
+        actually bucketed.
+        """
+        journal = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        return bool(journal.seasons()) if journal is not None else False
