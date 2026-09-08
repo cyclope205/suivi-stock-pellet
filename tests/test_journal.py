@@ -521,3 +521,60 @@ def test_prune_empty_seasons_sweep_removes_junk_keeps_manual_and_populated():
     assert "2024-2025" in seasons
     assert "2021-2022" in seasons
     assert "2100-2101" not in seasons
+
+
+# --- edit/delete stock-safety validation --------------------------------
+
+
+def test_edit_entry_qty_increase_rejected_when_it_would_go_negative():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05"))
+    run(journal.async_add_entry("2025-2026", "consumption", 5, "2025-10-01"))
+    with pytest.raises(ValueError):
+        run(journal.async_edit_entry("2025-2026", 1, qty_bags=15))
+    # A rejected edit must leave the journal exactly as it was.
+    totals = journal.totals("2025-2026")
+    assert totals["consumed_bags"] == 5
+    assert totals["stock_bags_raw"] == 5
+
+
+def test_edit_entry_qty_decrease_still_allowed_even_if_already_negative():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05"))
+    run(journal.async_add_entry("2025-2026", "consumption", 20, "2025-10-01"))
+    # The season is already inconsistent (more consumed than purchased),
+    # e.g. legacy data predating this check. An edit that IMPROVES the
+    # situation must still be allowed - only edits that make it worse
+    # are blocked.
+    edited = run(journal.async_edit_entry("2025-2026", 1, qty_bags=12))
+    assert edited["qty_bags"] == 12
+    assert journal.totals("2025-2026")["stock_bags_raw"] == -2
+
+
+def test_delete_purchase_rejected_when_it_would_go_negative():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05"))
+    run(journal.async_add_entry("2025-2026", "consumption", 8, "2025-10-01"))
+    with pytest.raises(ValueError):
+        run(journal.async_delete_entry("2025-2026", 0))
+    assert len(journal.entries("2025-2026")) == 2
+
+
+def test_delete_consumption_never_blocked_by_stock_check():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05"))
+    run(journal.async_add_entry("2025-2026", "consumption", 8, "2025-10-01"))
+    removed = run(journal.async_delete_entry("2025-2026", 1))
+    assert removed["qty_bags"] == 8
+    assert journal.totals("2025-2026")["stock_bags_raw"] == 10
+
+
+def test_edit_entry_moving_consumption_to_season_without_enough_stock_rejected():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "consumption", 3, "2025-10-01"))
+    # The target season has no purchases at all - moving a consumption
+    # into it must be rejected rather than silently creating negative
+    # stock in a brand new season.
+    with pytest.raises(ValueError):
+        run(journal.async_edit_entry("2025-2026", 0, new_season="2099-2100"))
+    assert "2099-2100" not in journal.seasons()
