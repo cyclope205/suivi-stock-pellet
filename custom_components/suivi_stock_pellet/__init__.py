@@ -209,9 +209,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         qty = call.data.get(ATTR_QTY_BAGS)
         price = call.data.get(ATTR_PRICE_EUR)
         entry_date = call.data.get(ATTR_DATE)
-        new_season = (
-            season_for_date(entry_date, _start_month()) if entry_date else None
-        )
+        # NOTE: editing an entry never re-derives its season from the
+        # (possibly unchanged) date field - a purchase/consumption can be
+        # deliberately filed under a season other than the one its date
+        # would naturally imply (e.g. buying pellets in summer for the
+        # season starting in September, via the "season" override field
+        # on log_purchase/log_consumption). Silently recomputing the
+        # season here on every edit - even one that only touches price or
+        # qty, since the form always resends the existing date - used to
+        # snap such entries back to their date-implied season, discarding
+        # that deliberate placement. See GitHub issue: edit "moves" an
+        # entry to the wrong season.
         try:
             updated = await journal.async_edit_entry(
                 season,
@@ -219,7 +227,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 qty_bags=qty,
                 price_eur=price,
                 entry_date=entry_date.isoformat() if entry_date else None,
-                new_season=new_season,
             )
         except ValueError as err:
             raise HomeAssistantError(str(err)) from err
