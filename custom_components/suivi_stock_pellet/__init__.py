@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import date as date_cls
 import json
 import logging
+import re
 from pathlib import Path
 
 import voluptuous as vol
@@ -57,11 +58,29 @@ CARD_URL_PATH = "/suivi_stock_pellet/suivi-stock-pellet-card.js"
 _MANIFEST_PATH = Path(__file__).parent / "manifest.json"
 CARD_VERSION = json.loads(_MANIFEST_PATH.read_text())["version"]
 
+
+def _valid_season(value: str) -> str:
+    """Validate a season key is 'AAAA-AAAA' with two consecutive years.
+
+    A plain regex alone accepted nonsense like
+    "2025-2037" or "2026-2026" - anything the season override fields
+    (services and the card's "Saison" field) could feed straight into
+    storage as a brand new, permanently listed season.
+    """
+    match = re.match(r"^(\d{4})-(\d{4})$", value or "")
+    if not match or int(match.group(2)) != int(match.group(1)) + 1:
+        raise vol.Invalid(
+            f"'{value}' n'est pas une saison valide (attendu AAAA-AAAA avec "
+            "deux années consécutives, ex. 2025-2026)"
+        )
+    return value
+
+
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_DATE): cv.date,
-        vol.Optional("season"): vol.Match(r"^\d{4}-\d{4}$"),
+        vol.Optional("season"): _valid_season,
     }
 )
 
@@ -70,7 +89,7 @@ LOG_PURCHASE_SCHEMA = vol.Schema(
         vol.Required(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
-        vol.Optional("season"): vol.Match(r"^\d{4}-\d{4}$"),
+        vol.Optional("season"): _valid_season,
     }
 )
 
@@ -80,13 +99,13 @@ UNDO_LAST_ENTRY_SCHEMA = vol.Schema(
         # "today" falls into (unchanged default behaviour) - passing an
         # explicit season lets this correct a historical season's journal
         # instead (e.g. fixing a backfill mistake).
-        vol.Optional("season"): vol.Match(r"^\d{4}-\d{4}$"),
+        vol.Optional("season"): _valid_season,
     }
 )
 
 EDIT_ENTRY_SCHEMA = vol.Schema(
     {
-        vol.Required("season"): vol.Match(r"^\d{4}-\d{4}$"),
+        vol.Required("season"): _valid_season,
         vol.Required(ATTR_INDEX): vol.Coerce(int),
         vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
@@ -96,14 +115,14 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
 
 DELETE_ENTRY_SCHEMA = vol.Schema(
     {
-        vol.Required("season"): vol.Match(r"^\d{4}-\d{4}$"),
+        vol.Required("season"): _valid_season,
         vol.Required(ATTR_INDEX): vol.Coerce(int),
     }
 )
 
 SET_STOCK_INITIAL_SCHEMA = vol.Schema(
     {
-        vol.Required("season"): vol.Match(r"^\d{4}-\d{4}$"),
+        vol.Required("season"): _valid_season,
         vol.Required(ATTR_STOCK_INITIAL_BAGS): vol.All(
             vol.Coerce(float), vol.Range(min=0)
         ),
@@ -197,14 +216,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_season = (
             season_for_date(entry_date, _start_month()) if entry_date else None
         )
-        updated = await journal.async_edit_entry(
-            season,
-            index,
-            qty_bags=qty,
-            price_eur=price,
-            entry_date=entry_date.isoformat() if entry_date else None,
-            new_season=new_season,
-        )
+        try:
+            updated = await journal.async_edit_entry(
+                season,
+                index,
+                qty_bags=qty,
+                price_eur=price,
+                entry_date=entry_date.isoformat() if entry_date else None,
+                new_season=new_season,
+            )
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
         if updated is None:
             raise HomeAssistantError(
                 f"Entree introuvable (saison {season}, index {index})"
@@ -214,7 +236,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _handle_delete_entry(call: ServiceCall) -> None:
         season = call.data["season"]
         index = call.data[ATTR_INDEX]
-        removed = await journal.async_delete_entry(season, index)
+        try:
+            removed = await journal.async_delete_entry(season, index)
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
         if removed is None:
             raise HomeAssistantError(
                 f"Entree introuvable (saison {season}, index {index})"
