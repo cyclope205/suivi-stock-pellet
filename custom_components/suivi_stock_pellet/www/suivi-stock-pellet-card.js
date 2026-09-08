@@ -1042,7 +1042,7 @@ _renderComparison(result) {
         var value = document.createElement("span");
         value.className = "history-value";
         value.textContent =
-          entry.qty_bags + " sac(s)" + (entry.price_eur ? " · " + entry.price_eur + " €" : "");
+          entry.qty_bags + " sac(s)" + (entry.price_eur ? " · " + fmt(entry.price_eur, 2) + " €" : "");
 
         var editBtn = document.createElement("button");
         editBtn.type = "button";
