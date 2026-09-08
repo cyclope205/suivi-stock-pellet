@@ -27,6 +27,9 @@
           "season_start_month": "Mois de début de saison (1-12)"
         }
       }
+    },
+    "error": {
+      "season_start_month_locked": "Impossible de changer le mois de début de saison : le journal contient déjà des saisies, et les saisons existantes ne sont pas migrées vers une nouvelle règle."
     }
   }
 }
