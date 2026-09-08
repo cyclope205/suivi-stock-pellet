@@ -582,7 +582,10 @@ els.btnConso = btnConso;
 
       var seasonWrap = document.createElement("div");
       var seasonLabel = document.createElement("label");
-      seasonLabel.textContent = "Saison";
+      seasonLabel.textContent =
+        kind === "purchase"
+          ? "Saison à incrémenter (achat compté sur cette saison)"
+          : "Saison à décrémenter (consommation comptée sur cette saison)";
       var seasonInput = document.createElement("select");
       seasonWrap.appendChild(seasonLabel);
       seasonWrap.appendChild(seasonInput);
