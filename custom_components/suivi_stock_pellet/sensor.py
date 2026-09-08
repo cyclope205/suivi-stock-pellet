@@ -126,13 +126,17 @@ class PelletStockSensor(_BasePelletSensor):
     @property
     def native_value(self) -> float:
         totals = self._journal.totals(
-            self._season, default_bag_weight_kg=self._bag_weight
+            self._season,
+            as_of_date=date_cls.today().isoformat(),
+            default_bag_weight_kg=self._bag_weight,
         )
         return round(totals["stock_kg"], 1)
 
     @property
     def extra_state_attributes(self) -> dict:
-        totals = self._journal.totals(self._season)
+        totals = self._journal.totals(
+            self._season, as_of_date=date_cls.today().isoformat()
+        )
         last = self._journal.last_entry(self._season)
         attrs = self._base_attrs()
         attrs.update(
@@ -163,6 +167,7 @@ class PelletConsumedKgSensor(_BasePelletSensor):
     def native_value(self) -> float:
         totals = self._journal.totals(
             self._season,
+            as_of_date=date_cls.today().isoformat(),
             default_bag_weight_kg=self._bag_weight,
             default_calorific_value=self._calorific_value,
         )
@@ -170,7 +175,9 @@ class PelletConsumedKgSensor(_BasePelletSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        totals = self._journal.totals(self._season)
+        totals = self._journal.totals(
+            self._season, as_of_date=date_cls.today().isoformat()
+        )
         attrs = self._base_attrs()
         attrs.update({"consomme_sacs": totals["consumed_bags"], "saison": self._season})
         return attrs
@@ -194,6 +201,7 @@ class PelletConsumedEnergySensor(_BasePelletSensor):
     def native_value(self) -> float:
         totals = self._journal.totals(
             self._season,
+            as_of_date=date_cls.today().isoformat(),
             default_bag_weight_kg=self._bag_weight,
             default_calorific_value=self._calorific_value,
         )
@@ -227,13 +235,17 @@ class PelletPurchasedSensor(_BasePelletSensor):
     @property
     def native_value(self) -> float:
         totals = self._journal.totals(
-            self._season, default_bag_weight_kg=self._bag_weight
+            self._season,
+            as_of_date=date_cls.today().isoformat(),
+            default_bag_weight_kg=self._bag_weight,
         )
         return round(totals["purchased_kg"], 1)
 
     @property
     def extra_state_attributes(self) -> dict:
-        totals = self._journal.totals(self._season)
+        totals = self._journal.totals(
+            self._season, as_of_date=date_cls.today().isoformat()
+        )
         attrs = self._base_attrs()
         attrs.update({"achete_sacs": totals["purchased_bags"], "saison": self._season})
         return attrs
@@ -249,7 +261,9 @@ class PelletSpentSensor(_BasePelletSensor):
 
     @property
     def native_value(self) -> float:
-        return self._journal.totals(self._season)["spent_eur"]
+        return self._journal.totals(
+            self._season, as_of_date=date_cls.today().isoformat()
+        )["spent_eur"]
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -267,7 +281,9 @@ class PelletDaysUsedSensor(_BasePelletSensor):
 
     @property
     def native_value(self) -> int:
-        return self._journal.totals(self._season)["days_logged"]
+        return self._journal.totals(
+            self._season, as_of_date=date_cls.today().isoformat()
+        )["days_logged"]
 
     @property
     def extra_state_attributes(self) -> dict:
