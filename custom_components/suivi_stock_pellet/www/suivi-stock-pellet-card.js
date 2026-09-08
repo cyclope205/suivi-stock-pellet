@@ -418,6 +418,8 @@ els.btnConso = btnConso;
         var formAchat = this._buildForm("purchase");
         actionsWrap.appendChild(formConso.el);
         actionsWrap.appendChild(formAchat.el);
+        els.consoSeasonSelect = formConso.seasonSelect;
+        els.achatSeasonSelect = formAchat.seasonSelect;
 
         btnConso.addEventListener("click", function () {
           formAchat.el.classList.remove("visible");
@@ -580,13 +582,15 @@ els.btnConso = btnConso;
 
       var seasonWrap = document.createElement("div");
       var seasonLabel = document.createElement("label");
-      seasonLabel.textContent = "Saison (optionnel, ex: 2022-2023 — pour rattacher cette saisie à une saison différente de celle de la date)";
-      var seasonInput = document.createElement("input");
-      seasonInput.type = "text";
-      seasonInput.placeholder = "AAAA-AAAA";
+      seasonLabel.textContent = "Saison";
+      var seasonInput = document.createElement("select");
       seasonWrap.appendChild(seasonLabel);
       seasonWrap.appendChild(seasonInput);
       el.appendChild(seasonWrap);
+      self._populateFormSeasonSelect(seasonInput, dateInput.value);
+      dateInput.addEventListener("change", function () {
+        self._populateFormSeasonSelect(seasonInput, dateInput.value);
+      });
 
       var formActions = document.createElement("div");
       formActions.className = "form-actions";
@@ -600,12 +604,7 @@ els.btnConso = btnConso;
       submitBtn.addEventListener("click", function () {
         var qty = parseFloat(qtyInput.value);
         if (!qty || qty < 0) return;
-        var seasonOverride = seasonInput.value.trim();
-        if (seasonOverride && !/^\d{4}-\d{4}$/.test(seasonOverride)) {
-          alert("Format de saison invalide (attendu AAAA-AAAA).");
-          return;
-        }
-        var formSeason = seasonOverride || self._seasonForDate(dateInput.value);
+        var formSeason = seasonInput.value;
         var seasonMatchesDisplayed = formSeason === self._season;
         if (
           kind !== "purchase" &&
@@ -616,8 +615,7 @@ els.btnConso = btnConso;
           alert("Stock à 0 : impossible d'enregistrer une consommation.");
           return;
         }
-        var data = { qty_bags: qty, date: dateInput.value };
-        if (seasonOverride) data.season = seasonOverride;
+        var data = { qty_bags: qty, date: dateInput.value, season: formSeason };
         if (kind === "purchase") {
           if (totalPriceInput && totalPriceInput.value) {
             data.price_eur = parseFloat(totalPriceInput.value);
@@ -648,7 +646,7 @@ els.btnConso = btnConso;
             dateInput.value = todayIso();
             if (priceInput) priceInput.value = "";
             if (totalPriceInput) totalPriceInput.value = "";
-            seasonInput.value = "";
+            self._populateFormSeasonSelect(seasonInput, dateInput.value);
           })
           .catch(function (err) {
             alert(
@@ -661,7 +659,7 @@ els.btnConso = btnConso;
           });
       });
 
-      return { el: el };
+      return { el: el, seasonSelect: seasonInput };
     }
 
     _render() {
@@ -713,6 +711,39 @@ els.btnConso = btnConso;
       var startMonth = this._startMonth || 9;
       if (!year || !month) return this._season;
       return month >= startMonth ? year + "-" + (year + 1) : (year - 1) + "-" + year;
+    }
+
+    _populateFormSeasonSelect(select, dateStr) {
+      var startMonth = this._startMonth || 9;
+      var inferred = this._seasonForDate(dateStr);
+      var known = this._knownSeasons || [];
+      var years = [];
+      var now = new Date();
+      var currentYear = now.getFullYear();
+      var currentMonth = now.getMonth() + 1;
+      var currentSeasonStartYear =
+        currentMonth >= startMonth ? currentYear : currentYear - 1;
+      [-1, 0, 1].forEach(function (offset) {
+        var y = currentSeasonStartYear + offset;
+        years.push(y + "-" + (y + 1));
+      });
+      if (inferred && years.indexOf(inferred) === -1) {
+        years.push(inferred);
+      }
+      known.forEach(function (s) {
+        if (years.indexOf(s) === -1) years.push(s);
+      });
+      years.sort();
+      var previousValue = select.value;
+      select.innerHTML = "";
+      years.forEach(function (s) {
+        var opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        select.appendChild(opt);
+      });
+      select.value =
+        years.indexOf(previousValue) !== -1 ? previousValue : inferred;
     }
 
     _refreshSelectedSeason() {
@@ -767,6 +798,13 @@ els.btnConso = btnConso;
         seasons.push(this._currentSeason);
       }
       this._populateSeasonSelect(seasons);
+      this._knownSeasons = seasons;
+      if (els.consoSeasonSelect) {
+        this._populateFormSeasonSelect(els.consoSeasonSelect, todayIso());
+      }
+      if (els.achatSeasonSelect) {
+        this._populateFormSeasonSelect(els.achatSeasonSelect, todayIso());
+      }
 
       var stockBags = totals.stock_bags || 0;
       this._currentStockBags = stockBags;
