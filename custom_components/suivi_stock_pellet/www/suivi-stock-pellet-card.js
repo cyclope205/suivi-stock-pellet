@@ -107,7 +107,7 @@
 ".history-row.editing { flex-wrap: wrap; }",
 ".history-edit-form { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 4px 0 2px; }",
 ".history-edit-form-row { display: flex; gap: 6px; }",
-".history-edit-form-row input { flex: 1; min-width: 0; box-sizing: border-box; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--divider-color, rgba(127,127,127,0.3)); background: var(--card-background-color, transparent); color: inherit; font-size: 0.85em; }",
+".history-edit-form-row input, .history-edit-form-row select { flex: 1; min-width: 0; box-sizing: border-box; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--divider-color, rgba(127,127,127,0.3)); background: var(--card-background-color, transparent); color: inherit; font-size: 0.85em; }",
 ".history-edit-form-actions { display: flex; gap: 6px; justify-content: flex-end; }",
 ".history-edit-form-actions button { border: none; border-radius: 8px; padding: 6px 10px; cursor: pointer; background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: inherit; }",
 ".history-edit-form-actions button:first-child { background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; }",
@@ -1117,6 +1117,18 @@ _renderComparison(result) {
         row1.appendChild(priceInput);
       }
 
+      var seasonSelect = document.createElement("select");
+      seasonSelect.title = "Saison de cette saisie";
+      row1.appendChild(seasonSelect);
+      self._populateFormSeasonSelect(seasonSelect, entry.date);
+      if ([].slice.call(seasonSelect.options).every(function (o) { return o.value !== self._season; })) {
+        var currentOpt = document.createElement("option");
+        currentOpt.value = self._season;
+        currentOpt.textContent = self._season;
+        seasonSelect.appendChild(currentOpt);
+      }
+      seasonSelect.value = self._season;
+
       form.appendChild(row1);
 
       var row2 = document.createElement("div");
@@ -1158,6 +1170,9 @@ _renderComparison(result) {
         var data = { season: self._season, index: index, qty_bags: qty, date: dateInput.value };
         if (isPurchase && priceInput.value) {
           data.price_eur = parseFloat(priceInput.value) * qty;
+        }
+        if (seasonSelect.value && seasonSelect.value !== self._season) {
+          data.new_season = seasonSelect.value;
         }
         self._hass.callService("suivi_stock_pellet", "edit_entry", data);
         self._seasonDataFetchedAt = 0;
