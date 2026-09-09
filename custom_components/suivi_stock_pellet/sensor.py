@@ -145,6 +145,9 @@ class PelletStockSensor(_BasePelletSensor):
                 "saison": self._season,
                 "poids_sac_kg": self._bag_weight,
                 "derniere_saisie": _summarize_entry(last),
+                "mois_debut_saison": self._entry.options.get(
+                    CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH
+                ),
             }
         )
         return attrs
