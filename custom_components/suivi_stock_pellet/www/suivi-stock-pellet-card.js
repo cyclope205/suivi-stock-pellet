@@ -247,6 +247,22 @@
 
     set hass(hass) {
       this._hass = hass;
+      // Read the configured season-start month synchronously from the
+      // stock sensor's attributes (mois_debut_saison) before the DOM/
+      // forms are built. Without this, the very first render used to
+      // fall back to _startMonth's hardcoded default (9 = septembre)
+      // until the async "journal" websocket call resolved and set the
+      // real value - if the user's actual start month differs (e.g.
+      // janvier) and they submit an Achat/Consommation form before that
+      // round-trip completes (typical when backfilling several entries
+      // right after adding the integration), the entry could be filed
+      // under the wrong season key, corrupting the stock carry-over
+      // between seasons.
+      var stockId = findEntity(hass, KEYS.stock);
+      if (stockId && hass.states[stockId] && hass.states[stockId].attributes) {
+        var sm = hass.states[stockId].attributes.mois_debut_saison;
+        if (sm) this._startMonth = sm;
+      }
       this._ensureDom();
       this._render();
     }
