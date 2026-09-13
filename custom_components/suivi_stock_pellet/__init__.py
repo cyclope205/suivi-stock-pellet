@@ -320,45 +320,65 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     if not hass.data.get(flag):
         hass.data[flag] = True
         card_path = Path(__file__).parent / "www" / "suivi-stock-pellet-card.js"
+        # cache_headers=True: the URL already carries a cache-buster
+        # (?v={CARD_VERSION}), so a version bump changes the URL and is
+        # never served stale. Letting the browser cache the file makes
+        # subsequent page loads near-instant, shrinking the window in
+        # which the custom element registration can lose the race
+        # against Lovelace's view construction (see
+        # _async_sync_lovelace_resource docstring below).
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(CARD_URL_PATH, str(card_path), cache_headers=False)]
+            [StaticPathConfig(CARD_URL_PATH, str(card_path), cache_headers=True)]
         )
-        add_extra_js_url(hass, f"{CARD_URL_PATH}?v={CARD_VERSION}")
 
     await _async_sync_lovelace_resource(hass)
 
 
 async def _async_sync_lovelace_resource(hass: HomeAssistant, _now=None) -> None:
-    """Additionally register the card as a real Lovelace resource.
+    """Register the card as a real Lovelace resource (the normal way).
 
-    add_extra_js_url only injects a <script type="module"> tag into the
-    frontend's index.html, which the browser only re-evaluates on a
-    genuine full page reload. If the custom element registration loses
-    the race against Lovelace's own view construction (more likely on
-    slower devices or dashboards with many other custom resources), the
-    browser is stuck showing "Custom element doesn't exist" until the
-    user manually hard-refreshes - some users have reported needing to
-    add the resource by hand for it to work at all.
+    This is deliberately the ONLY loading path used when it succeeds.
+    Every other well-behaved custom card (installed via HACS) is loaded
+    exactly this way: as a plain Lovelace resource that the frontend's
+    dashboard bootstrap explicitly awaits before constructing any view.
+    That await is what protects those cards from ever showing "Custom
+    element doesn't exist".
 
-    A real Lovelace resource (type: module) is loaded by the frontend's
-    own resource loader every time a dashboard/view connects within the
-    running session, giving it another chance to register without a
-    full reload. This is purely additive on top of add_extra_js_url
-    (kept for the very first load) and best-effort: any failure here is
-    logged and does not affect the rest of setup, since it only touches
-    storage-mode Lovelace resources (a fresh install with no dashboards
-    configured yet, or YAML-mode resources, are silently skipped).
+    add_extra_js_url() instead injects a raw <script type="module"> tag
+    into index.html, which is NOT part of that awaited resource list -
+    the dashboard can start building cards before it resolves. Calling
+    both for the same URL (as earlier versions of this integration did)
+    let the browser register the module via this unawaited path,
+    silently opting this card out of the same protection every other
+    custom card gets - hence the seemingly random "Custom element
+    doesn't exist" errors some users saw, even though the file itself
+    loaded fine (no 404, no console error). add_extra_js_url is now
+    used ONLY as a fallback below, when the proper resource can't be
+    registered at all (YAML-mode dashboards).
 
     If Lovelace itself isn't ready yet (hass.data["lovelace"] not
-    populated - a startup race, not specific to storage vs YAML mode),
-    this retries every 5 seconds indefinitely rather than giving up
-    after one attempt, since Lovelace always eventually loads.
+    populated - a startup race), this retries every 5 seconds
+    indefinitely, since Lovelace always eventually loads. YAML-mode
+    dashboards (no `resources.async_create_item`) are a permanent
+    state, not a race, so that case falls back to add_extra_js_url
+    once instead of retrying forever.
     """
     lovelace_data = hass.data.get("lovelace")
     resources = getattr(lovelace_data, "resources", None)
-    if resources is None or not hasattr(resources, "async_create_item"):
+    if resources is None:
         _LOGGER.debug("Lovelace not ready yet, retrying resource sync in 5s")
         async_call_later(hass, 5, _async_sync_lovelace_resource)
+        return
+
+    if not hasattr(resources, "async_create_item"):
+        _LOGGER.warning(
+            "Lovelace resources are in YAML mode; the card cannot be "
+            "auto-registered as a proper resource. Falling back to "
+            "add_extra_js_url (works, but loses the load-order "
+            "protection other custom cards get - consider adding the "
+            "resource by hand in your YAML dashboard config instead)."
+        )
+        add_extra_js_url(hass, f"{CARD_URL_PATH}?v={CARD_VERSION}")
         return
 
     target_url = f"{CARD_URL_PATH}?v={CARD_VERSION}"
@@ -381,11 +401,13 @@ async def _async_sync_lovelace_resource(hass: HomeAssistant, _now=None) -> None:
         elif existing.get("url") != target_url:
             await resources.async_update_item(existing["id"], {"url": target_url})
     except Exception:  # noqa: BLE001
-        _LOGGER.debug(
+        _LOGGER.warning(
             "Could not auto-register the Lovelace resource for the card; "
-            "add_extra_js_url is still active as a fallback.",
+            "falling back to add_extra_js_url (works, but loses the "
+            "load-order protection other custom cards get).",
             exc_info=True,
         )
+        add_extra_js_url(hass, f"{CARD_URL_PATH}?v={CARD_VERSION}")
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
