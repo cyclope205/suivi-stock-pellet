@@ -50,11 +50,11 @@ Configurateur de carte:
 - Le mois de début de saison ne peut plus être changé une fois que le journal contient des saisies (pour éviter de désynchroniser les saisons déjà enregistrées de la nouvelle règle).
 - Les tuiles/l'historique/le graphique de la carte restent visibles pour tous les utilisateurs du tableau de bord, pas seulement les administrateurs (seules les actions d'écriture - saisie, modification, suppression - restent réservées à un accès normal).
 - Un échec d'enregistrement (stock insuffisant, saison invalide...) affiche maintenant un message d'erreur au lieu de fermer silencieusement le formulaire comme si tout s'était bien passé.
-- Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et des boutons pour n'afficher que l'une des deux.
+- Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et des boutons pour n'afficher que l'une des deux. Quand une seule des deux courbes est affichée, sa valeur mensuelle (sacs ou €) apparaît directement sur le graphique en plus du survol/tap habituel.
 - Graphique "Prix moyen du sac par saison" pour suivre l'évolution du coût des granulés d'une saison à l'autre.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
 - Stock initial d'une saison automatiquement repris du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service `set_stock_initial` (comptage physique, saison déjà entamée avant l'ajout de cette fonctionnalité...).
-- Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat", annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
+- Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat" et bouton rapide "+1 sac aujourd'hui", annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
 
 ## Installation
 
@@ -95,7 +95,7 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | Option | Description |
 |---|---|
 | `show_stats` | Tuiles consommé / énergie / dépensé / jours |
-| `show_cost_stats` | Tuiles coût / jour, coût / mois, coût du sac |
+| `show_cost_stats` | Tuiles coût / jour, coût / mois, coût du sac, coût saison |
 | `show_actions` | Boutons et formulaires de saisie |
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
 | `show_price_chart` | Graphique "Prix moyen du sac par saison" |
