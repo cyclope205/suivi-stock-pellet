@@ -1,29 +1,29 @@
 /* Carte Lovelace "Suivi Stock Pellet" - stock, consommation et achats de
- * granulés de bois. Servie automatiquement par l'intégration Home Assistant
- * du même nom : aucune ressource Lovelace à ajouter manuellement.
+ * granulÃ©s de bois. Servie automatiquement par l'intÃ©gration Home Assistant
+ * du mÃªme nom : aucune ressource Lovelace Ã  ajouter manuellement.
  *
  * Utilisation minimale dans un tableau de bord :
  *   type: custom:suivi-stock-pellet-card
  *
- * Options de configuration (toutes optionnelles, tout est affiché par défaut) :
- *   show_stats: true|false          Tuiles consommé / énergie / dépensé / jours
- *   show_cost_stats: true|false     Tuiles coût/jour, coût/mois, coût du sac
+ * Options de configuration (toutes optionnelles, tout est affichÃ© par dÃ©faut) :
+ *   show_stats: true|false          Tuiles consommÃ© / Ã©nergie / dÃ©pensÃ© / jours
+ *   show_cost_stats: true|false     Tuiles coÃ»t/jour, coÃ»t/mois, coÃ»t du sac
  *   show_actions: true|false        Boutons + formulaires de saisie
- *   show_monthly_chart: true|false  Graphique "Évolution de la consommation"
+ *   show_monthly_chart: true|false  Graphique "Ãvolution de la consommation"
  *   show_price_chart: true|false    Graphique "Prix moyen du sac par saison"
- *   show_history: true|false        Liste "Dernières saisies"
+ *   show_history: true|false        Liste "DerniÃ¨res saisies"
  *   show_comparison:  true|false        Bloc comparaison a la saison precedente, a date egale
  *
- * Un sélecteur de saison est affiché dans l'en-tête (à droite du titre) :
+ * Un sÃ©lecteur de saison est affichÃ© dans l'en-tÃªte (Ã  droite du titre) :
  * il permet de consulter les tuiles, l'historique, le graphique mensuel et
- * le bloc de comparaison d'une saison passée (comparée à la saison encore
- * précédente, à date équivalente). Les boutons de saisie (achat/consommation) restent
- * visibles et actifs même sur ces saisons : ils s'appliquent toujours à la
- * date du jour (donc à la saison en cours), jamais à la saison affichée.
+ * le bloc de comparaison d'une saison passÃ©e (comparÃ©e Ã  la saison encore
+ * prÃ©cÃ©dente, Ã  date Ã©quivalente). Les boutons de saisie (achat/consommation) restent
+ * visibles et actifs mÃªme sur ces saisons : ils s'appliquent toujours Ã  la
+ * date du jour (donc Ã  la saison en cours), jamais Ã  la saison affichÃ©e.
  *
- * Le graphique "Évolution de la consommation" superpose deux courbes
- * (sacs consommés / coût en €) : deux boutons sous le graphique
- * permettent d'afficher les deux, ou une seule à la fois.
+ * Le graphique "Ãvolution de la consommation" superpose deux courbes
+ * (sacs consommÃ©s / coÃ»t en â¬) : deux boutons sous le graphique
+ * permettent d'afficher les deux, ou une seule Ã  la fois.
  */
 (function () {
   "use strict";
@@ -139,7 +139,7 @@
 
   var ROOT_VARS = "--pellet-amber: #ffa726;";
 
-  var MONTHS_FR = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+  var MONTHS_FR = ["", "Jan", "FÃ©v", "Mar", "Avr", "Mai", "Jun", "Jul", "AoÃ»", "Sep", "Oct", "Nov", "DÃ©c"];
 
   var KEYS = {
     stock: "stock",
@@ -169,13 +169,13 @@
   };
 
   var TOGGLE_FIELDS = [
-    { key: "show_stats", label: "Tuiles consommé / énergie / dépensé / jours" },
-    { key: "show_cost_stats", label: "Tuiles coût / jour, coût / mois, coût du sac" },
+    { key: "show_stats", label: "Tuiles consommÃ© / Ã©nergie / dÃ©pensÃ© / jours" },
+    { key: "show_cost_stats", label: "Tuiles coÃ»t / jour, coÃ»t / mois, coÃ»t du sac" },
     { key: "show_actions", label: "Boutons et formulaires de saisie" },
-		{ key: "show_comparison", label: "Comparaison saison précédente à date égale" },
-    { key: "show_monthly_chart", label: "Graphique évolution de la consommation" },
+		{ key: "show_comparison", label: "Comparaison saison prÃ©cÃ©dente Ã  date Ã©gale" },
+    { key: "show_monthly_chart", label: "Graphique Ã©volution de la consommation" },
     { key: "show_price_chart", label: "Graphique prix moyen du sac par saison" },
-    { key: "show_history", label: "Liste des dernières saisies" }
+    { key: "show_history", label: "Liste des derniÃ¨res saisies" }
   ];
 
   function findEntity(hass, key) {
@@ -302,7 +302,7 @@
       titleWrap.className = "header-title";
       titleWrap.appendChild(icon("mdi:pine-tree"));
       var title = document.createElement("span");
-      title.textContent = "Granulés";
+      title.textContent = "GranulÃ©s";
       titleWrap.appendChild(title);
       var season = document.createElement("select");
       season.className = "season";
@@ -398,20 +398,20 @@
       if (cfg.show_stats) {
         var stats = document.createElement("div");
         stats.className = "stats";
-        els.statConsomme = addStat(stats, "Consommé", "mdi:fire", COLORS.red);
-        els.statEnergie = addStat(stats, "Énergie", "mdi:lightning-bolt", COLORS.purple);
-        els.statDepense = addStat(stats, "Dépensé", "mdi:currency-eur", COLORS.green);
-        els.statJours = addStat(stats, "Jours chauffés", "mdi:calendar-range", COLORS.blue);
+        els.statConsomme = addStat(stats, "ConsommÃ©", "mdi:fire", COLORS.red);
+        els.statEnergie = addStat(stats, "Ãnergie", "mdi:lightning-bolt", COLORS.purple);
+        els.statDepense = addStat(stats, "DÃ©pensÃ©", "mdi:currency-eur", COLORS.green);
+        els.statJours = addStat(stats, "Jours chauffÃ©s", "mdi:calendar-range", COLORS.blue);
         card.appendChild(stats);
       }
 
       if (cfg.show_cost_stats) {
         var costStats = document.createElement("div");
         costStats.className = "stats";
-        els.statCoutJour = addStat(costStats, "Coût / jour", "mdi:cash-clock", COLORS.green);
-        els.statCoutMois = addStat(costStats, "Coût / mois", "mdi:calendar-month", COLORS.blue);
-        els.statCoutSac = addStat(costStats, "Coût du sac", "mdi:sack", COLORS.amber);
-        els.statCoutAnnee = addStat(costStats, "Coût saison", "mdi:cash-multiple", COLORS.purple);
+        els.statCoutJour = addStat(costStats, "CoÃ»t / jour", "mdi:cash-clock", COLORS.green);
+        els.statCoutMois = addStat(costStats, "CoÃ»t / mois", "mdi:calendar-month", COLORS.blue);
+        els.statCoutSac = addStat(costStats, "CoÃ»t du sac", "mdi:sack", COLORS.amber);
+        els.statCoutAnnee = addStat(costStats, "CoÃ»t saison", "mdi:cash-multiple", COLORS.purple);
         card.appendChild(costStats);
       }
 
@@ -431,9 +431,33 @@
         btnAchat.className = "secondary";
         btnAchat.appendChild(icon("mdi:cart-plus"));
         btnAchat.appendChild(document.createTextNode("Achat"));
+        var btnQuick = document.createElement("button");
+        btnQuick.type = "button";
+        btnQuick.className = "secondary";
+        btnQuick.title = "Enregistrer 1 sac consommé aujourd'hui";
+        btnQuick.appendChild(icon("mdi:fire-alert"));
+        btnQuick.appendChild(document.createTextNode("+1 sac aujourd'hui"));
+        btnQuick.addEventListener("click", function () {
+          if (!self._hass) return;
+          btnQuick.disabled = true;
+          var todayIso = new Date().toISOString().slice(0, 10);
+          var season = self._seasonForDate(todayIso);
+          self._hass
+            .callService("suivi_stock_pellet", "log_consumption", {
+              qty_bags: 1,
+              season: season,
+            })
+            .catch(function (err) {
+              alert("Impossible d'enregistrer : " + (err && err.message ? err.message : err));
+            })
+            .then(function () {
+              btnQuick.disabled = false;
+            });
+        });
         actions.appendChild(btnConso);
 els.btnConso = btnConso;
         actions.appendChild(btnAchat);
+        actions.appendChild(btnQuick);
         actionsWrap.appendChild(actions);
 
         var formConso = this._buildForm("consumption");
@@ -460,7 +484,7 @@ els.btnConso = btnConso;
         var chartTitle = document.createElement("div");
         chartTitle.className = "chart-title";
         chartTitle.appendChild(icon("mdi:chart-line"));
-        chartTitle.appendChild(document.createTextNode("Évolution de la consommation"));
+        chartTitle.appendChild(document.createTextNode("Ãvolution de la consommation"));
         var chart = document.createElement("div");
         chart.className = "chart-svg-wrap";
         var chartLegend = document.createElement("div");
@@ -472,7 +496,7 @@ els.btnConso = btnConso;
         var qtyDot = document.createElement("span");
         qtyDot.className = "chart-legend-dot";
         qtyBtn.appendChild(qtyDot);
-        qtyBtn.appendChild(document.createTextNode("Sacs consommés"));
+        qtyBtn.appendChild(document.createTextNode("Sacs consommÃ©s"));
 
         var costBtn = document.createElement("button");
         costBtn.type = "button";
@@ -480,7 +504,7 @@ els.btnConso = btnConso;
         var costDot = document.createElement("span");
         costDot.className = "chart-legend-dot amber";
         costBtn.appendChild(costDot);
-        costBtn.appendChild(document.createTextNode("Coût (€)"));
+        costBtn.appendChild(document.createTextNode("CoÃ»t (â¬)"));
 
         chartLegend.appendChild(qtyBtn);
         chartLegend.appendChild(costBtn);
@@ -532,7 +556,7 @@ els.btnConso = btnConso;
         history.className = "history";
         var historyTitle = document.createElement("div");
         historyTitle.className = "history-title";
-        historyTitle.textContent = "Dernières saisies";
+        historyTitle.textContent = "DerniÃ¨res saisies";
         var historyList = document.createElement("div");
         historyList.className = "history-list";
         history.appendChild(historyTitle);
@@ -581,7 +605,7 @@ els.btnConso = btnConso;
       if (kind === "purchase") {
         var priceWrap = document.createElement("div");
         var priceLabel = document.createElement("label");
-        priceLabel.textContent = "Prix par sac (€, vide = prix moyen actuel)";
+        priceLabel.textContent = "Prix par sac (â¬, vide = prix moyen actuel)";
         priceInput = document.createElement("input");
         priceInput.type = "number";
         priceInput.step = "0.01";
@@ -592,7 +616,7 @@ els.btnConso = btnConso;
 
         var totalPriceWrap = document.createElement("div");
         var totalPriceLabel = document.createElement("label");
-        totalPriceLabel.textContent = "OU prix total du bon de livraison (€, remplace le prix par sac)";
+        totalPriceLabel.textContent = "OU prix total du bon de livraison (â¬, remplace le prix par sac)";
         totalPriceInput = document.createElement("input");
         totalPriceInput.type = "number";
         totalPriceInput.step = "0.01";
@@ -606,8 +630,8 @@ els.btnConso = btnConso;
       var seasonLabel = document.createElement("label");
       seasonLabel.textContent =
         kind === "purchase"
-          ? "Saison à incrémenter (achat compté sur cette saison)"
-          : "Saison à décrémenter (consommation comptée sur cette saison)";
+          ? "Saison Ã  incrÃ©menter (achat comptÃ© sur cette saison)"
+          : "Saison Ã  dÃ©crÃ©menter (consommation comptÃ©e sur cette saison)";
       var seasonInput = document.createElement("select");
       seasonWrap.appendChild(seasonLabel);
       seasonWrap.appendChild(seasonInput);
@@ -637,7 +661,7 @@ els.btnConso = btnConso;
           self._currentStockBags !== undefined &&
           self._currentStockBags <= 0
         ) {
-          alert("Stock à 0 : impossible d'enregistrer une consommation.");
+          alert("Stock Ã  0 : impossible d'enregistrer une consommation.");
           return;
         }
         var data = { qty_bags: qty, date: dateInput.value, season: formSeason };
@@ -675,7 +699,7 @@ els.btnConso = btnConso;
           })
           .catch(function (err) {
             alert(
-              "Échec de l'enregistrement : " +
+              "Ãchec de l'enregistrement : " +
                 ((err && err.message) || String(err))
             );
           })
@@ -697,7 +721,7 @@ els.btnConso = btnConso;
       var energieId = findEntity(hass, KEYS.consomme_kwh);
 
       if (!stockId) {
-        els.stock.textContent = "Intégration non configurée";
+        els.stock.textContent = "IntÃ©gration non configurÃ©e";
         return;
       }
 
@@ -863,7 +887,7 @@ els.btnConso = btnConso;
       if (cfg.show_stats) {
         els.statConsomme.textContent = fmt(consumedBags, 1) + " sac(s)";
         els.statEnergie.textContent = fmt(consommeKwh, 1) + " kWh";
-        els.statDepense.textContent = fmt(spentEur, 2) + " €";
+        els.statDepense.textContent = fmt(spentEur, 2) + " â¬";
         els.statJours.textContent = String(daysLogged);
       }
 
@@ -872,10 +896,10 @@ els.btnConso = btnConso;
         var costPerDay = daysLogged > 0 ? costToDate / daysLogged : 0;
         var costPerMonth = costPerDay * 30.44;
 
-        els.statCoutJour.textContent = fmt(costPerDay, 2) + " €";
-        els.statCoutMois.textContent = fmt(costPerMonth, 2) + " €";
-        els.statCoutSac.textContent = avgPricePerBag ? fmt(avgPricePerBag, 2) + " €" : "--";
-        els.statCoutAnnee.textContent = fmt(costToDate, 2) + " €";
+        els.statCoutJour.textContent = fmt(costPerDay, 2) + " â¬";
+        els.statCoutMois.textContent = fmt(costPerMonth, 2) + " â¬";
+        els.statCoutSac.textContent = avgPricePerBag ? fmt(avgPricePerBag, 2) + " â¬" : "--";
+        els.statCoutAnnee.textContent = fmt(costToDate, 2) + " â¬";
       }
 
       if (els.historyList && !this._openEditRow) {
@@ -892,7 +916,7 @@ els.btnConso = btnConso;
       if (els.seasonNote) {
         els.seasonNote.textContent = isCurrent
           ? ""
-          : "Vous consultez une saison passée : la date choisie dans le formulaire détermine la saison de la saisie.";
+          : "Vous consultez une saison passÃ©e : la date choisie dans le formulaire dÃ©termine la saison de la saisie.";
       }
     }
 
@@ -986,8 +1010,8 @@ _renderComparison(result) {
 	var pct = result.pct_diff;
 
 	if (previous === null || previous === undefined) {
-		els.comparisonMain.textContent = fmt(current, 1) + " sac(s) consommé(s)";
-		els.comparisonSub.textContent = "Pas de saison précédente pour comparer à date égale.";
+		els.comparisonMain.textContent = fmt(current, 1) + " sac(s) consommÃ©(s)";
+		els.comparisonSub.textContent = "Pas de saison prÃ©cÃ©dente pour comparer Ã  date Ã©gale.";
 		els.comparisonBadge.textContent = "";
 		els.comparisonBadge.className = "comparison-badge";
 		els.comparisonEuro.textContent = "";
@@ -995,7 +1019,7 @@ _renderComparison(result) {
 	}
 
 	els.comparisonMain.textContent = fmt(current, 1) + " sac(s) vs " + fmt(previous, 1) + " l'an dernier";
-	els.comparisonSub.textContent = "à la même date (saison " + result.previous_season + ")";
+	els.comparisonSub.textContent = "Ã  la mÃªme date (saison " + result.previous_season + ")";
 
 	var currentEur = result.current_spent_eur;
 	var previousEur = result.previous_spent_eur;
@@ -1005,7 +1029,7 @@ _renderComparison(result) {
 		var eurDiff = result.eur_diff;
 		var eurSign = eurDiff > 0 ? "+" : "";
 		els.comparisonEuro.textContent =
-			fmt(currentEur, 2) + " € vs " + fmt(previousEur, 2) + " € l'an dernier (" + eurSign + fmt(eurDiff, 2) + " €)";
+			fmt(currentEur, 2) + " â¬ vs " + fmt(previousEur, 2) + " â¬ l'an dernier (" + eurSign + fmt(eurDiff, 2) + " â¬)";
 		els.comparisonEuro.className =
 			"comparison-euro " + (eurDiff > 0 ? "up" : eurDiff < 0 ? "down" : "");
 	}
@@ -1053,12 +1077,12 @@ _renderComparison(result) {
 
         var label = document.createElement("span");
         label.className = "history-label";
-        label.textContent = (isConso ? "Consommation" : "Achat") + " · " + entry.date;
+        label.textContent = (isConso ? "Consommation" : "Achat") + " Â· " + entry.date;
 
         var value = document.createElement("span");
         value.className = "history-value";
         value.textContent =
-          entry.qty_bags + " sac(s)" + (entry.price_eur ? " · " + fmt(entry.price_eur, 2) + " €" : "");
+          entry.qty_bags + " sac(s)" + (entry.price_eur ? " Â· " + fmt(entry.price_eur, 2) + " â¬" : "");
 
         var editBtn = document.createElement("button");
         editBtn.type = "button";
@@ -1272,7 +1296,7 @@ _renderComparison(result) {
       if (!visible.qty && !visible.cost) {
         var note = document.createElement("div");
         note.className = "chart-empty-note";
-        note.textContent = "Sélectionnez au moins une courbe.";
+        note.textContent = "SÃ©lectionnez au moins une courbe.";
         container.appendChild(note);
         return;
       }
@@ -1350,10 +1374,10 @@ _renderComparison(result) {
           dot.setAttribute("r", "2.6");
           dot.setAttribute("fill", "#ffa726");
           var t = document.createElementNS(svgNS, "title");
-          t.textContent = MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " €";
+          t.textContent = MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " â¬";
           dot.appendChild(t);
           dot.addEventListener("pointerdown", function (evt) {
-            showTapTip(evt, MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " €");
+            showTapTip(evt, MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " â¬");
           });
           svg.appendChild(dot);
         });
@@ -1387,7 +1411,7 @@ _renderComparison(result) {
       if (points.length === 0) {
         var empty = document.createElement("div");
         empty.className = "price-chart-empty";
-        empty.textContent = "Pas encore assez de données (au moins un achat avec prix par saison).";
+        empty.textContent = "Pas encore assez de donnÃ©es (au moins un achat avec prix par saison).";
         container.appendChild(empty);
         return;
       }
@@ -1449,7 +1473,7 @@ _renderComparison(result) {
         label.setAttribute("font-size", "9");
         label.setAttribute("font-weight", "700");
         label.setAttribute("fill", "#ffa726");
-        label.textContent = fmt(p.avg_price_eur, 2) + "€";
+        label.textContent = fmt(p.avg_price_eur, 2) + "â¬";
         svg.appendChild(label);
 
         var dot = document.createElementNS(svgNS, "circle");
@@ -1558,6 +1582,6 @@ _renderComparison(result) {
   window.customCards.push({
     type: "suivi-stock-pellet-card",
     name: "Suivi Stock Pellet",
-    description: "Suivi du stock, de la consommation et des achats de granulés de bois."
+    description: "Suivi du stock, de la consommation et des achats de granulÃ©s de bois."
   });
 })();
