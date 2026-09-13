@@ -431,9 +431,33 @@
         btnAchat.className = "secondary";
         btnAchat.appendChild(icon("mdi:cart-plus"));
         btnAchat.appendChild(document.createTextNode("Achat"));
+        var btnQuick = document.createElement("button");
+        btnQuick.type = "button";
+        btnQuick.className = "secondary";
+        btnQuick.title = "Enregistrer 1 sac consommé aujourd'hui";
+        btnQuick.appendChild(icon("mdi:fire-alert"));
+        btnQuick.appendChild(document.createTextNode("+1 sac aujourd'hui"));
+        btnQuick.addEventListener("click", function () {
+          if (!self._hass) return;
+          btnQuick.disabled = true;
+          var todayIso = new Date().toISOString().slice(0, 10);
+          var season = self._seasonForDate(todayIso);
+          self._hass
+            .callService("suivi_stock_pellet", "log_consumption", {
+              qty_bags: 1,
+              season: season,
+            })
+            .catch(function (err) {
+              alert("Impossible d'enregistrer : " + (err && err.message ? err.message : err));
+            })
+            .then(function () {
+              btnQuick.disabled = false;
+            });
+        });
         actions.appendChild(btnConso);
 els.btnConso = btnConso;
         actions.appendChild(btnAchat);
+        actions.appendChild(btnQuick);
         actionsWrap.appendChild(actions);
 
         var formConso = this._buildForm("consumption");
