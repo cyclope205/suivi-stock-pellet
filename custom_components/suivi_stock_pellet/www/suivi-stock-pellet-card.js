@@ -795,15 +795,7 @@
         if (els.btnConso) els.btnConso.disabled = this._currentStockBags <= 0;
       }
 
-      if (cfg.show_stats && els.statConsomme) {
-        var prevConsumed = parseFloat(els.statConsomme.textContent) || 0;
-        var newConsumed = prevConsumed + qtyBags;
-        els.statConsomme.textContent = fmt(newConsumed, 1) + " sac(s)";
-        if (els.statEnergie) {
-          els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh";
-        }
-      }
-    }
+            if (typeof this._currentConsumedBags === "number") { this._currentConsumedBags += qtyBags; } var newConsumed = this._currentConsumedBags; if (cfg.show_stats && els.statConsomme && typeof newConsumed === "number") { els.statConsomme.textContent = fmt(newConsumed, 1) + " sac(s)"; if (els.statEnergie) { els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh"; } } if (cfg.show_cost_stats && typeof newConsumed === "number" && typeof this._currentAvgPricePerBag === "number") { var avgPricePerBag = this._currentAvgPricePerBag; var costToDate = avgPricePerBag ? newConsumed * avgPricePerBag : 0; var daysLogged = parseFloat(els.statJours && els.statJours.textContent) || 0; var costPerDay = daysLogged > 0 ? costToDate / daysLogged : 0; var costPerMonth = costPerDay * 30.44; if (els.statCoutAnnee) els.statCoutAnnee.textContent = fmt(costToDate, 2) + " €"; if (els.statCoutJour) els.statCoutJour.textContent = fmt(costPerDay, 2) + " €"; if (els.statCoutMois) els.statCoutMois.textContent = fmt(costPerMonth, 2) + " €"; } }
 
     _populateFormSeasonSelect(select, dateStr) {
       var startMonth = this._startMonth || 9;
@@ -913,6 +905,7 @@
         els.btnConso.disabled = isCurrentSeason && stockBags <= 0;
       }
       var consumedBags = totals.consumed_bags || 0;
+      this._currentConsumedBags = consumedBags;
       var purchasedBags = totals.purchased_bags || 0;
       var spentEur = totals.spent_eur || 0;
       var daysLogged = totals.days_logged || 0;
