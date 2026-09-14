@@ -455,6 +455,13 @@
               qty_bags: 1,
               season: season,
             })
+            .then(function () {
+              self._seasonDataFetchedAt = 0;
+              self._seasonDataDirty = true;
+              self._seasonsFetchedAt = 0;
+              self._seasonsDirty = true;
+              self._refreshSelectedSeason();
+            })
             .catch(function (err) {
               alert("Impossible d'enregistrer : " + (err && err.message ? err.message : err));
               self._seasonDataFetchedAt = 0;
