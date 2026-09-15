@@ -475,9 +475,8 @@
         actions.appendChild(btnConso);
         els.btnConso = btnConso;
         actions.appendChild(btnAchat);
-        if (self._season === self._currentSeason) {
-          actions.appendChild(btnQuick);
-        }
+        actions.appendChild(btnQuick);
+        els.btnQuick = btnQuick;
         actionsWrap.appendChild(actions);
 
         var formConso = this._buildForm("consumption");
@@ -959,6 +958,9 @@
       }
 
       var isCurrent = this._season === this._currentSeason;
+    if (els.btnQuick) {
+      els.btnQuick.classList.toggle("hidden", !isCurrent);
+    }
       if (els.actionsWrap) {
         els.actionsWrap.classList.remove("hidden");
       }
