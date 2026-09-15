@@ -684,8 +684,7 @@
           alert("Stock à 0 : impossible d'enregistrer une consommation.");
           return;
         }
-        var data = { qty_bags: qty, date: dateInput.value };
-        if (formSeason) { data.season = formSeason; }
+        var data = { qty_bags: qty, date: dateInput.value, season: formSeason || self._seasonForDate(dateInput.value) };
         if (kind === "purchase") {
           if (totalPriceInput && totalPriceInput.value) {
             data.price_eur = parseFloat(totalPriceInput.value);
