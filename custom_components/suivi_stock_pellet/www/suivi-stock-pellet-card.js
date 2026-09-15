@@ -475,8 +475,7 @@
         actions.appendChild(btnConso);
         els.btnConso = btnConso;
         actions.appendChild(btnAchat);
-        var quickBtnTodayIso = new Date().toISOString().slice(0, 10);
-        if (self._season === self._seasonForDate(quickBtnTodayIso)) {
+        if (self._season === self._currentSeason) {
           actions.appendChild(btnQuick);
         }
         actionsWrap.appendChild(actions);
