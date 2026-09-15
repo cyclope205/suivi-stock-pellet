@@ -54,7 +54,7 @@ Configurateur de carte:
 - Graphique "Prix moyen du sac par saison" pour suivre l'évolution du coût des granulés d'une saison à l'autre.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
 - Stock initial d'une saison automatiquement repris du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service `set_stock_initial` (comptage physique, saison déjà entamée avant l'ajout de cette fonctionnalité...).
-- Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat" et bouton rapide "+1 sac aujourd'hui", annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
+- Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat" et bouton rapide "+1 sac aujourd'hui" (visible uniquement sur la saison en cours), annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
 
 ## Installation
 
@@ -106,8 +106,8 @@ Les formulaires Achat/Consommation de la carte acceptent une date libre (passée
 
 Ou utilise directement les services :
 
-- `suivi_stock_pellet.log_consumption` (`qty_bags`, `season` obligatoire, `date` facultative)
-- `suivi_stock_pellet.log_purchase` (`qty_bags`, `season` obligatoire, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative)
+- `suivi_stock_pellet.log_consumption` (`qty_bags`, `season` facultative, `date` facultative)
+- `suivi_stock_pellet.log_purchase` (`qty_bags`, `season` facultative, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative)
 - `suivi_stock_pellet.undo_last_entry`
 - `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier)
 - `suivi_stock_pellet.delete_entry` (`season`, `index`)
