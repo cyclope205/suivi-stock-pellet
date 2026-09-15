@@ -475,7 +475,10 @@
         actions.appendChild(btnConso);
         els.btnConso = btnConso;
         actions.appendChild(btnAchat);
-        actions.appendChild(btnQuick);
+        var quickBtnTodayIso = new Date().toISOString().slice(0, 10);
+        if (self._season === self._seasonForDate(quickBtnTodayIso)) {
+          actions.appendChild(btnQuick);
+        }
         actionsWrap.appendChild(actions);
 
         var formConso = this._buildForm("consumption");
