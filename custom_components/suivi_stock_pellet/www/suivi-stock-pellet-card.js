@@ -1268,7 +1268,7 @@
       });
 
       deleteBtn.addEventListener("click", function () {
-        if (deleteBtn.dataset.confirm === "1") {
+        if (!window.confirm("Supprimer cette saisie ?")) return;
           self._hass.callService("suivi_stock_pellet", "delete_entry", {
             season: self._season,
             index: index
@@ -1280,15 +1280,7 @@
           row.dataset.editing = "";
           row.classList.remove("editing");
           self._openEditRow = null;
-        } else {
-          deleteBtn.dataset.confirm = "1";
-          deleteBtn.classList.add("confirm");
-          setTimeout(function () {
-            deleteBtn.dataset.confirm = "";
-            deleteBtn.classList.remove("confirm");
-          }, 4000);
-        }
-      });
+        });
     }
 
     _renderChart(entries, startMonth, avgPricePerBag) {
