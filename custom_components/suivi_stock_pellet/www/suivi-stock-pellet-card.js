@@ -929,7 +929,7 @@
       els.stock.textContent = fmt(stockBags, 1) + " sac(s)";
       els.stockSub.textContent = fmt(stockKg, 1) + " kg restant(s)";
 
-      var avgPricePerBag = purchasedBags > 0 ? spentEur / purchasedBags : 0;
+      var avgPricePerBag = (totals.avg_price_per_bag != null) ? totals.avg_price_per_bag : (purchasedBags > 0 ? spentEur / purchasedBags : 0);
       this._currentAvgPricePerBag = avgPricePerBag;
 
       if (cfg.show_stats) {
