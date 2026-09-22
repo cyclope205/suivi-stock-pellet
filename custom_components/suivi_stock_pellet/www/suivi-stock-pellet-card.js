@@ -890,7 +890,12 @@
         if (els.btnConso) els.btnConso.disabled = this._currentStockBags <= 0;
       }
 
-            if (typeof this._currentConsumedBags === "number") { this._currentConsumedBags += qtyBags; } var newConsumed = this._currentConsumedBags; if (cfg.show_stats && els.statConsomme && typeof newConsumed === "number") { els.statConsomme.textContent = fmt(newConsumed, 1) + " sac(s)"; if (els.statEnergie) { els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh"; } }  if (this._lastChartData && this._lastChartData.entries && typeof this._renderChart === "function") { var todayISO = new Date().toISOString().slice(0, 10); var newChartEntries = this._lastChartData.entries.slice(); newChartEntries.push({ type: "consumption", date: todayISO, qty_bags: qtyBags }); this._renderChart(newChartEntries, this._lastChartData.startMonth, this._lastChartData.avgPricePerBag); } if (els.historyList && !this._openEditRow) { this._renderHistory(newChartEntries); } }
+            if (typeof this._currentConsumedBags === "number") { this._currentConsumedBags += qtyBags; } var newConsumed = this._currentConsumedBags; if (cfg.show_stats && els.statConsomme && typeof newConsumed === "number") { els.statConsomme.textContent = fmt(newConsumed, 1) + " sac(s)"; if (els.statEnergie) { els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh"; } }  if (this._lastChartData && this._lastChartData.entries && typeof this._renderChart === "function") { var todayISO = new Date().toISOString().slice(0, 10); var newChartEntries = this._lastChartData.entries.slice(); newChartEntries.push({ type: "consumption", date: todayISO, qty_bags: qtyBags }); this._renderChart(newChartEntries, this._lastChartData.startMonth, this._lastChartData.avgPricePerBag); } if (els.historyList && !this._openEditRow) { this._renderHistory(newChartEntries); }
+      if (els.calGrid) {
+        this._calendarEntries = newChartEntries;
+        this._renderCalendar();
+      }
+    }
 
     _populateFormSeasonSelect(select, dateStr) {
       var startMonth = this._startMonth || 9;
