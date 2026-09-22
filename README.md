@@ -122,6 +122,22 @@ Ou utilise directement les services :
 - `sensor.*_depense` — dépensé cette saison (€)
 - `sensor.*_jours_utilisation` — nombre de jours de consommation enregistrés
 
+## Service `set_stock_initial`
+
+Pour corriger manuellement le stock de depart d'une saison (comptage physique, saison deja entamee avant l'ajout du report automatique...), en plus du report automatique decrit ci-dessus :
+
+| Parametre | Description |
+|---|---|
+| `season` | Saison a corriger, au format AAAA-AAAA (ex. 2024-2025). |
+| `stock_initial_bags` | Nombre de sacs presents au debut de la saison, avant tout achat ou consommation enregistre dans cette saison. |
+
+```yaml
+action: suivi_stock_pellet.set_stock_initial
+data:
+  season: "2024-2025"
+  stock_initial_bags: 12
+```
+
 ## Licence
 
 MIT — voir [LICENSE](LICENSE).
