@@ -578,3 +578,93 @@ def test_edit_entry_moving_consumption_to_season_without_enough_stock_rejected()
     with pytest.raises(ValueError):
         run(journal.async_edit_entry("2025-2026", 0, new_season="2099-2100"))
     assert "2099-2100" not in journal.seasons()
+
+
+# --- avg_price_per_bag weighted-average cost carryover (new behaviour) -
+
+
+def test_avg_price_per_bag_blends_carried_value_across_seasons():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 43, "2025-06-24", price_eur=262.0))
+    run(journal.async_add_entry("2026-2027", "purchase", 66, "2026-06-12", price_eur=440.0))
+    totals = journal.totals("2026-2027")
+    assert totals["stock_initial_value_eur"] == 262.0
+    assert totals["avg_price_per_bag"] == pytest.approx(6.4404, abs=0.0001)
+
+
+def test_avg_price_per_bag_recalculates_when_new_purchase_added_mid_season():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 43, "2025-06-24", price_eur=262.0))
+    run(journal.async_add_entry("2026-2027", "purchase", 66, "2026-06-12", price_eur=440.0))
+    before = journal.totals("2026-2027")["avg_price_per_bag"]
+    # Buying 50 more bags at 8 EUR/bag mid-season must shift the average.
+    run(journal.async_add_entry("2026-2027", "purchase", 50, "2026-12-01", price_eur=400.0))
+    after = journal.totals("2026-2027")
+    assert after["avg_price_per_bag"] != before
+    assert after["avg_price_per_bag"] == pytest.approx(1102 / 159, abs=0.0001)
+
+
+def test_stock_initial_value_carries_over_only_once_on_first_touch():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    # First touch of 2026-2027 freezes the carried value at 65.0.
+    run(journal.async_add_entry("2026-2027", "purchase", 1, "2026-09-10", price_eur=2.0))
+    assert journal.totals("2026-2027")["stock_initial_value_eur"] == 65.0
+
+    # Adding more to 2025-2026 afterwards must not retroactively change
+    # 2026-2027's already-frozen carried value.
+    run(journal.async_add_entry("2025-2026", "purchase", 100, "2025-09-06", price_eur=1000.0))
+    assert journal.totals("2026-2027")["stock_initial_value_eur"] == 65.0
+
+
+def test_effective_stock_initial_value_backfills_pre_existing_season_with_inherited_bags():
+    # Regression test for the migration gap fixed right after this
+    # feature first shipped: a season created (and already carrying an
+    # inherited stock_initial bag count) BEFORE the value-carryover
+    # feature existed has no "stock_initial_value_eur" key stored at
+    # all. Reading its totals() must still backfill that value on the
+    # fly from the previous season, instead of silently treating the
+    # carried bags as free (0 EUR) forever.
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 43, "2025-06-24", price_eur=262.0))
+    journal._data["seasons"]["2026-2027"] = {
+        "entries": [
+            {
+                "type": "purchase",
+                "qty_bags": 66,
+                "date": "2026-06-12",
+                "price_eur": 440.0,
+                "bag_weight_kg": None,
+                "calorific_value": None,
+            }
+        ],
+        "stock_initial": 43,
+    }
+    totals = journal.totals("2026-2027")
+    assert totals["stock_initial_value_eur"] == 262.0
+    assert totals["avg_price_per_bag"] == pytest.approx(6.4404, abs=0.0001)
+
+
+def test_effective_stock_initial_value_stays_zero_for_legacy_season_with_zero_stock_initial():
+    # A pre-existing season whose bag-side stock_initial is the legacy
+    # default of 0 (not a genuine inherited amount) must keep a carried
+    # value of 0 too, even though a previous season with real value
+    # exists - otherwise bags=0/value>0 would imply an infinite price
+    # per bag.
+    journal = _make_journal()
+    run(journal.async_add_entry("2024-2025", "purchase", 20, "2024-09-05", price_eur=100.0))
+    journal._data["seasons"]["2025-2026"] = {
+        "entries": [
+            {
+                "type": "consumption",
+                "qty_bags": 1,
+                "date": "2025-10-01",
+                "price_eur": None,
+                "bag_weight_kg": None,
+                "calorific_value": None,
+            }
+        ],
+        "stock_initial": 0,
+    }
+    totals = journal.totals("2025-2026")
+    assert totals["stock_initial_value_eur"] == 0.0
