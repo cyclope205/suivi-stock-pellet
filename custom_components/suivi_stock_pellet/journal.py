@@ -99,6 +99,7 @@ class PelletJournal:
             seasons[season] = {
                 "entries": [],
                 "stock_initial": self._effective_stock_initial(season),
+                "stock_initial_value_eur": self._effective_stock_initial_value(season),
             }
         return seasons[season]
 
@@ -124,6 +125,19 @@ class PelletJournal:
             return data.get("stock_initial", 0.0)
         return self._carry_over_stock(season)
 
+    def _effective_stock_initial_value(self, season: str) -> float:
+        """Euro value carried into a season's starting stock, mirroring
+        _effective_stock_initial but for the stock's monetary value
+        instead of its bag count. Used to compute a weighted-average
+        cost per bag that blends carried-over stock with the season's
+        own purchases.
+        """
+        seasons = self._data.get("seasons", {})
+        data = seasons.get(season)
+        if data is not None and (data.get("entries") or data.get("stock_initial_manual")):
+            return data.get("stock_initial_value_eur", 0.0)
+        return self._carry_over_stock_value(season)
+
     def _carry_over_stock(self, season: str) -> float:
         """Auto-carry the previous season's leftover stock into a brand
         new season's starting stock, the first time that season is
@@ -143,6 +157,21 @@ class PelletJournal:
         if previous_season not in self._data["seasons"]:
             return 0.0
         return self.totals(previous_season)["stock_bags"]
+
+    def _carry_over_stock_value(self, season: str) -> float:
+        """Auto-carry the previous season's leftover stock VALUE (euros)
+        into a brand new season, mirroring _carry_over_stock. Combined
+        with the carried bag count, this lets totals() compute a
+        weighted-average price per bag across season boundaries instead
+        of only ever looking at the current season's own purchases.
+        """
+        try:
+            previous_season = previous_season_key(season)
+        except ValueError:
+            return 0.0
+        if previous_season not in self._data["seasons"]:
+            return 0.0
+        return self.totals(previous_season)["stock_value_eur"]
 
     async def async_add_entry(
         self,
@@ -413,6 +442,12 @@ class PelletJournal:
         # contribution necessarily uses the current configured bag weight;
         # only the purchased/consumed portions are pinned to their own
         # historical weight snapshots.
+        stock_initial_value = self._effective_stock_initial_value(season)
+        bags_available = stock_initial + purchased
+        value_available = stock_initial_value + spent
+        avg_price_per_bag = (
+            value_available / bags_available if bags_available > 0 else 0.0
+        )
         stock_bags_raw = stock_initial + purchased - consumed
         stock_kg = max(
             stock_initial * default_bag_weight_kg + purchased_kg - consumed_kg, 0
@@ -436,6 +471,9 @@ class PelletJournal:
             "stock_bags": max(stock_bags_raw, 0),
             "stock_bags_raw": round(stock_bags_raw, 2),
             "stock_initial_bags": stock_initial,
+            "stock_initial_value_eur": round(stock_initial_value, 2),
+            "avg_price_per_bag": round(avg_price_per_bag, 4),
+            "stock_value_eur": round(max(stock_bags_raw, 0) * avg_price_per_bag, 2),
             "spent_eur": round(spent, 2),
             "days_logged": days,
             "consumed_kg": round(consumed_kg, 2),
