@@ -126,7 +126,20 @@
     ".comparison-badge.down { background: rgba(102, 187, 106, 0.18); color: rgb(102, 187, 106); }",
     ".comparison-euro { font-size: 0.72em; opacity: 0.8; margin-top: 2px; font-weight: 600; }",
     ".comparison-euro.up { color: rgb(239, 83, 80); }",
-    ".comparison-euro.down { color: rgb(102, 187, 106); }"
+    ".comparison-euro.down { color: rgb(102, 187, 106); }",
+    ".calendar-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }",
+    ".calendar-nav-btn { background: var(--secondary-background-color, rgba(127,127,127,0.15)); border: none; color: inherit; border-radius: 8px; width: 26px; height: 26px; font-size: 0.95em; cursor: pointer; }",
+    ".calendar-label { font-size: 0.8em; font-weight: 700; }",
+    ".calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }",
+    ".calendar-dow { text-align: center; font-size: 0.62em; opacity: 0.6; padding-bottom: 2px; }",
+    ".calendar-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.7em; background: var(--secondary-background-color, rgba(127,127,127,0.08)); }",
+    ".calendar-cell.purchase { background: rgba(102, 187, 106, 0.75); color: #fff; font-weight: 700; }",
+    ".calendar-cell.consumption { background: rgba(239, 83, 80, 0.55); color: #fff; }",
+    ".calendar-legend { display: flex; gap: 14px; margin-top: 8px; font-size: 0.72em; opacity: 0.85; }",
+    ".calendar-legend-item { display: inline-flex; align-items: center; gap: 5px; }",
+    ".calendar-dot { width: 9px; height: 9px; border-radius: 50%; }",
+    ".calendar-dot.purchase { background: rgb(102, 187, 106); }",
+    ".calendar-dot.consumption { background: rgb(239, 83, 80); }"
   ].join("\n");
 
   var EDITOR_STYLE = [
@@ -140,6 +153,8 @@
   var ROOT_VARS = "--pellet-amber: #ffa726;";
 
   var MONTHS_FR = ["", "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+
+  var MONTHS_FULL_FR = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
   var KEYS = {
     stock: "stock",
@@ -165,7 +180,8 @@
     show_comparison: true,
     show_monthly_chart: true,
     show_price_chart: true,
-    show_history: true
+    show_history: true,
+    show_calendar: true
   };
 
   var TOGGLE_FIELDS = [
@@ -175,7 +191,8 @@
     { key: "show_comparison", label: "Comparaison saison précédente à date égale" },
     { key: "show_monthly_chart", label: "Graphique évolution de la consommation" },
     { key: "show_price_chart", label: "Graphique prix moyen du sac par saison" },
-    { key: "show_history", label: "Liste des dernières saisies" }
+    { key: "show_history", label: "Liste des dernières saisies" },
+    { key: "show_calendar", label: "Calendrier des ajouts avec navigation mensuelle" }
   ];
 
   function findEntity(hass, key) {
@@ -584,6 +601,76 @@
         els.historyList = historyList;
       }
 
+      if (cfg.show_calendar) {
+        var calSection = document.createElement("div");
+        calSection.className = "chart-section";
+        var calTitle = document.createElement("div");
+        calTitle.className = "chart-title";
+        calTitle.appendChild(icon("mdi:calendar-month-outline"));
+        calTitle.appendChild(document.createTextNode("Calendrier des ajouts"));
+        calSection.appendChild(calTitle);
+
+        var calNav = document.createElement("div");
+        calNav.className = "calendar-nav";
+        var calPrevBtn = document.createElement("button");
+        calPrevBtn.type = "button";
+        calPrevBtn.className = "calendar-nav-btn";
+        calPrevBtn.textContent = "\u2039";
+        var calLabel = document.createElement("div");
+        calLabel.className = "calendar-label";
+        var calNextBtn = document.createElement("button");
+        calNextBtn.type = "button";
+        calNextBtn.className = "calendar-nav-btn";
+        calNextBtn.textContent = "\u203a";
+        calNav.appendChild(calPrevBtn);
+        calNav.appendChild(calLabel);
+        calNav.appendChild(calNextBtn);
+        calSection.appendChild(calNav);
+
+        var calGrid = document.createElement("div");
+        calGrid.className = "calendar-grid";
+        calSection.appendChild(calGrid);
+
+        var calLegend = document.createElement("div");
+        calLegend.className = "calendar-legend";
+        var calLegendPurchase = document.createElement("span");
+        calLegendPurchase.className = "calendar-legend-item";
+        var calDotPurchase = document.createElement("span");
+        calDotPurchase.className = "calendar-dot purchase";
+        calLegendPurchase.appendChild(calDotPurchase);
+        calLegendPurchase.appendChild(document.createTextNode("Achat"));
+        var calLegendConso = document.createElement("span");
+        calLegendConso.className = "calendar-legend-item";
+        var calDotConso = document.createElement("span");
+        calDotConso.className = "calendar-dot consumption";
+        calLegendConso.appendChild(calDotConso);
+        calLegendConso.appendChild(document.createTextNode("Consommation"));
+        calLegend.appendChild(calLegendPurchase);
+        calLegend.appendChild(calLegendConso);
+        calSection.appendChild(calLegend);
+
+        card.appendChild(calSection);
+        els.calLabel = calLabel;
+        els.calGrid = calGrid;
+
+        calPrevBtn.addEventListener("click", function () {
+          self._calendarMonth--;
+          if (self._calendarMonth < 1) {
+            self._calendarMonth = 12;
+            self._calendarYear--;
+          }
+          self._renderCalendar();
+        });
+        calNextBtn.addEventListener("click", function () {
+          self._calendarMonth++;
+          if (self._calendarMonth > 12) {
+            self._calendarMonth = 1;
+            self._calendarYear++;
+          }
+          self._renderCalendar();
+        });
+      }
+
       this._els = els;
     }
 
@@ -956,6 +1043,15 @@
       if (els.chart) {
         this._renderChart(entries, startMonth, avgPricePerBag);
       }
+      if (els.calGrid) {
+        this._calendarEntries = entries;
+        if (this._calendarYear === undefined || this._calendarMonth === undefined) {
+          var today = new Date();
+          this._calendarYear = today.getFullYear();
+          this._calendarMonth = today.getMonth() + 1;
+        }
+        this._renderCalendar();
+      }
 
       var isCurrent = this._season === this._currentSeason;
     if (els.btnQuick) {
@@ -1289,6 +1385,68 @@
           row.classList.remove("editing");
           self._openEditRow = null;
         });
+    }
+
+    _renderCalendar() {
+      var els = this._els;
+      if (!els || !els.calGrid) return;
+      var entries = this._calendarEntries || [];
+      var year = this._calendarYear;
+      var month = this._calendarMonth;
+
+      els.calLabel.textContent = MONTHS_FULL_FR[month] + " " + year;
+
+      var byDay = {};
+      entries.forEach(function (entry) {
+        var parts = entry.date.split("-");
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        var d = parseInt(parts[2], 10);
+        if (y !== year || m !== month) return;
+        if (!byDay[d]) byDay[d] = { purchase: 0, consumption: 0 };
+        if (entry.type === "purchase") {
+          byDay[d].purchase += entry.qty_bags;
+        } else {
+          byDay[d].consumption += entry.qty_bags;
+        }
+      });
+
+      var grid = els.calGrid;
+      grid.innerHTML = "";
+      var DOW = ["L", "M", "M", "J", "V", "S", "D"];
+      DOW.forEach(function (d) {
+        var dowCell = document.createElement("div");
+        dowCell.className = "calendar-dow";
+        dowCell.textContent = d;
+        grid.appendChild(dowCell);
+      });
+
+      var firstDow = new Date(year, month - 1, 1).getDay();
+      firstDow = firstDow === 0 ? 6 : firstDow - 1;
+      var daysInMonth = new Date(year, month, 0).getDate();
+
+      for (var i = 0; i < firstDow; i++) {
+        grid.appendChild(document.createElement("div"));
+      }
+
+      for (var day = 1; day <= daysInMonth; day++) {
+        var cell = document.createElement("div");
+        cell.className = "calendar-cell";
+        var info = byDay[day];
+        if (info && info.purchase > 0) {
+          cell.classList.add("purchase");
+        } else if (info && info.consumption > 0) {
+          cell.classList.add("consumption");
+        }
+        cell.textContent = String(day);
+        if (info) {
+          var parts2 = [];
+          if (info.purchase > 0) parts2.push("Achat : " + fmt(info.purchase, 1) + " sac(s)");
+          if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + " sac(s)");
+          cell.title = parts2.join(" \u00b7 ");
+        }
+        grid.appendChild(cell);
+      }
     }
 
     _renderChart(entries, startMonth, avgPricePerBag) {
