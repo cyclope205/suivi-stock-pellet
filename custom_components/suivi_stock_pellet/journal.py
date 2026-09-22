@@ -131,11 +131,32 @@ class PelletJournal:
         instead of its bag count. Used to compute a weighted-average
         cost per bag that blends carried-over stock with the season's
         own purchases.
+
+        Seasons created before this value-carryover feature shipped
+        have no stored "stock_initial_value_eur" at all. For those,
+        backfill a computed value on read (never persisted here, mirrors
+        the read-only preview pattern) - but only when the season's own
+        bag-side stock_initial is itself a genuine inherited amount
+        (nonzero, with a previous season on record to source it from).
+        A pre-existing season whose stock_initial is the legacy default
+        of 0 must keep a value of 0 too, or bags=0/value>0 would be
+        incoherent (implying an infinite price per bag).
         """
         seasons = self._data.get("seasons", {})
         data = seasons.get(season)
+        if data is not None and "stock_initial_value_eur" in data:
+            return data["stock_initial_value_eur"]
         if data is not None and (data.get("entries") or data.get("stock_initial_manual")):
-            return data.get("stock_initial_value_eur", 0.0)
+            stock_initial_bags = data.get("stock_initial", 0.0)
+            if not stock_initial_bags:
+                return 0.0
+            try:
+                previous_season = previous_season_key(season)
+            except ValueError:
+                return 0.0
+            if previous_season not in seasons:
+                return 0.0
+            return self.totals(previous_season)["stock_value_eur"]
         return self._carry_over_stock_value(season)
 
     def _carry_over_stock(self, season: str) -> float:
