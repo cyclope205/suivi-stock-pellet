@@ -74,8 +74,11 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
     summary = []
     for season in journal.seasons():
         totals = journal.totals(season)
-        purchased = totals["purchased_bags"]
-        avg_price = round(totals["spent_eur"] / purchased, 2) if purchased else None
+        # Use the weighted-average price (blends carried-over stock
+        # value with this seasons own purchases) instead of a plain
+        # spent/purchased ratio, so this chart matches the rest of the
+        # card and journal.totals().
+        avg_price = totals["avg_price_per_bag"] or None
         summary.append(
             {
                 "season": season,
