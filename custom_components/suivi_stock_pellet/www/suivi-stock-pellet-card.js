@@ -503,13 +503,26 @@
         els.consoSeasonSelect = formConso.seasonSelect;
         els.achatSeasonSelect = formAchat.seasonSelect;
 
+        function updateActionButtons() {
+          var consoOpen = formConso.el.classList.contains("visible");
+          var achatOpen = formAchat.el.classList.contains("visible");
+          if (achatOpen) {
+            btnAchat.classList.remove("secondary");
+            btnConso.classList.add("secondary");
+          } else {
+            btnConso.classList.remove("secondary");
+            btnAchat.classList.add("secondary");
+          }
+        }
         btnConso.addEventListener("click", function () {
           formAchat.el.classList.remove("visible");
           formConso.el.classList.toggle("visible");
+          updateActionButtons();
         });
         btnAchat.addEventListener("click", function () {
           formConso.el.classList.remove("visible");
           formAchat.el.classList.toggle("visible");
+          updateActionButtons();
         });
 
       }
