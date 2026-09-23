@@ -63,7 +63,7 @@
     ".actions button.type-achat.secondary { background: rgba(102, 187, 106, 0.12); color: rgb(102, 187, 106); border: 1px solid rgba(102, 187, 106, 0.35); }",
     "@keyframes pellet-quick-flash { 0% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.9); } 100% { box-shadow: 0 0 0 14px rgba(239, 83, 80, 0); } }",
     ".actions button.flash { animation: pellet-quick-flash 0.45s ease-out; }",
-    ".calendar-tip { background: rgba(20,20,20,0.92); color: #fff; font-size: 0.7em; padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 9999; pointer-events: none; }",
+    ".calendar-tip { background: rgba(15,15,15,0.98); color: #fff; font-size: 0.75em; padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 9999; pointer-events: none; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.65); }",
 ".form { display: none; flex-direction: column; gap: 10px; margin-top: 6px; padding: 14px; border-radius: 14px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".form.visible { display: flex; }",
     ".form label { font-size: 0.75em; opacity: 0.75; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }",
@@ -1496,8 +1496,9 @@
             tip.className = "calendar-tip";
             tip.textContent = cell.title;
             tip.style.position = "fixed";
-            tip.style.left = r.left + "px";
-            tip.style.top = (r.top - 30) + "px";
+            tip.style.left = (r.left + r.width / 2) + "px";
+            tip.style.top = (r.top - 10) + "px";
+            tip.style.transform = "translate(-50%, -100%)";
             document.body.appendChild(tip);
             setTimeout(function () {
               if (tip.parentNode) tip.parentNode.removeChild(tip);
