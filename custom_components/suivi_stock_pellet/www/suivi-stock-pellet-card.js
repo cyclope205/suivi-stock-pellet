@@ -1460,8 +1460,8 @@
         grid.appendChild(document.createElement("div"));
       }
 
-      for (var day = 1; day <= daysInMonth; day++) {
-        var cell = document.createElement("div");
+      for (let day = 1; day <= daysInMonth; day++) {
+        let cell = document.createElement("div");
         cell.className = "calendar-cell";
         var info = byDay[day];
         if (info && info.purchase > 0) {
