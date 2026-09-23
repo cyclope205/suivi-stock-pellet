@@ -57,6 +57,12 @@
     ".actions button:hover { filter: brightness(1.06); }",
     ".actions button:active { transform: scale(0.98); }",
     ".actions button.secondary { background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: var(--primary-text-color, inherit); }",
+    ".actions button.type-conso:not(.secondary) { background: linear-gradient(135deg, #ffcc80, #EF9F27); color: #1c1c1c; }",
+    ".actions button.type-conso.secondary { background: rgba(239,159,39,0.12); color: #EF9F27; border: 1px solid rgba(239,159,39,0.35); }",
+    ".actions button.type-achat:not(.secondary) { background: linear-gradient(135deg, #9ccc65, #639922); color: #fff; }",
+    ".actions button.type-achat.secondary { background: rgba(99,153,34,0.12); color: #639922; border: 1px solid rgba(99,153,34,0.35); }",
+    "@keyframes pellet-quick-flash { 0% { box-shadow: 0 0 0 0 rgba(239,159,39,0.9); } 100% { box-shadow: 0 0 0 14px rgba(239,159,39,0); } }",
+    ".actions button.flash { animation: pellet-quick-flash 0.45s ease-out; }",
     ".form { display: none; flex-direction: column; gap: 10px; margin-top: 6px; padding: 14px; border-radius: 14px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".form.visible { display: flex; }",
     ".form label { font-size: 0.75em; opacity: 0.75; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }",
@@ -133,13 +139,14 @@
     ".calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; max-width: 260px; margin: 0 auto; }",
     ".calendar-dow { text-align: center; font-size: 0.55em; opacity: 0.6; padding-bottom: 1px; }",
     ".calendar-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.6em; background: var(--secondary-background-color, rgba(127,127,127,0.08)); }",
-    ".calendar-cell.purchase { background: rgba(102, 187, 106, 0.75); color: #fff; font-weight: 700; }",
-    ".calendar-cell.consumption { background: rgba(239, 83, 80, 0.55); color: #fff; }",
+    ".calendar-cell.purchase { background: rgba(99, 153, 34, 0.75); color: #fff; font-weight: 700; }",
+    ".calendar-cell.consumption { background: rgba(239, 159, 39, 0.55); color: #fff; }",
+    ".calendar-cell.purchase.consumption { background: linear-gradient(135deg, rgba(99,153,34,0.85) 50%, rgba(239,159,39,0.85) 50%); color: #fff; font-weight:700; }",
     ".calendar-legend { display: flex; gap: 14px; justify-content: center; max-width: 260px; margin: 6px auto 0 auto; font-size: 0.65em; opacity: 0.85; }",
     ".calendar-legend-item { display: inline-flex; align-items: center; gap: 5px; }",
     ".calendar-dot { width: 7px; height: 7px; border-radius: 50%; }",
-    ".calendar-dot.purchase { background: rgb(102, 187, 106); }",
-    ".calendar-dot.consumption { background: rgb(239, 83, 80); }"
+    ".calendar-dot.purchase { background: rgb(99, 153, 34); }",
+    ".calendar-dot.consumption { background: rgb(239, 159, 39); }"
   ].join("\n");
 
   var EDITOR_STYLE = [
@@ -441,21 +448,26 @@
         actions.className = "actions";
         var btnConso = document.createElement("button");
         btnConso.type = "button";
+        btnConso.className = "type-conso";
         btnConso.appendChild(icon("mdi:fire"));
         btnConso.appendChild(document.createTextNode("Consommation"));
         var btnAchat = document.createElement("button");
         btnAchat.type = "button";
-        btnAchat.className = "secondary";
+        btnAchat.className = "secondary type-achat";
         btnAchat.appendChild(icon("mdi:cart-plus"));
         btnAchat.appendChild(document.createTextNode("Achat"));
         var btnQuick = document.createElement("button");
         btnQuick.type = "button";
-        btnQuick.className = "secondary";
+        btnQuick.className = "type-conso";
         btnQuick.title = "Enregistrer 1 sac consommé aujourd'hui";
         btnQuick.appendChild(icon("mdi:fire-alert"));
         btnQuick.appendChild(document.createTextNode("+1 sac aujourd'hui"));
         btnQuick.addEventListener("click", function () {
           if (!self._hass) return;
+          btnQuick.classList.remove("flash");
+          void btnQuick.offsetWidth;
+          btnQuick.classList.add("flash");
+          setTimeout(function () { btnQuick.classList.remove("flash"); }, 450);
           btnQuick.disabled = true;
           var todayIsoStr = new Date().toISOString().slice(0, 10);
           var season = self._seasonForDate(todayIsoStr);
@@ -1453,7 +1465,8 @@
         var info = byDay[day];
         if (info && info.purchase > 0) {
           cell.classList.add("purchase");
-        } else if (info && info.consumption > 0) {
+        }
+        if (info && info.consumption > 0) {
           cell.classList.add("consumption");
         }
         cell.textContent = String(day);
