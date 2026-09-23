@@ -1489,7 +1489,8 @@
                   }
                 });
                 cell.addEventListener("click", function () {
-            var old = document.querySelector(".calendar-tip");
+            var oldRoot = cell.getRootNode();
+            var old = (oldRoot === document ? document : oldRoot).querySelector(".calendar-tip");
             if (old) old.remove();
             var r = cell.getBoundingClientRect();
             var tip = document.createElement("div");
@@ -1499,7 +1500,8 @@
             tip.style.left = (r.left + r.width / 2) + "px";
             tip.style.top = (r.top - 10) + "px";
             tip.style.transform = "translate(-50%, -100%)";
-            document.body.appendChild(tip);
+            var tipRoot = cell.getRootNode();
+            (tipRoot === document ? document.body : tipRoot).appendChild(tip);
             setTimeout(function () {
               if (tip.parentNode) tip.parentNode.removeChild(tip);
             }, 2000);
