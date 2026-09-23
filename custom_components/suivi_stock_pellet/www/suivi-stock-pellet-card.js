@@ -141,7 +141,7 @@
     ".calendar-dow { text-align: center; font-size: 0.85em; opacity: 0.6; padding-bottom: 1px; }",
     ".calendar-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.85em; background: var(--secondary-background-color, rgba(127,127,127,0.08)); }",
     ".calendar-cell.purchase { background: rgba(102, 187, 106, 0.75); color: #fff; font-weight: 700; }",
-    ".calendar-cell.consumption { background: rgba(239, 83, 80, 0.55); color: #fff; }",
+    ".calendar-cell.consumption { background: rgba(239, 83, 80, 0.85); color: #fff; }",
     ".calendar-cell.purchase.consumption { background: linear-gradient(135deg, rgba(102,187,106,0.85) 50%, rgba(239,83,80,0.85) 50%); color: #fff; font-weight:700; }",
     ".calendar-legend { display: flex; gap: 14px; justify-content: center; max-width: 320px; margin: 6px auto 0 auto; font-size: 0.85em; opacity: 0.85; }",
     ".calendar-legend-item { display: inline-flex; align-items: center; gap: 5px; }",
@@ -1476,7 +1476,19 @@
           if (info.purchase > 0) parts2.push("Achat : " + fmt(info.purchase, 1) + " sac(s)");
           if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + " sac(s)");
           cell.title = parts2.join(" \u00b7 ");
-          cell.addEventListener("click", function () {
+          cell.addEventListener("touchstart", function (e) {
+                  cell.__tsX = e.touches[0].clientX;
+                  cell.__tsY = e.touches[0].clientY;
+                }, { passive: true });
+                cell.addEventListener("touchend", function (e) {
+                  var dx = Math.abs((e.changedTouches[0].clientX) - (cell.__tsX || 0));
+                  var dy = Math.abs((e.changedTouches[0].clientY) - (cell.__tsY || 0));
+                  if (dx < 10 && dy < 10) {
+                    e.preventDefault();
+                    cell.click();
+                  }
+                });
+                cell.addEventListener("click", function () {
             var old = document.querySelector(".calendar-tip");
             if (old) old.remove();
             var r = cell.getBoundingClientRect();
