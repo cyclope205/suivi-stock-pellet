@@ -57,13 +57,14 @@
     ".actions button:hover { filter: brightness(1.06); }",
     ".actions button:active { transform: scale(0.98); }",
     ".actions button.secondary { background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: var(--primary-text-color, inherit); }",
-    ".actions button.type-conso:not(.secondary) { background: linear-gradient(135deg, #ffcc80, #EF9F27); color: #1c1c1c; }",
-    ".actions button.type-conso.secondary { background: rgba(239,159,39,0.12); color: #EF9F27; border: 1px solid rgba(239,159,39,0.35); }",
-    ".actions button.type-achat:not(.secondary) { background: linear-gradient(135deg, #9ccc65, #639922); color: #fff; }",
-    ".actions button.type-achat.secondary { background: rgba(99,153,34,0.12); color: #639922; border: 1px solid rgba(99,153,34,0.35); }",
-    "@keyframes pellet-quick-flash { 0% { box-shadow: 0 0 0 0 rgba(239,159,39,0.9); } 100% { box-shadow: 0 0 0 14px rgba(239,159,39,0); } }",
+    ".actions button.type-conso:not(.secondary) { background: linear-gradient(135deg, #ff8a80, rgb(239, 83, 80)); color: #fff; }",
+    ".actions button.type-conso.secondary { background: rgba(239, 83, 80, 0.12); color: rgb(239, 83, 80); border: 1px solid rgba(239, 83, 80, 0.35); }",
+    ".actions button.type-achat:not(.secondary) { background: linear-gradient(135deg, #81c784, rgb(102, 187, 106)); color: #fff; }",
+    ".actions button.type-achat.secondary { background: rgba(102, 187, 106, 0.12); color: rgb(102, 187, 106); border: 1px solid rgba(102, 187, 106, 0.35); }",
+    "@keyframes pellet-quick-flash { 0% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.9); } 100% { box-shadow: 0 0 0 14px rgba(239, 83, 80, 0); } }",
     ".actions button.flash { animation: pellet-quick-flash 0.45s ease-out; }",
-    ".form { display: none; flex-direction: column; gap: 10px; margin-top: 6px; padding: 14px; border-radius: 14px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
+    ".calendar-tip { background: rgba(20,20,20,0.92); color: #fff; font-size: 0.7em; padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 9999; pointer-events: none; }",
+".form { display: none; flex-direction: column; gap: 10px; margin-top: 6px; padding: 14px; border-radius: 14px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".form.visible { display: flex; }",
     ".form label { font-size: 0.75em; opacity: 0.75; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }",
     ".form input { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--divider-color, rgba(127,127,127,0.3)); background: var(--card-background-color, transparent); color: inherit; font-size: 1em; margin-top: 4px; }",
@@ -82,15 +83,15 @@
     ".chart { display: flex; align-items: flex-end; gap: 4px; height: 90px; padding: 0 2px 8px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }",
     ".chart-bar-wrap { flex: 1; display: flex; align-items: flex-end; width: 100%; justify-content: center; }",
-    ".chart-bar { width: 55%; min-width: 4px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, rgb(66,165,245), rgba(66,165,245,0.55)); transition: height 0.2s ease; }",
+    ".chart-bar { width: 55%; min-width: 4px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, rgb(239, 83, 80), rgba(239, 83, 80, 0.55)); transition: height 0.2s ease; }",
     ".chart-bar.empty { background: var(--divider-color, rgba(127,127,127,0.25)); }",
     ".chart-label { font-size: 0.62em; opacity: 0.65; }",
     ".chart-label.current { opacity: 1; font-weight: 700; color: var(--pellet-amber); }",
     ".chart-legend { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 8px; font-size: 0.72em; }",
     ".chart-legend-item { display: inline-flex; align-items: center; gap: 6px; border: none; background: none; cursor: pointer; padding: 3px 8px; border-radius: 999px; color: inherit; font-family: inherit; font-size: 1em; opacity: 0.9; }",
     ".chart-legend-item.inactive { opacity: 0.3; }",
-    ".chart-legend-dot { width: 9px; height: 9px; border-radius: 2px; background: rgb(66,165,245); }",
-    ".chart-legend-dot.amber { border-radius: 50%; background: var(--pellet-amber); }",
+    ".chart-legend-dot { width: 9px; height: 9px; border-radius: 2px; background: rgb(239, 83, 80); }",
+    ".chart-legend-dot.amber { border-radius: 50%; background: rgb(102, 187, 106); }",
     ".chart-svg-wrap { height: 100px; }",
     ".chart-svg-wrap svg { width: 100%; height: 100%; overflow: visible; }",
     ".chart-empty-note { opacity: 0.6; font-style: italic; font-size: 0.78em; padding: 16px 0; text-align: center; }",
@@ -139,14 +140,14 @@
     ".calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; max-width: 260px; margin: 0 auto; }",
     ".calendar-dow { text-align: center; font-size: 0.55em; opacity: 0.6; padding-bottom: 1px; }",
     ".calendar-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.6em; background: var(--secondary-background-color, rgba(127,127,127,0.08)); }",
-    ".calendar-cell.purchase { background: rgba(99, 153, 34, 0.75); color: #fff; font-weight: 700; }",
-    ".calendar-cell.consumption { background: rgba(239, 159, 39, 0.55); color: #fff; }",
-    ".calendar-cell.purchase.consumption { background: linear-gradient(135deg, rgba(99,153,34,0.85) 50%, rgba(239,159,39,0.85) 50%); color: #fff; font-weight:700; }",
+    ".calendar-cell.purchase { background: rgba(102, 187, 106, 0.75); color: #fff; font-weight: 700; }",
+    ".calendar-cell.consumption { background: rgba(239, 83, 80, 0.55); color: #fff; }",
+    ".calendar-cell.purchase.consumption { background: linear-gradient(135deg, rgba(102,187,106,0.85) 50%, rgba(239,83,80,0.85) 50%); color: #fff; font-weight:700; }",
     ".calendar-legend { display: flex; gap: 14px; justify-content: center; max-width: 260px; margin: 6px auto 0 auto; font-size: 0.65em; opacity: 0.85; }",
     ".calendar-legend-item { display: inline-flex; align-items: center; gap: 5px; }",
     ".calendar-dot { width: 7px; height: 7px; border-radius: 50%; }",
-    ".calendar-dot.purchase { background: rgb(99, 153, 34); }",
-    ".calendar-dot.consumption { background: rgb(239, 159, 39); }"
+    ".calendar-dot.purchase { background: rgb(102, 187, 106); }",
+    ".calendar-dot.consumption { background: rgb(239, 83, 80); }"
   ].join("\n");
 
   var EDITOR_STYLE = [
@@ -1475,6 +1476,21 @@
           if (info.purchase > 0) parts2.push("Achat : " + fmt(info.purchase, 1) + " sac(s)");
           if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + " sac(s)");
           cell.title = parts2.join(" \u00b7 ");
+          cell.addEventListener("click", function () {
+            var old = document.querySelector(".calendar-tip");
+            if (old) old.remove();
+            var r = cell.getBoundingClientRect();
+            var tip = document.createElement("div");
+            tip.className = "calendar-tip";
+            tip.textContent = cell.title;
+            tip.style.position = "fixed";
+            tip.style.left = r.left + "px";
+            tip.style.top = (r.top - 30) + "px";
+            document.body.appendChild(tip);
+            setTimeout(function () {
+              if (tip.parentNode) tip.parentNode.removeChild(tip);
+            }, 2000);
+          });
         }
         grid.appendChild(cell);
       }
@@ -1577,7 +1593,7 @@
           rect.setAttribute("width", barW);
           rect.setAttribute("height", h);
           rect.setAttribute("rx", 2);
-          rect.setAttribute("fill", v === 0 ? "rgba(127,127,127,0.3)" : "rgb(66,165,245)");
+          rect.setAttribute("fill", v === 0 ? "rgba(127,127,127,0.3)" : "rgb(239, 83, 80)");
           var t = document.createElementNS(svgNS, "title");
           t.textContent = MONTHS_FR[m] + " : " + fmt(v, 1) + " sac(s)";
           rect.appendChild(t);
@@ -1612,7 +1628,7 @@
         var path = document.createElementNS(svgNS, "path");
         path.setAttribute("d", pathD);
         path.setAttribute("fill", "none");
-        path.setAttribute("stroke", "#ffa726");
+        path.setAttribute("stroke", "rgb(102, 187, 106)");
         path.setAttribute("stroke-width", "2");
         path.setAttribute("stroke-linecap", "round");
         path.setAttribute("stroke-linejoin", "round");
@@ -1624,7 +1640,7 @@
           dot.setAttribute("cx", xCenter(idx));
           dot.setAttribute("cy", cy);
           dot.setAttribute("r", "2.6");
-          dot.setAttribute("fill", "#ffa726");
+          dot.setAttribute("fill", "rgb(102, 187, 106)");
           var t = document.createElementNS(svgNS, "title");
           t.textContent = MONTHS_FR[m] + " : " + fmt(costBuckets[idx], 2) + " €";
           dot.appendChild(t);
@@ -1639,7 +1655,7 @@
             costLabel.setAttribute("text-anchor", "middle");
             costLabel.setAttribute("font-size", "8");
             costLabel.setAttribute("font-weight", "700");
-            costLabel.setAttribute("fill", "#ffa726");
+            costLabel.setAttribute("fill", "rgb(102, 187, 106)");
             costLabel.textContent = fmt(costBuckets[idx], 2) + " €";
             svg.appendChild(costLabel);
           }
@@ -1652,7 +1668,7 @@
         label.setAttribute("y", height + padBottom - 4);
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("font-size", "8");
-        label.setAttribute("fill", m === currentMonth ? "#ffa726" : "currentColor");
+        label.setAttribute("fill", m === currentMonth ? "rgb(102, 187, 106)" : "currentColor");
         label.setAttribute("opacity", m === currentMonth ? "1" : "0.65");
         label.setAttribute("font-weight", m === currentMonth ? "700" : "400");
         label.textContent = MONTHS_FR[m];
@@ -1718,7 +1734,7 @@
         var path = document.createElementNS(svgNS, "path");
         path.setAttribute("d", pathD);
         path.setAttribute("fill", "none");
-        path.setAttribute("stroke", "#ffa726");
+        path.setAttribute("stroke", "rgb(102, 187, 106)");
         path.setAttribute("stroke-width", "2.5");
         path.setAttribute("stroke-linecap", "round");
         path.setAttribute("stroke-linejoin", "round");
@@ -1735,7 +1751,7 @@
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("font-size", "9");
         label.setAttribute("font-weight", "700");
-        label.setAttribute("fill", "#ffa726");
+        label.setAttribute("fill", "rgb(102, 187, 106)");
         label.textContent = fmt(p.avg_price_eur, 2) + "€";
         svg.appendChild(label);
 
@@ -1743,7 +1759,7 @@
         dot.setAttribute("cx", cx);
         dot.setAttribute("cy", cy);
         dot.setAttribute("r", p.current ? "4.5" : "3.5");
-        dot.setAttribute("fill", "#ffa726");
+        dot.setAttribute("fill", "rgb(102, 187, 106)");
         if (p.current) {
           dot.setAttribute("stroke", "rgba(255,167,38,0.35)");
           dot.setAttribute("stroke-width", "5");
@@ -1755,7 +1771,7 @@
         seasonLabel.setAttribute("y", height + padBottom - 4);
         seasonLabel.setAttribute("text-anchor", "middle");
         seasonLabel.setAttribute("font-size", "8");
-        seasonLabel.setAttribute("fill", p.current ? "#ffa726" : "currentColor");
+        seasonLabel.setAttribute("fill", p.current ? "rgb(102, 187, 106)" : "currentColor");
         seasonLabel.setAttribute("opacity", p.current ? "1" : "0.6");
         seasonLabel.setAttribute("font-weight", p.current ? "700" : "400");
         seasonLabel.textContent = p.season;
