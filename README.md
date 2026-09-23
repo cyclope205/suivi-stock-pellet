@@ -16,22 +16,27 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 ---
 Vue d'ensemble:
 
-<img width="466" height="792" alt="Capture d&#39;écran 2026-09-02 223146" src="https://github.com/user-attachments/assets/06d83d5b-e23d-4259-a1b4-a96af8e0f811" />
+<img width="600" alt="IMG_7474" src="https://github.com/user-attachments/assets/8a8ec906-672f-45bb-928c-c30dadb77a9a" />
 
 ---
 Sélecteur de saison:
 
-<img width="660" height="1434" alt="IMG_7192" src="https://github.com/user-attachments/assets/b7601633-da65-4398-9388-c134108cc862" />
+<img width="600" alt="IMG_7475" src="https://github.com/user-attachments/assets/6e3cfb0b-d14b-4302-a621-45e338cb8055" />
 
 ---
 Graphique quantité:
 
-<img width="452" height="666" alt="Capture d&#39;écran 2026-09-02 223329" src="https://github.com/user-attachments/assets/b258be1c-8840-430c-b7d5-3d07a3f068ab" />
+<img width="600" alt="IMG_7476" src="https://github.com/user-attachments/assets/f9ff6659-e51f-4b5d-abd6-f609cbe31a0e" />
 
 ---
 Configurateur de carte:
 
-<img width="1271" height="798" alt="Capture d&#39;écran 2026-09-02 224819" src="https://github.com/user-attachments/assets/983c57b5-c4b3-49b2-b948-4f9841721614" />
+<img width="800" alt="Capture d&#39;écran 2026-09-23 222802" src="https://github.com/user-attachments/assets/7dde8eea-3161-415d-9203-2a8cf587d568" />
+
+---
+Calendrier des ajouts:
+
+<img width="600" alt="IMG_7477" src="https://github.com/user-attachments/assets/747321f7-a65f-464c-9ecb-fd71fb6361a9" />
 
 ## Fonctionnalités
 
@@ -55,7 +60,7 @@ Configurateur de carte:
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
 - Stock initial d'une saison automatiquement repris du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service `set_stock_initial` (comptage physique, saison déjà entamée avant l'ajout de cette fonctionnalité...).
 - Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat" et bouton rapide "+1 sac aujourd'hui" (visible uniquement sur la saison en cours), annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
-
+- Section calendrier en bas de la carte (navigable mois par mois), activable via l'option show_calendar. Chaque jour affiche les achats et consommations enregistres ce jour-la, avec une couleur differente selon le type. Le calendrier se met a jour immédiatement apres un ajout, une suppression ou une modification de date d'une saisie, sans attendre un rafraichissement differe - y compris pour le bouton rapide "+1 sac aujourd'hui".
 ## Installation
 
 ### Via HACS (dépôt personnalisé)
