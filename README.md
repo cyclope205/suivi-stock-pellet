@@ -15,6 +15,14 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 ## Captures d'écran
 
 ---
+### ☕ Merci aux donateurs
+
+<!--START_SECTION:buy-me-a-coffee-->
+<div>
+<!-- Les nouveaux dons seront ajoutés ici automatiquement -->
+</div>
+<!--END_SECTION:buy-me-a-coffee-->
+
 Vue d'ensemble:
 
 <img width="600" alt="IMG_7474" src="https://github.com/user-attachments/assets/8a8ec906-672f-45bb-928c-c30dadb77a9a" />
@@ -144,7 +152,7 @@ data:
   stock_initial_bags: 12
 ```
 
-\n\n<!--START_SECTION:buy-me-a-coffee-->\n### ☕ Merci aux donateurs\n\n<!--END_SECTION:buy-me-a-coffee-->\n\n## Licence
+\n\n\n\n## Licence
 
 MIT — voir [LICENSE](LICENSE).
 
