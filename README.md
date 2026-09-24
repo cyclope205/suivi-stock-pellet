@@ -1,9 +1,10 @@
 # Suivi Stock Pellet
 
 [![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/cyclope205/suivi-stock-pellet/validate.yml?branch=main)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
+[![Build](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
+[![Tests](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/cyclope205)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/cyclope205)
