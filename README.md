@@ -154,7 +154,7 @@ data:
   stock_initial_bags: 12
 ```
 
-\n\n\n\n## Licence
+## Licence
 
 MIT — voir [LICENSE](LICENSE).
 
