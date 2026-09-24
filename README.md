@@ -14,14 +14,14 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 
 ## Captures d'écran
 
----
 ### ☕ Merci aux donateurs
 
 <!--START_SECTION:buy-me-a-coffee-->
-<div>
-<!-- Les nouveaux dons seront ajoutés ici automatiquement -->
-</div>
 <!--END_SECTION:buy-me-a-coffee-->
+
+
+---
+
 
 Vue d'ensemble:
 
