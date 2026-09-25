@@ -8,6 +8,11 @@
 
 ### ☕ Merci aux donateurs
 
+<!--START_SECTION:paypal-->
+- 💙 J***** · 15,00 € · 25/09/2026
+  > test de don pour l'intégration <!-- order:5TH91829W6927204A -->
+<!--END_SECTION:paypal-->
+
 <!--START_SECTION:buy-me-a-coffee-->
 <!-- Les nouveaux dons seront ajoutés ici automatiquement -->
 <!--END_SECTION:buy-me-a-coffee-->
