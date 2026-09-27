@@ -28,11 +28,15 @@ from .const import (
     ATTR_INDEX,
     ATTR_PRICE_EUR,
     ATTR_QTY_BAGS,
+    ATTR_QTY_KG,
+    ATTR_UNIT,
     CONF_BAG_PRICE,
+    CONF_PRICE_PER_KG,
     CONF_BAG_WEIGHT_KG,
     CONF_CALORIFIC_VALUE,
     CONF_SEASON_START_MONTH,
     DEFAULT_BAG_PRICE,
+    DEFAULT_PRICE_PER_KG,
     DEFAULT_BAG_WEIGHT_KG,
     DEFAULT_CALORIFIC_VALUE,
     DEFAULT_SEASON_START_MONTH,
@@ -78,7 +82,9 @@ def _valid_season(value: str) -> str:
 
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
-        vol.Optional(ATTR_QTY_BAGS, default=1): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_QTY_KG): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_UNIT, default="bag"): vol.In(["bag", "kg"]),
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
     }
@@ -86,7 +92,9 @@ LOG_CONSUMPTION_SCHEMA = vol.Schema(
 
 LOG_PURCHASE_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_QTY_KG): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_UNIT, default="bag"): vol.In(["bag", "kg"]),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
@@ -108,6 +116,8 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
         vol.Required("season"): _valid_season,
         vol.Required(ATTR_INDEX): vol.Coerce(int),
         vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_QTY_KG): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+        vol.Optional(ATTR_UNIT): vol.In(["bag", "kg"]),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
         # Explicit destination season for a deliberate move (e.g. correcting
@@ -149,7 +159,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return entry.options.get(CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH)
 
     def _bag_weight() -> float:
-        return entry.options.get(CONF_BAG_WEIGHT_KG, DEFAULT_BAG_WEIGHT_KG)
+        return DEFAULT_BAG_WEIGHT_KG
 
     def _calorific_value() -> float:
         return entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE)
@@ -158,45 +168,57 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         async_dispatcher_send(hass, f"suivi_stock_pellet_update_{entry.entry_id}")
 
     async def _handle_log_consumption(call: ServiceCall) -> None:
-        qty = call.data[ATTR_QTY_BAGS]
+        unit = call.data.get(ATTR_UNIT, "bag")
+        qty = call.data.get(ATTR_QTY_BAGS) if unit == "bag" else call.data.get(ATTR_QTY_KG)
+        if qty is None:
+            raise HomeAssistantError("Quantité manquante pour l'unité choisie")
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
-        season = call.data.get("season") or season_for_date(
-            entry_date, _start_month()
-        )
-        current_stock = journal.totals(season, as_of_date=entry_date.isoformat())[
-            "stock_bags"
-        ]
-        if qty > current_stock:
+        season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        current = journal.totals(season, as_of_date=entry_date.isoformat(), default_bag_weight_kg=_bag_weight())
+        requested_kg = qty if unit == "kg" else qty * _bag_weight()
+        if requested_kg > current["stock_kg"] + 1e-9:
             raise HomeAssistantError(
                 f"Stock insuffisant pour la saison {season} : "
-                f"{current_stock} sac(s) disponible(s), {qty} demande(s)"
+                f"{current['stock_kg']:.2f} kg disponible(s), {requested_kg:.2f} kg demande(s)"
             )
         await journal.async_add_entry(
             season,
             ENTRY_TYPE_CONSUMPTION,
-            qty,
+            qty if unit == "bag" else None,
             entry_date.isoformat(),
             bag_weight_kg=_bag_weight(),
             calorific_value=_calorific_value(),
+            unit=unit,
+            qty_kg=qty if unit == "kg" else None,
         )
         _notify()
 
     async def _handle_log_purchase(call: ServiceCall) -> None:
-        qty = call.data[ATTR_QTY_BAGS]
+        unit = call.data.get(ATTR_UNIT, "bag")
+        qty = call.data.get(ATTR_QTY_BAGS) if unit == "bag" else call.data.get(ATTR_QTY_KG)
+        if qty is None:
+            raise HomeAssistantError("Quantité manquante pour l'unité choisie")
         price = call.data.get(ATTR_PRICE_EUR)
         if price is None:
-            price = entry.options.get(CONF_BAG_PRICE, DEFAULT_BAG_PRICE) * qty
+            if unit == "bag":
+                price = (
+                    entry.options.get(CONF_BAG_PRICE, DEFAULT_BAG_PRICE) * qty
+                )
+            else:
+                price = (
+                    entry.options.get(CONF_PRICE_PER_KG, DEFAULT_PRICE_PER_KG) * qty
+                )
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
-        season = call.data.get("season") or season_for_date(
-            entry_date, _start_month()
-        )
+        season = call.data.get("season") or season_for_date(entry_date, _start_month())
         await journal.async_add_entry(
             season,
             ENTRY_TYPE_PURCHASE,
-            qty,
+            qty if unit == "bag" else None,
             entry_date.isoformat(),
             price_eur=price,
             bag_weight_kg=_bag_weight(),
+            unit=unit,
+            qty_kg=qty if unit == "kg" else None,
         )
         _notify()
 
@@ -215,6 +237,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         season = call.data["season"]
         index = call.data[ATTR_INDEX]
         qty = call.data.get(ATTR_QTY_BAGS)
+        qty_kg = call.data.get(ATTR_QTY_KG)
+        unit = call.data.get(ATTR_UNIT)
         price = call.data.get(ATTR_PRICE_EUR)
         entry_date = call.data.get(ATTR_DATE)
         new_season = call.data.get("new_season")
@@ -237,6 +261,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 price_eur=price,
                 entry_date=entry_date.isoformat() if entry_date else None,
                 new_season=new_season,
+                unit=unit,
+                qty_kg=qty_kg,
             )
         except ValueError as err:
             raise HomeAssistantError(str(err)) from err
