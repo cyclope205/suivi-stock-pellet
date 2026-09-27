@@ -19,9 +19,11 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_BAG_WEIGHT_KG,
     CONF_CALORIFIC_VALUE,
+    CONF_DISPLAY_UNIT,
     CONF_SEASON_START_MONTH,
     DEFAULT_BAG_WEIGHT_KG,
     DEFAULT_CALORIFIC_VALUE,
+    DEFAULT_DISPLAY_UNIT,
     DEFAULT_SEASON_START_MONTH,
     DOMAIN,
 )
@@ -93,7 +95,7 @@ class _BasePelletSensor(SensorEntity):
 
     @property
     def _bag_weight(self) -> float:
-        return self._entry.options.get(CONF_BAG_WEIGHT_KG, DEFAULT_BAG_WEIGHT_KG)
+        return DEFAULT_BAG_WEIGHT_KG
 
     @property
     def _calorific_value(self) -> float:
@@ -141,12 +143,16 @@ class PelletStockSensor(_BasePelletSensor):
         attrs = self._base_attrs()
         attrs.update(
             {
+                "entry_id": self._entry.entry_id,
                 "stock_sacs": totals["stock_bags"],
                 "saison": self._season,
                 "poids_sac_kg": self._bag_weight,
                 "derniere_saisie": _summarize_entry(last),
                 "mois_debut_saison": self._entry.options.get(
                     CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH
+                ),
+                "unite_affichage": self._entry.options.get(
+                    CONF_DISPLAY_UNIT, DEFAULT_DISPLAY_UNIT
                 ),
             }
         )
@@ -299,4 +305,6 @@ def _summarize_entry(entry: dict | None) -> str | None:
     if not entry:
         return None
     label = "Consommation" if entry["type"] == "consumption" else "Achat"
-    return f"{label} : {entry['qty_bags']} sac(s) le {entry['date']}"
+    if entry.get("unit") == "kg":
+        return f"{label} : {entry.get('qty_kg', 0)} kg le {entry['date']}"
+    return f"{label} : {entry.get('qty_bags', 0)} sac(s) le {entry['date']}"
