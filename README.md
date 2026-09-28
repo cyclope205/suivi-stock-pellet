@@ -1,33 +1,15 @@
 # Suivi Stock Pellet
 
+
 [![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/releases)
 [![Build](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
 [![Tests](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-
----
-
-### ☕ Merci aux donateurs
-
-<!--START_SECTION:paypal-->
-
-<!--END_SECTION:paypal-->
-
-<!--START_SECTION:buy-me-a-coffee-->
-<!-- Les nouveaux dons seront ajoutés ici automatiquement -->
-<!--END_SECTION:buy-me-a-coffee-->
-
-### ❤️ Sponsors GitHub
-
-<!--START_SECTION:github-sponsors-->
-<!-- Aucun sponsor GitHub public actif pour le moment -->
-<!--END_SECTION:github-sponsors-->
-
----
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://bmc-eight-red.vercel.app/api/donate?repo=suivi-stock-pellet) [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://bmc-eight-red.vercel.app/api/paypal?repo=suivi-stock-pellet&amount=5)
 <img src="custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
+
+---
+
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
@@ -35,40 +17,72 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 
 ---
 
+Configuration de l'intégration — **Sacs** :
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 093755" src="https://github.com/user-attachments/assets/00453df9-0a00-49cb-9307-47845c7c375c" />
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105407" src="https://github.com/user-attachments/assets/bd9b7548-4374-4015-8792-b5bc7326ffee" />
+
+---
+
+Configuration de l'intégration — **Kilogrammes (kg)** :
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105449" src="https://github.com/user-attachments/assets/5abd1c64-ff55-4048-8192-00633351a144" />
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105513" src="https://github.com/user-attachments/assets/ec3fb327-a909-4d39-ac91-aa8a9f5a1c64" />
+
+
+---
+
+Import d'une ancienne saison par **CSV** :
+
+<img width="330" height="531" alt="Capture d’écran 2026-09-27 à 12 40 34" src="https://github.com/user-attachments/assets/16a2f4f2-4698-422f-a231-4a19eddcd009" />
+
+---
 
 Vue d'ensemble:
 
 <img width="600" alt="IMG_7474" src="https://github.com/user-attachments/assets/8a8ec906-672f-45bb-928c-c30dadb77a9a" />
 
 ---
+
 Sélecteur de saison:
 
 <img width="600" alt="IMG_7475" src="https://github.com/user-attachments/assets/6e3cfb0b-d14b-4302-a621-45e338cb8055" />
 
 ---
+
 Graphique quantité:
 
 <img width="600" alt="IMG_7476" src="https://github.com/user-attachments/assets/f9ff6659-e51f-4b5d-abd6-f609cbe31a0e" />
 
 ---
+
 Configurateur de carte:
 
 <img width="800" alt="Capture d&#39;écran 2026-09-23 222802" src="https://github.com/user-attachments/assets/7dde8eea-3161-415d-9203-2a8cf587d568" />
 
 ---
+
 Calendrier des ajouts:
 
 <img width="600" alt="IMG_7477" src="https://github.com/user-attachments/assets/747321f7-a65f-464c-9ecb-fd71fb6361a9" />
 
+
+
 ## Fonctionnalités
 
 - Suivi du stock en temps réel (kg et sacs), calculé à partir d'un journal d'achats/consommations — jamais de compteur qui dérive.
+- L'unité d'affichage est choisie dans la **configuration de l'intégration** : **Sacs** (quantités et prix en sacs et €/sac) ou **Kilogrammes (kg)** (quantités et prix en kg et €/kg). Le choix est propre à chaque intégration et n'impacte pas une autre intégration existante. Le poids de référence de **15 kg par sac reste fixe en interne** et n'est pas demandé à l'utilisateur.
+- Le prix demandé dans la configuration dépend de l'unité choisie : **Prix moyen d'un sac (€)** en mode Sacs ou **Prix moyen au kg (€)** en mode kg. Le graphique de prix moyen par saison utilise la même unité, avec titre, valeurs et symbole €/sac ou €/kg synchronisés.
 - Capteur d'énergie consommée en kWh (`device_class: energy`, `state_class: total` avec réinitialisation au début de chaque saison) compatible avec le tableau de bord Énergie de Home Assistant, comme source "Gaz/Autre".
 - Suivi des dépenses (€) et du nombre de jours d'utilisation, par saison de chauffe, avec tuiles de coût dérivées (coût / jour, coût / mois, coût du sac).
 - Saisons calculées automatiquement à partir d'un mois de départ configurable (pas d'années codées en dur à ajouter chaque année).
+- Le **mois de début de saison** est configuré dans l'intégration ; la fin de saison est automatiquement le mois précédent. Par exemple, avec septembre comme début, **septembre 2025 → août 2026 = saison 2025-2026**, et un achat de juillet 2026 appartient à cette saison.
 - Historique conservé indéfiniment : aucune saison n'est jamais supprimée ou écrasée au changement de saison, chaque saison passée reste consultable (tuiles, historique, graphiques) via le sélecteur de saison.
 - Sélecteur de saison dans l'en-tête de la carte : consulte les tuiles, l'historique et le graphique mensuel de n'importe quelle saison passée (les saisies restent verrouillées sur la saison en cours).
 - Les dates des saisies (Achat/Consommation) ne sont pas limitées à aujourd'hui : on peut saisir une date passée (ou future) librement, l'entrée est alors rattachée à la saison correspondant à cette date. Ça permet de reconstruire une saison passée entièrement (achats et consommations historiques) même après coup, sans dépendre du sélecteur de saison (qui ne sert qu'à consulter, pas à saisir).
+- Les anciennes saisons peuvent aussi être **reconstituées par import CSV** : le bouton **« Importer un CSV »** réservé aux administrateurs analyse d'abord le fichier et affiche un aperçu avant confirmation. La saison `AAAA-AAAA`, les colonnes mensuelles de consommation et les achats (date, quantité, prix) sont détectés automatiquement ; les nombres français et les montants en euros sont pris en charge. La saison explicitement indiquée dans le fichier est conservée pour les données importées. Plusieurs anciennes saisons peuvent être importées séparément. Les données restent stockées en sacs et peuvent ensuite être affichées en Sacs ou en kg selon la configuration, avec la référence interne fixe de 15 kg par sac. Les CSV vides ou invalides sont refusés avec une erreur explicite.
 - Comparaison à date égale avec la saison précédente : affiche la consommation de la saison sélectionnée (via le sélecteur de saison, saison en cours par défaut) face à celle de la saison précédente au même nombre de jours écoulés depuis le début de saison, avec un badge en pourcentage, ainsi que le coût en € des deux saisons et leur différence en € (masquable via `show_comparison`).
 - Les saisons sans aucune saisie sont automatiquement supprimées de la liste (au démarrage et dès qu'une saison redevient vide) : pas besoin de nettoyer manuellement une saison créée par erreur ou vidée par une correction.
 - Le sélecteur de saison reste toujours cohérent avec la saison consultée, même pour une saison qui n'a encore aucune saisie (saison passée pas encore renseignée, ou saisie qui vient d'échouer) : il n'affiche plus par erreur la saison en cours à sa place.
@@ -83,6 +97,7 @@ Calendrier des ajouts:
 - Stock initial d'une saison automatiquement repris du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service `set_stock_initial` (comptage physique, saison déjà entamée avant l'ajout de cette fonctionnalité...).
 - Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat" et bouton rapide "+1 sac aujourd'hui" (visible uniquement sur la saison en cours), annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
 - Section calendrier en bas de la carte (navigable mois par mois), activable via l'option show_calendar. Chaque jour affiche les achats et consommations enregistrés ce jour-la, avec une couleur differente selon le type. Le calendrier se met a jour immédiatement apres un ajout, une suppression ou une modification de date d'une saisie, sans attendre un rafraichissement differe - y compris pour le bouton rapide "+1 sac aujourd'hui".
+
 ## Installation
 
 ### Via HACS (dépôt personnalisé)
@@ -102,12 +117,15 @@ Calendrier des ajouts:
 
 | Paramètre | Description | Défaut |
 |---|---|---|
-| Poids d'un sac | Poids d'un sac de granulés (kg) | 15 |
-| Prix moyen d'un sac | Utilisé comme référence (le prix réel peut être saisi à chaque achat) | 6.5 € |
-| Pouvoir calorifique | kWh par kg de granulés, pour le calcul énergie | 4.8 |
-| Mois de début de saison | Mois à partir duquel une nouvelle saison de chauffe commence | 9 (septembre) |
+| Unité d'affichage | Affichage des quantités et des prix en sacs ou en kilogrammes | Sacs |
+| Prix moyen d'un sac (€) | Affiché et utilisé lorsque l'unité **Sacs** est sélectionnée | 6,50 € |
+| Prix moyen au kg (€) | Affiché et utilisé lorsque l'unité **Kilogrammes (kg)** est sélectionnée | 0,43 € |
+| Pouvoir calorifique | kWh par kg de granulés, pour le calcul énergie | 4,8 |
+| Mois de début de saison | Mois à partir duquel une nouvelle saison de chauffe commence. La fin de saison est automatiquement le mois précédent | 9 (septembre) |
 
-Ces valeurs sont modifiables ensuite via **Configurer** sur l'intégration.
+> Le poids de référence de **15 kg par sac est fixe en interne** et n'est pas demandé dans la configuration.
+
+Ces valeurs sont modifiables ensuite via **Configurer** sur l'intégration. Le champ de prix proposé dépend de l'unité d'affichage choisie.
 
 ## Utilisation
 
@@ -168,3 +186,15 @@ data:
 ## Licence
 
 MIT — voir [LICENSE](LICENSE).
+
+<div align="center">
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+### ☕ Cette intégration te plaît ?
+
+Si elle te fait gagner du temps, un petit don est toujours apprécié : ça m'aide à maintenir le projet et à ajouter de nouvelles fonctionnalités.
+
+<a href="https://buymeacoffee.com/cyclope205"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
+<a href="https://paypal.me/cyclope205"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
+
+</div>
