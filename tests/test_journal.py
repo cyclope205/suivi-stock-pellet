@@ -668,3 +668,160 @@ def test_effective_stock_initial_value_stays_zero_for_legacy_season_with_zero_st
     }
     totals = journal.totals("2025-2026")
     assert totals["stock_initial_value_eur"] == 0.0
+
+
+def test_totals_supports_bulk_kg_without_losing_unit():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "purchase", None, "2025-09-05",
+        price_eur=450.0, unit="kg", qty_kg=150.0,
+    ))
+    run(journal.async_add_entry(
+        "2025-2026", "consumption", None, "2025-09-06",
+        unit="kg", qty_kg=12.0,
+    ))
+    entries = journal.entries("2025-2026")
+    totals = journal.totals("2025-2026", default_bag_weight_kg=15.0)
+    assert entries[0]["unit"] == "kg"
+    assert entries[0]["qty_kg"] == 150.0
+    assert entries[1]["unit"] == "kg"
+    assert entries[1]["qty_kg"] == 12.0
+    assert totals["purchased_kg"] == 150.0
+    assert totals["consumed_kg"] == 12.0
+    assert totals["stock_kg"] == 138.0
+    assert totals["purchased_bags"] == 10.0
+    assert totals["consumed_bags"] == 0.8
+
+
+def test_totals_supports_mixed_bags_and_bulk():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "purchase", 10, "2025-09-05",
+        price_eur=65.0, bag_weight_kg=15.0,
+    ))
+    run(journal.async_add_entry(
+        "2025-2026", "purchase", None, "2025-09-06",
+        price_eur=300.0, unit="kg", qty_kg=100.0,
+    ))
+    run(journal.async_add_entry(
+        "2025-2026", "consumption", None, "2025-09-07",
+        unit="kg", qty_kg=12.0,
+    ))
+    totals = journal.totals("2025-2026", default_bag_weight_kg=15.0)
+    assert totals["purchased_kg"] == 250.0
+    assert totals["consumed_kg"] == 12.0
+    assert totals["stock_kg"] == 238.0
+    assert totals["purchased_bags"] == pytest.approx(16.6666667)
+    assert totals["consumed_bags"] == pytest.approx(0.8)
+
+
+def test_async_edit_entry_supports_kg_payload():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "purchase", None, "2025-09-05",
+        price_eur=450.0, unit="kg", qty_kg=150.0,
+    ))
+    edited = run(journal.async_edit_entry(
+        "2025-2026", 0, unit="kg", qty_kg=120.0, price_eur=360.0
+    ))
+    assert edited["unit"] == "kg"
+    assert edited["qty_kg"] == 120.0
+    assert edited["price_eur"] == 360.0
+    assert "qty_bags" not in edited
+
+
+def test_async_edit_entry_can_convert_kg_to_bags():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "purchase", None, "2025-09-05",
+        price_eur=450.0, unit="kg", qty_kg=30.0,
+    ))
+    edited = run(journal.async_edit_entry("2025-2026", 0, unit="bag"))
+    assert edited["unit"] == "bag"
+    assert edited["qty_bags"] == pytest.approx(2.0)
+    assert "qty_kg" not in edited
+
+
+def test_set_stock_initial_keeps_initial_value_consistent_with_corrected_count():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0
+    ))
+    run(journal.async_add_entry(
+        "2026-2027", "purchase", 1, "2026-09-10", price_eur=6.5
+    ))
+    run(journal.async_set_stock_initial("2026-2027", 5))
+    totals = journal.totals("2026-2027")
+    assert totals["stock_initial_bags"] == 5
+    assert totals["stock_initial_value_eur"] == 32.5
+    assert totals["avg_price_per_bag"] == pytest.approx(6.5)
+    assert totals["stock_value_eur"] == pytest.approx(39.0)
+
+
+def test_avg_price_per_kg_includes_carried_stock_value():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0
+    ))
+    run(journal.async_add_entry(
+        "2025-2026", "consumption", 2, "2026-06-01"
+    ))
+    run(journal.async_add_entry(
+        "2026-2027", "purchase", 8, "2026-09-10", price_eur=52.0
+    ))
+    totals = journal.totals("2026-2027")
+    assert totals["avg_price_per_bag"] == pytest.approx(6.5)
+    assert totals["avg_price_per_kg"] == pytest.approx(6.5 / 15)
+
+
+
+def test_edit_entry_rejects_new_chronological_negative_stock():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-01"))
+    run(journal.async_add_entry("2025-2026", "consumption", 5, "2025-10-01"))
+    with pytest.raises(ValueError, match="sous 0"):
+        run(journal.async_edit_entry("2025-2026", 0, entry_date="2026-01-01"))
+    assert journal.entries("2025-2026")[0]["date"] == "2025-09-01"
+
+
+def test_edit_entry_allows_chronological_order_when_purchase_is_moved_before_consumption():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-12-01"))
+    run(journal.async_add_entry("2025-2026", "consumption", 5, "2025-10-01"))
+    edited = run(journal.async_edit_entry("2025-2026", 0, entry_date="2025-09-01"))
+    assert edited["date"] == "2025-09-01"
+    assert journal.totals("2025-2026")["stock_bags_raw"] == 5
+
+
+def test_import_rejects_historical_negative_stock_even_if_final_stock_is_positive():
+    journal = _make_journal()
+    with pytest.raises(ValueError, match="moment de l'historique"):
+        run(
+            journal.async_import_entries(
+                [
+                    {
+                        "season": "2025-2026",
+                        "type": "consumption",
+                        "qty_bags": 10,
+                        "date": "2025-10-01",
+                    },
+                    {
+                        "season": "2025-2026",
+                        "type": "purchase",
+                        "qty_bags": 20,
+                        "date": "2025-12-01",
+                        "price_eur": 130.0,
+                    },
+                ]
+            )
+        )
+    assert journal.entries("2025-2026") == []
+
+
+def test_set_stock_initial_uses_previous_stock_cost_when_old_stock_is_zero():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-01", price_eur=65.0))
+    run(journal.async_set_stock_initial("2026-2027", 5))
+    totals = journal.totals("2026-2027")
+    assert totals["stock_initial_bags"] == 5
+    assert totals["stock_initial_value_eur"] == 32.5
