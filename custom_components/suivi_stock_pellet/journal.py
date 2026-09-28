@@ -650,13 +650,8 @@ class PelletJournal:
         consumed_kwh = sum(_entry_qty_kg(e, default_bag_weight_kg) * (e.get("calorific_value") or default_calorific_value) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         days = _heating_days(entries)
         stock_initial_value = self._effective_stock_initial_value(season)
-        bags_available = stock_initial + purchased
-        value_available = stock_initial_value + spent
-        avg_price_per_bag = value_available / bags_available if bags_available > 0 else 0.0
-        available_kg = stock_initial * default_bag_weight_kg + purchased_kg
-        avg_price_per_kg = (
-            value_available / available_kg if available_kg > 0 else 0.0
-        )
+        avg_price_per_bag = spent / purchased if purchased > 0 else 0.0
+        avg_price_per_kg = spent / purchased_kg if purchased_kg > 0 else 0.0
         stock_bags_raw = stock_initial + purchased - consumed
         stock_kg = max(stock_initial * default_bag_weight_kg + purchased_kg - consumed_kg, 0)
         if stock_bags_raw < 0:
