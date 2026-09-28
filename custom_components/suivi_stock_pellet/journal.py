@@ -68,23 +68,9 @@ def previous_season_key(season: str) -> str:
 
 
 def season_start_date(season: str, season_start_month: int) -> date:
-    """Return the calendar date a season key starts on."""
+    """Return the calendar date a season key (e.g. '2025-2026') starts on."""
     year_start = int(season.split("-")[0])
     return date(year_start, season_start_month, 1)
-
-
-def _entry_unit(entry: dict[str, Any]) -> str:
-    """Return the persisted unit, defaulting legacy entries to bags."""
-    return entry.get("unit", "bag")
-
-
-def _entry_qty_kg(entry: dict[str, Any], default_bag_weight_kg: float) -> float:
-    """Return an entry quantity in kg without changing its stored unit."""
-    if _entry_unit(entry) == "kg":
-        return float(entry.get("qty_kg", 0.0))
-    return float(entry.get("qty_bags", 0.0)) * (
-        entry.get("bag_weight_kg") or default_bag_weight_kg
-    )
 
 class PelletJournal:
     """Owns the persisted journal and exposes computed season totals."""
@@ -212,91 +198,24 @@ class PelletJournal:
         self,
         season: str,
         entry_type: str,
-        qty_bags: float | None,
+        qty_bags: float,
         entry_date: str,
         price_eur: float | None = None,
         bag_weight_kg: float | None = None,
         calorific_value: float | None = None,
-        unit: str = "bag",
-        qty_kg: float | None = None,
     ) -> None:
-        if unit == "kg":
-            if qty_kg is None or qty_kg <= 0:
-                raise ValueError("La quantité en kg doit être strictement positive")
-            stored = {
+        entries = self._season_entries(season)
+        entries.append(
+            {
                 "type": entry_type,
-                "unit": "kg",
-                "qty_kg": float(qty_kg),
-                "date": entry_date,
-                "price_eur": price_eur,
-                "calorific_value": calorific_value,
-            }
-        else:
-            if qty_bags is None or qty_bags <= 0:
-                raise ValueError("La quantité en sacs doit être strictement positive")
-            stored = {
-                "type": entry_type,
-                "unit": "bag",
-                "qty_bags": float(qty_bags),
+                "qty_bags": qty_bags,
                 "date": entry_date,
                 "price_eur": price_eur,
                 "bag_weight_kg": bag_weight_kg,
                 "calorific_value": calorific_value,
             }
-        self._season_entries(season).append(stored)
+        )
         await self._async_save()
-
-    async def async_import_entries(self, imported: list[dict[str, Any]]) -> None:
-        """Atomically append a validated batch of historical entries."""
-        from copy import deepcopy
-
-        snapshot = deepcopy(self._data)
-        try:
-            for item in imported:
-                season = item["season"]
-                entry_type = item["type"]
-                unit = item.get("unit", "bag")
-                entry_date = str(item["date"])
-                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
-                    raise ValueError(f"Type de saisie invalide: {entry_type}")
-                date.fromisoformat(entry_date)
-                if unit == "kg":
-                    qty = float(item["qty_kg"])
-                    if qty <= 0:
-                        raise ValueError("La quantité doit être strictement positive")
-                    self._season_entries(season).append({
-                        "type": entry_type,
-                        "unit": "kg",
-                        "qty_kg": qty,
-                        "date": entry_date,
-                        "price_eur": item.get("price_eur"),
-                        "calorific_value": item.get("calorific_value"),
-                    })
-                else:
-                    qty = float(item["qty_bags"])
-                    if qty <= 0:
-                        raise ValueError("La quantité doit être strictement positive")
-                    self._season_entries(season).append({
-                        "type": entry_type,
-                        "unit": "bag",
-                        "qty_bags": qty,
-                        "date": entry_date,
-                        "price_eur": item.get("price_eur"),
-                        "bag_weight_kg": item.get("bag_weight_kg"),
-                        "calorific_value": item.get("calorific_value"),
-                    })
-
-            affected = sorted({item["season"] for item in imported})
-            for season in affected:
-                if self.totals(season)["stock_bags_raw"] < -1e-9:
-                    raise ValueError(
-                        f"Import refusé : stock final négatif pour la saison {season}."
-                    )
-            await self._async_save()
-        except Exception:
-            self._data = snapshot
-            await self._async_save()
-            raise
 
     async def async_undo_last(self, season: str) -> dict[str, Any] | None:
         entries = self._season_entries(season)
@@ -322,8 +241,6 @@ class PelletJournal:
         price_eur: float | None = None,
         entry_date: str | None = None,
         new_season: str | None = None,
-        unit: str | None = None,
-        qty_kg: float | None = None,
     ) -> dict[str, Any] | None:
         entries = self._season_entries(season)
         if index < 0 or index >= len(entries):
@@ -335,44 +252,9 @@ class PelletJournal:
             return None
         entry = entries[index]
         updated = dict(entry)
-
-        effective_unit = unit if unit is not None else _entry_unit(entry)
-        if effective_unit not in ("bag", "kg"):
-            raise ValueError("Unité invalide")
-
-        if effective_unit == "kg":
-            effective_qty_kg = qty_kg
-            if effective_qty_kg is None:
-                if unit == "kg":
-                    raise ValueError("La quantité en kg est requise")
-                effective_qty_kg = _entry_qty_kg(entry, DEFAULT_BAG_WEIGHT_KG)
-            if effective_qty_kg <= 0:
-                raise ValueError("La quantité en kg doit être strictement positive")
-            updated["unit"] = "kg"
-            updated["qty_kg"] = float(effective_qty_kg)
-            updated.pop("qty_bags", None)
-            updated.pop("bag_weight_kg", None)
-        else:
-            effective_qty_bags = qty_bags
-            if effective_qty_bags is None:
-                if unit == "bag":
-                    effective_qty_bags = (
-                        float(entry.get("qty_kg", 0.0)) / DEFAULT_BAG_WEIGHT_KG
-                        if _entry_unit(entry) == "kg"
-                        else entry.get("qty_bags")
-                    )
-                else:
-                    effective_qty_bags = entry.get("qty_bags")
-            if effective_qty_bags is None or effective_qty_bags <= 0:
-                raise ValueError("La quantité en sacs doit être strictement positive")
-            updated["unit"] = "bag"
-            updated["qty_bags"] = float(effective_qty_bags)
-            if "bag_weight_kg" not in updated:
-                updated["bag_weight_kg"] = DEFAULT_BAG_WEIGHT_KG
-            updated.pop("qty_kg", None)
-
+        if qty_bags is not None:
+            updated["qty_bags"] = qty_bags
         if entry_date is not None:
-            date.fromisoformat(entry_date)
             updated["date"] = entry_date
         if updated["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
             updated["price_eur"] = price_eur
@@ -402,9 +284,13 @@ class PelletJournal:
         _assert_edit_keeps_stock_nonnegative and
         _assert_delete_keeps_stock_nonnegative.
         """
-        purchased_kg = sum(_entry_qty_kg(e, DEFAULT_BAG_WEIGHT_KG) for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
-        consumed_kg = sum(_entry_qty_kg(e, DEFAULT_BAG_WEIGHT_KG) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
-        return self._effective_stock_initial(season) + (purchased_kg - consumed_kg) / DEFAULT_BAG_WEIGHT_KG
+        purchased = sum(
+            e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE
+        )
+        consumed = sum(
+            e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
+        return self._effective_stock_initial(season) + purchased - consumed
 
     def _assert_edit_keeps_stock_nonnegative(
         self,
@@ -549,24 +435,56 @@ class PelletJournal:
         if as_of_date is not None:
             entries = [e for e in entries if e["date"] <= as_of_date]
         stock_initial = self._effective_stock_initial(season)
-        purchased_kg = sum(_entry_qty_kg(e, default_bag_weight_kg) for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
-        consumed_kg = sum(_entry_qty_kg(e, default_bag_weight_kg) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
-        purchased = purchased_kg / default_bag_weight_kg
-        consumed = consumed_kg / default_bag_weight_kg
-        spent = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
-        consumed_kwh = sum(_entry_qty_kg(e, default_bag_weight_kg) * (e.get("calorific_value") or default_calorific_value) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
+        purchased = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
+        consumed = sum(e["qty_bags"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
+        spent = sum(
+            (e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_PURCHASE
+        )
+        consumed_kg = sum(
+            e["qty_bags"] * (e.get("bag_weight_kg") or default_bag_weight_kg)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
+        purchased_kg = sum(
+            e["qty_bags"] * (e.get("bag_weight_kg") or default_bag_weight_kg)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_PURCHASE
+        )
+        consumed_kwh = sum(
+            e["qty_bags"]
+            * (e.get("bag_weight_kg") or default_bag_weight_kg)
+            * (e.get("calorific_value") or default_calorific_value)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
         days = _heating_days(entries)
+        # stock_initial has no per-entry weight snapshot of its own (it is
+        # a manual starting bag count, not a logged purchase), so its kg
+        # contribution necessarily uses the current configured bag weight;
+        # only the purchased/consumed portions are pinned to their own
+        # historical weight snapshots.
         stock_initial_value = self._effective_stock_initial_value(season)
         bags_available = stock_initial + purchased
         value_available = stock_initial_value + spent
-        avg_price_per_bag = value_available / bags_available if bags_available > 0 else 0.0
-        avg_price_per_kg = spent / purchased_kg if purchased_kg > 0 else 0.0
+        avg_price_per_bag = (
+            value_available / bags_available if bags_available > 0 else 0.0
+        )
         stock_bags_raw = stock_initial + purchased - consumed
-        stock_kg = max(stock_initial * default_bag_weight_kg + purchased_kg - consumed_kg, 0)
+        stock_kg = max(
+            stock_initial * default_bag_weight_kg + purchased_kg - consumed_kg, 0
+        )
         if stock_bags_raw < 0:
+            # A historical edit/delete made purchases+initial stock fall
+            # short of what's been logged as consumed for this season.
+            # stock_bags below is floored at 0 for display, but the raw
+            # value is kept (stock_bags_raw) and logged so the
+            # inconsistency isn't silently invisible.
             _LOGGER.warning(
-                "Stock incoherent pour la saison %s : %.2f sac(s) manquant(s)",
-                season, -stock_bags_raw,
+                "Stock incoherent pour la saison %s : %.2f sac(s) manquant(s) "
+                "(achats + stock initial ne couvrent pas les consommations "
+                "enregistrees) - verifiez les saisies de cette saison",
+                season,
+                -stock_bags_raw,
             )
         return {
             "purchased_bags": purchased,
@@ -576,7 +494,6 @@ class PelletJournal:
             "stock_initial_bags": stock_initial,
             "stock_initial_value_eur": round(stock_initial_value, 2),
             "avg_price_per_bag": round(avg_price_per_bag, 4),
-            "avg_price_per_kg": round(avg_price_per_kg, 6),
             "stock_value_eur": round(max(stock_bags_raw, 0) * avg_price_per_bag, 2),
             "spent_eur": round(spent, 2),
             "days_logged": days,
