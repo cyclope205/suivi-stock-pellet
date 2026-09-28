@@ -83,7 +83,7 @@ def _month_name(month: int) -> str:
     return names[month - 1]
 
 
-class SuiviPelletTestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class SuiviStockPelletConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Suivi Stock Pellet."""
 
     VERSION = 1
@@ -130,10 +130,10 @@ class SuiviPelletTestConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry):
-        return SuiviPelletTestOptionsFlow()
+        return SuiviStockPelletOptionsFlow()
 
 
-class SuiviPelletTestOptionsFlow(config_entries.OptionsFlow):
+class SuiviStockPelletOptionsFlow(config_entries.OptionsFlow):
     """Handle options for Suivi Stock Pellet."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
