@@ -182,7 +182,15 @@ class PelletJournal:
                 return 0.0
             if previous_season not in seasons:
                 return 0.0
-            return self.totals(previous_season)["stock_value_eur"]
+            previous_entries = seasons[previous_season].get("entries", [])
+            previous_stock_initial = self._effective_stock_initial(previous_season)
+            previous_stock_initial_value = self._effective_stock_initial_value(previous_season)
+            return self._fifo_remaining_value(
+                previous_entries,
+                previous_stock_initial,
+                previous_stock_initial_value,
+                DEFAULT_BAG_WEIGHT_KG,
+            )
         return self._carry_over_stock_value(season)
 
     def _carry_over_stock(self, season: str) -> float:
@@ -205,12 +213,67 @@ class PelletJournal:
             return 0.0
         return self.totals(previous_season)["stock_bags"]
 
+    def _fifo_remaining_value(
+        self,
+        entries: list[dict[str, Any]],
+        stock_initial_bags: float,
+        stock_initial_value: float,
+        default_bag_weight_kg: float,
+    ) -> float:
+        """Return the euro value of the stock still on hand once every
+        entry has been applied, using FIFO costing: a consumption
+        depletes the oldest available bags first - the season's own
+        carried-in stock_initial (if any), then purchases in
+        chronological order.
+
+        This matches the reference spreadsheet this integration
+        replaces: the price of a bag still in the shed is the price
+        actually paid for it, not a season-wide average across every
+        purchase. A season-wide average wrongly prices ALL remaining
+        bags near the average even when what physically remains came
+        disproportionately (or entirely) from a single, pricier batch -
+        e.g. a cheap 63-bag batch fully consumed first, then 21 bags
+        drawn from a pricier 64-bag batch, leaving 43 bags that are
+        every one of them from the pricier batch, not a blend of both.
+        """
+        batches: list[list[float]] = []
+        if stock_initial_bags > 1e-9:
+            batches.append([stock_initial_bags, stock_initial_value])
+        for entry in sorted(
+            (e for e in entries if e["type"] == ENTRY_TYPE_PURCHASE),
+            key=lambda e: e["date"],
+        ):
+            qty = _entry_qty_kg(entry, default_bag_weight_kg) / default_bag_weight_kg
+            if qty <= 1e-9:
+                continue
+            batches.append([qty, float(entry.get("price_eur") or 0)])
+
+        to_deplete = sum(
+            _entry_qty_kg(e, default_bag_weight_kg) / default_bag_weight_kg
+            for e in entries
+            if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
+        for batch in batches:
+            if to_deplete <= 1e-9:
+                break
+            take = min(batch[0], to_deplete)
+            if batch[0] > 1e-9:
+                batch[1] -= batch[1] * (take / batch[0])
+            batch[0] -= take
+            to_deplete -= take
+
+        return max(sum(b[1] for b in batches), 0.0)
+
     def _carry_over_stock_value(self, season: str) -> float:
         """Auto-carry the previous season's leftover stock VALUE (euros)
         into a brand new season, mirroring _carry_over_stock. Combined
         with the carried bag count, this lets totals() compute a
         weighted-average price per bag across season boundaries instead
         of only ever looking at the current season's own purchases.
+
+        Valued via FIFO (_fifo_remaining_value), not the previous
+        season's own blended average - see that method's docstring for
+        why a season-wide average misprices carried-over stock.
         """
         try:
             previous_season = previous_season_key(season)
@@ -218,7 +281,15 @@ class PelletJournal:
             return 0.0
         if previous_season not in self._data["seasons"]:
             return 0.0
-        return self.totals(previous_season)["stock_value_eur"]
+        previous_entries = self._data["seasons"][previous_season].get("entries", [])
+        previous_stock_initial = self._effective_stock_initial(previous_season)
+        previous_stock_initial_value = self._effective_stock_initial_value(previous_season)
+        return self._fifo_remaining_value(
+            previous_entries,
+            previous_stock_initial,
+            previous_stock_initial_value,
+            DEFAULT_BAG_WEIGHT_KG,
+        )
 
     async def async_add_entry(
         self,
@@ -692,7 +763,12 @@ class PelletJournal:
             "stock_initial_value_eur": round(stock_initial_value, 2),
             "avg_price_per_bag": round(avg_price_per_bag, 4),
             "avg_price_per_kg": round(avg_price_per_kg, 6),
-            "stock_value_eur": round(max(stock_bags_raw, 0) * avg_price_per_bag, 2),
+            "stock_value_eur": round(
+                self._fifo_remaining_value(
+                    entries, stock_initial, stock_initial_value, default_bag_weight_kg
+                ),
+                2,
+            ),
             "spent_eur": round(spent, 2),
             "days_logged": days,
             "consumed_kg": round(consumed_kg, 2),
