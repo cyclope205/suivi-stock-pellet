@@ -6,10 +6,29 @@
 [![Tests](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-<img src="custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
 
 ---
 
+### ☕ Merci aux donateurs
+
+<!--START_SECTION:paypal-->
+
+<!--END_SECTION:paypal-->
+
+<!--START_SECTION:buy-me-a-coffee-->
+<!-- Les nouveaux dons seront ajoutés ici automatiquement -->
+<!--END_SECTION:buy-me-a-coffee-->
+
+### ❤️ Sponsors GitHub
+
+<!--START_SECTION:github-sponsors-->
+<!-- Aucun sponsor GitHub public actif pour le moment -->
+<!--END_SECTION:github-sponsors-->
+
+---
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://bmc-eight-red.vercel.app/api/donate?repo=suivi-stock-pellet) [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://bmc-eight-red.vercel.app/api/paypal?repo=suivi-stock-pellet&amount=5)
+<img src="custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
@@ -186,15 +205,3 @@ data:
 ## Licence
 
 MIT — voir [LICENSE](LICENSE).
-
-<div align="center">
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------------
-### ☕ Cette intégration te plaît ?
-
-Si elle te fait gagner du temps, un petit don est toujours apprécié : ça m'aide à maintenir le projet et à ajouter de nouvelles fonctionnalités.
-
-<a href="https://buymeacoffee.com/cyclope205"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
-<a href="https://paypal.me/cyclope205"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
-
-</div>
