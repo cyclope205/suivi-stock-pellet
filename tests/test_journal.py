@@ -583,13 +583,15 @@ def test_edit_entry_moving_consumption_to_season_without_enough_stock_rejected()
 # --- avg_price_per_bag weighted-average cost carryover (new behaviour) -
 
 
-def test_avg_price_per_bag_blends_carried_value_across_seasons():
+def test_avg_price_per_bag_ignores_carried_value_across_seasons():
     journal = _make_journal()
     run(journal.async_add_entry("2025-2026", "purchase", 43, "2025-06-24", price_eur=262.0))
     run(journal.async_add_entry("2026-2027", "purchase", 66, "2026-06-12", price_eur=440.0))
     totals = journal.totals("2026-2027")
     assert totals["stock_initial_value_eur"] == 262.0
-    assert totals["avg_price_per_bag"] == pytest.approx(6.4404, abs=0.0001)
+    # avg_price_per_bag reflects only this season's own purchases, not the
+    # value carried over from the previous season.
+    assert totals["avg_price_per_bag"] == pytest.approx(440 / 66, abs=0.0001)
 
 
 def test_avg_price_per_bag_recalculates_when_new_purchase_added_mid_season():
@@ -601,7 +603,7 @@ def test_avg_price_per_bag_recalculates_when_new_purchase_added_mid_season():
     run(journal.async_add_entry("2026-2027", "purchase", 50, "2026-12-01", price_eur=400.0))
     after = journal.totals("2026-2027")
     assert after["avg_price_per_bag"] != before
-    assert after["avg_price_per_bag"] == pytest.approx(1102 / 159, abs=0.0001)
+    assert after["avg_price_per_bag"] == pytest.approx(840 / 116, abs=0.0001)
 
 
 def test_stock_initial_value_carries_over_only_once_on_first_touch():
@@ -642,7 +644,7 @@ def test_effective_stock_initial_value_backfills_pre_existing_season_with_inheri
     }
     totals = journal.totals("2026-2027")
     assert totals["stock_initial_value_eur"] == 262.0
-    assert totals["avg_price_per_bag"] == pytest.approx(6.4404, abs=0.0001)
+    assert totals["avg_price_per_bag"] == pytest.approx(440 / 66, abs=0.0001)
 
 
 def test_effective_stock_initial_value_stays_zero_for_legacy_season_with_zero_stock_initial():
