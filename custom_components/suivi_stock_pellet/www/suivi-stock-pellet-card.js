@@ -1204,7 +1204,13 @@
       els.stock.textContent = entryUnit === "kg" ? fmt(stockKg, 0) + " kg" : fmt(stockBags, 1) + " sac(s)";
       els.stockSub.textContent = entryUnit === "kg" ? "" : fmt(stockKg, 0) + " kg restant(s)";
 
-      var avgPricePerKg = purchasedKg > 0 && spentEur > 0 ? spentEur / purchasedKg : 0;
+      // Prix moyen ponderé par kg : vient du backend (totals.avg_price_per_kg),
+            // pas recalculé ici à partir des seuls achats de la saison. Le backend
+            // le pondère avec le stock reporté de la saison précédente (méthode
+            // PEPS) ; spentEur / purchasedKg ignorait ce stock reporté et donnait
+            // un prix erroné dès qu'un achat de cette saison a un prix différent
+            // du stock déjà en réserve.
+            var avgPricePerKg = Number(totals.avg_price_per_kg) || 0;
       var avgPricePerBag = avgPricePerKg > 0 ? avgPricePerKg * bagWeight : 0;
       this._currentAvgPricePerBag = avgPricePerBag;
       this._currentAvgPricePerKg = avgPricePerKg;
@@ -1217,7 +1223,7 @@
       }
 
       if (cfg.show_cost_stats) {
-        var pricePerKg = purchasedKg > 0 && spentEur > 0 ? spentEur / purchasedKg : 0;
+        var pricePerKg = Number(totals.avg_price_per_kg) || 0;
         var pricePerUnit = entryUnit === "kg"
           ? pricePerKg
           : (pricePerKg ? pricePerKg * bagWeight : 0);
