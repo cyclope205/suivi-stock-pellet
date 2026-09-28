@@ -38,24 +38,24 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 
 Configuration de l'intégration — **Sacs** :
 
-<img width="600" alt="Capture d&#39;écran 2026-09-27 093755" src="https://github.com/user-attachments/assets/00453df9-0a00-49cb-9307-47845c7c375c" />
+<img width="600" alt="Capture d&#39;écran 2026-09-27 093755" src="docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20093755.png" />
 
-<img width="600" alt="Capture d&#39;écran 2026-09-27 105407" src="https://github.com/user-attachments/assets/bd9b7548-4374-4015-8792-b5bc7326ffee" />
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105407" src="docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105407.png" />
 
 ---
 
 Configuration de l'intégration — **Kilogrammes (kg)** :
 
-<img width="600" alt="Capture d&#39;écran 2026-09-27 105449" src="https://github.com/user-attachments/assets/5abd1c64-ff55-4048-8192-00633351a144" />
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105449" src="docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105449.png" />
 
-<img width="600" alt="Capture d&#39;écran 2026-09-27 105513" src="https://github.com/user-attachments/assets/ec3fb327-a909-4d39-ac91-aa8a9f5a1c64" />
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105513" src="docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105513.png" />
 
 
 ---
 
 Import d'une ancienne saison par **CSV** :
 
-<img width="330" height="531" alt="Capture d’écran 2026-09-27 à 12 40 34" src="https://github.com/user-attachments/assets/16a2f4f2-4698-422f-a231-4a19eddcd009" />
+<img width="330" height="531" alt="Capture d’écran 2026-09-27 à 12 40 34" src="docs/screenshots/5d4c02fe-0e2f-434a-b866-9e7e07b0ca7a-Capture_d__cran_2026-09-28__22.15.11.png" />
 
 ---
 
