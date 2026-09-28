@@ -11,7 +11,7 @@
  *   show_actions: true|false        Boutons + formulaires de saisie
  *   show_monthly_chart: true|false  Graphique "Évolution de la consommation"
  *   show_price_chart: true|false    Graphique "Prix moyen du sac par saison"
- *   show_history: true|false        Liste "Dernières saisies"
+ *   show_history: true|false        Historique complet des saisies
  *   show_comparison:  true|false        Bloc comparaison a la saison precedente, a date egale
  *
  * Un sélecteur de saison est affiché dans l'en-tête (à droite du titre) :
@@ -155,7 +155,12 @@
     ".row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".row:last-child { border-bottom: none; }",
     ".row-label { font-size: 0.95em; }",
-    ".row-sub { font-size: 0.78em; opacity: 0.65; margin-top: 2px; }"
+    ".row-sub { font-size: 0.78em; opacity: 0.65; margin-top: 2px; }",
+    ".unit-label { font-size: 0.95em; margin: 10px 0 6px; }",
+    ".unit-row { display: flex; gap: 8px; margin-bottom: 12px; }",
+    ".unit-button { flex: 1; min-height: 42px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--divider-color, rgba(127,127,127,0.3)); background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: inherit; font: inherit; font-weight: 600; cursor: pointer; }",
+    ".unit-button.selected { background: rgba(255,167,38,0.22); border-color: var(--pellet-amber); }",
+    ".unit-button:focus-visible { outline: 2px solid var(--pellet-amber); outline-offset: 2px; }"
   ].join("\n");
 
   var ROOT_VARS = "--pellet-amber: #ffa726;";
@@ -189,7 +194,7 @@
     show_monthly_chart: true,
     show_price_chart: true,
     show_history: true,
-    show_calendar: true
+    show_calendar: true,
   };
 
   var TOGGLE_FIELDS = [
@@ -198,8 +203,8 @@
     { key: "show_actions", label: "Boutons et formulaires de saisie" },
     { key: "show_comparison", label: "Comparaison saison précédente à date égale" },
     { key: "show_monthly_chart", label: "Graphique évolution de la consommation" },
-    { key: "show_price_chart", label: "Graphique prix moyen du sac par saison" },
-    { key: "show_history", label: "Liste des dernières saisies" },
+    { key: "show_price_chart", label: "Graphique prix moyen par unité par saison" },
+    { key: "show_history", label: "Historique complet des saisies" },
     { key: "show_calendar", label: "Calendrier des ajouts avec navigation mensuelle" }
   ];
 
@@ -256,13 +261,70 @@
       for (var k in config) {
         merged[k] = config[k];
       }
+
+      // Migration de compatibilité : l'ancien éditeur visuel pouvait
+      // enregistrer simultanément ces deux options à false. Dans ce cas,
+      // on rétablit les sections afin qu'une ancienne configuration ne
+      // fasse pas disparaître le graphique et le calendrier.
+      if (config.show_monthly_chart === false && config.show_calendar === false) {
+        merged.show_monthly_chart = true;
+        merged.show_calendar = true;
+      }
     }
     return merged;
   }
 
+  function entryUnit(entry) {
+    return entry && entry.unit === "kg" ? "kg" : "bag";
+  }
+
+  function entryQtyKg(entry, bagWeight) {
+    var weight = Number(bagWeight) > 0 ? Number(bagWeight) : 15;
+    if (entryUnit(entry) === "kg") {
+      return Number(entry.qty_kg) || 0;
+    }
+    return (Number(entry.qty_bags) || 0) * weight;
+  }
+
+  function entryQtyBags(entry, bagWeight) {
+    var weight = Number(bagWeight) > 0 ? Number(bagWeight) : 15;
+    if (entryUnit(entry) === "kg") {
+      return (Number(entry.qty_kg) || 0) / weight;
+    }
+    return Number(entry.qty_bags) || 0;
+  }
+
+  function entryQtyDisplay(entry, unit, bagWeight) {
+    return unit === "kg" ? entryQtyKg(entry, bagWeight) : entryQtyBags(entry, bagWeight);
+  }
+
   class SuiviStockPelletCard extends HTMLElement {
+    static getConfigForm() {
+      return {
+        schema: [
+          ...TOGGLE_FIELDS.map(function (field) {
+            return {
+              name: field.key,
+              default: DEFAULT_CONFIG[field.key],
+              selector: { boolean: {} }
+            };
+          })
+        ],
+        computeLabel: function (schema) {
+          var field = TOGGLE_FIELDS.find(function (item) { return item.key === schema.name; });
+          return field ? field.label : schema.name;
+        }
+      };
+    }
+
+    static getStubConfig() {
+      return mergeConfig({});
+    }
+
     setConfig(config) {
       this._config = mergeConfig(config);
+      this._entryUnit = "bag";
+      this._entryId = null;
       this._built = false;
       if (this._hass) {
         this._ensureDom();
@@ -285,8 +347,14 @@
       // between seasons.
       var stockId = findEntity(hass, KEYS.stock);
       if (stockId && hass.states[stockId] && hass.states[stockId].attributes) {
-        var sm = hass.states[stockId].attributes.mois_debut_saison;
+        var attrs = hass.states[stockId].attributes;
+        var sm = attrs.mois_debut_saison;
         if (sm) this._startMonth = sm;
+        var configuredUnit = attrs.unite_affichage;
+        if (configuredUnit === "kg" || configuredUnit === "bag") {
+          this._entryUnit = configuredUnit;
+        }
+        this._entryId = attrs.entry_id || null;
       }
       this._ensureDom();
       this._render();
@@ -294,14 +362,6 @@
 
     getCardSize() {
       return 6;
-    }
-
-    static getConfigElement() {
-      return document.createElement("suivi-stock-pellet-card-editor");
-    }
-
-    static getStubConfig() {
-      return {};
     }
 
     _ensureDom() {
@@ -435,8 +495,8 @@
         costStats.className = "stats";
         els.statCoutJour = addStat(costStats, "Coût / jour", "mdi:cash-clock", COLORS.green);
         els.statCoutMois = addStat(costStats, "Coût / mois", "mdi:calendar-month", COLORS.blue);
-        els.statCoutSac = addStat(costStats, "Coût du sac", "mdi:sack", COLORS.amber);
-        els.statCoutAnnee = addStat(costStats, "Coût saison", "mdi:cash-multiple", COLORS.purple);
+        els.statCoutSac = addStat(costStats, self._entryUnit === "kg" ? "Coût moyen / kg" : "Coût moyen / sac", self._entryUnit === "kg" ? "mdi:weight-kilogram" : "mdi:sack", COLORS.amber);
+        els.statCoutAnnee = addStat(costStats, "Coût consommé", "mdi:cash-multiple", COLORS.purple);
         card.appendChild(costStats);
       }
 
@@ -457,55 +517,52 @@
         btnAchat.className = "secondary type-achat";
         btnAchat.appendChild(icon("mdi:cart-plus"));
         btnAchat.appendChild(document.createTextNode("Achat"));
-        var btnQuick = document.createElement("button");
-        btnQuick.type = "button";
-        btnQuick.className = "type-conso";
-        btnQuick.title = "Enregistrer 1 sac consommé aujourd'hui";
-        btnQuick.appendChild(icon("mdi:fire-alert"));
-        btnQuick.appendChild(document.createTextNode("+1 sac aujourd'hui"));
-        btnQuick.addEventListener("click", function () {
-          if (!self._hass) return;
-          btnQuick.classList.remove("flash");
-          void btnQuick.offsetWidth;
-          btnQuick.classList.add("flash");
-          setTimeout(function () { btnQuick.classList.remove("flash"); }, 450);
-          btnQuick.disabled = true;
-          var todayIsoStr = new Date().toISOString().slice(0, 10);
-          var season = self._seasonForDate(todayIsoStr);
-          // Optimistic UI : le backend notifie deja les capteurs de facon
-          // synchrone (voir _notify() cote Python), mais l'utilisateur
-          // attendait quand meme le round-trip callService + le prochain
-          // re-render de hass pour voir le stock bouger a l'ecran. On
-          // decremente donc immediatement l'affichage local (stock,
-          // consomme) sans attendre la reponse, puis on laisse la vraie
-          // mise a jour hass rattraper/corriger l'affichage juste apres.
-          self._applyOptimisticConsumption(1, season);
-          self._hass
-            .callService("suivi_stock_pellet", "log_consumption", {
-              qty_bags: 1,
-              season: season,
-            })
-            .then(function () {
-              self._seasonDataFetchedAt = 0;
-              self._seasonDataDirty = true;
-              self._seasonsFetchedAt = 0;
-              self._seasonsDirty = true;
-              self._refreshSelectedSeason();
-            })
-            .catch(function (err) {
-              alert("Impossible d'enregistrer : " + (err && err.message ? err.message : err));
-              self._seasonDataFetchedAt = 0;
-              self._seasonDataDirty = true;
-              self._refreshSelectedSeason();
-            })
-            .then(function () {
-              btnQuick.disabled = false;
-            });
-        });
+        var btnQuick = null;
+        if (self._entryUnit !== "kg") {
+          btnQuick = document.createElement("button");
+          btnQuick.type = "button";
+          btnQuick.className = "type-conso";
+          btnQuick.title = "Enregistrer 1 sac consommé aujourd'hui";
+          btnQuick.appendChild(icon("mdi:fire-alert"));
+          btnQuick.appendChild(document.createTextNode("+1 sac aujourd'hui"));
+          btnQuick.addEventListener("click", function () {
+            if (!self._hass) return;
+            btnQuick.classList.remove("flash");
+            void btnQuick.offsetWidth;
+            btnQuick.classList.add("flash");
+            setTimeout(function () { btnQuick.classList.remove("flash"); }, 450);
+            btnQuick.disabled = true;
+            var todayIsoStr = todayIso();
+            var season = self._seasonForDate(todayIsoStr);
+            self._applyOptimisticConsumption(1, season, self._entryUnit);
+            self._hass
+              .callService("suivi_stock_pellet", "log_consumption", {
+                qty_bags: 1,
+                unit: "bag",
+                season: season,
+              })
+              .then(function () {
+                self._seasonDataFetchedAt = 0;
+                self._seasonDataDirty = true;
+                self._seasonsFetchedAt = 0;
+                self._seasonsDirty = true;
+                self._refreshSelectedSeason();
+              })
+              .catch(function (err) {
+                alert("Impossible d'enregistrer : " + (err && err.message ? err.message : err));
+                self._seasonDataFetchedAt = 0;
+                self._seasonDataDirty = true;
+                self._refreshSelectedSeason();
+              })
+              .then(function () {
+                btnQuick.disabled = false;
+              });
+          });
+        }
         actions.appendChild(btnConso);
         els.btnConso = btnConso;
         actions.appendChild(btnAchat);
-        actions.appendChild(btnQuick);
+        if (btnQuick) actions.appendChild(btnQuick);
         els.btnQuick = btnQuick;
         actionsWrap.appendChild(actions);
 
@@ -515,6 +572,71 @@
         actionsWrap.appendChild(formAchat.el);
         els.consoSeasonSelect = formConso.seasonSelect;
         els.achatSeasonSelect = formAchat.seasonSelect;
+
+        // Historical CSV import: visible only to admins, with backend admin enforcement.
+        var importBtn = document.createElement("button");
+        importBtn.type = "button";
+        importBtn.className = "secondary";
+        importBtn.appendChild(icon("mdi:file-import"));
+        importBtn.appendChild(document.createTextNode("Importer un CSV"));
+        var importInput = document.createElement("input");
+        importInput.type = "file";
+        importInput.accept = ".csv,text/csv";
+        importInput.style.display = "none";
+        actionsWrap.appendChild(importInput);
+        actions.appendChild(importBtn);
+        els.importBtn = importBtn;
+        els.importInput = importInput;
+
+        importBtn.addEventListener("click", function () {
+          if (!self._hass || !self._hass.user || !self._hass.user.is_admin) {
+            alert("L'import CSV est réservé aux administrateurs Home Assistant.");
+            return;
+          }
+          importInput.value = "";
+          importInput.click();
+        });
+
+        importInput.addEventListener("change", function () {
+          var file = importInput.files && importInput.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var bytes = reader.result;
+            var utf8 = new TextDecoder("utf-8").decode(bytes);
+            var content = (utf8.match(/\uFFFD/g) || []).length
+              ? new TextDecoder("windows-1252").decode(bytes)
+              : utf8;
+            self._hass.connection.sendMessagePromise({
+              type: "suivi_stock_pellet/csv_import_preview",
+              content: content
+            }).then(function (preview) {
+              var ok = window.confirm(
+                "Saison : " + preview.season +
+                "\nConsommation : " + preview.consumption_bags + " sac(s)" +
+                "\nAchats : " + preview.purchase_bags + " sac(s)" +
+                "\n\nImporter ces données ?"
+              );
+              if (!ok) return null;
+              return self._hass.connection.sendMessagePromise({
+                type: "suivi_stock_pellet/csv_import_commit",
+                content: content
+              });
+            }).then(function (result) {
+              if (!result) return;
+              self._seasonDataFetchedAt = 0;
+              self._seasonDataDirty = true;
+              self._seasonsFetchedAt = 0;
+              self._seasonsDirty = true;
+              self._refreshSelectedSeason();
+              if (self._refreshSeasonsSummary) self._refreshSeasonsSummary();
+              alert("Import terminé : " + result.imported + " saisie(s).");
+            }).catch(function (err) {
+              alert("Import CSV refusé : " + ((err && err.message) || String(err)));
+            });
+          };
+          reader.readAsArrayBuffer(file);
+        });
 
         function updateActionButtons() {
           var consoOpen = formConso.el.classList.contains("visible");
@@ -558,7 +680,7 @@
         var qtyDot = document.createElement("span");
         qtyDot.className = "chart-legend-dot";
         qtyBtn.appendChild(qtyDot);
-        qtyBtn.appendChild(document.createTextNode("Sacs consommés"));
+        qtyBtn.appendChild(document.createTextNode(self._entryUnit === "kg" ? "Kg consommés" : "Sacs consommés"));
 
         var costBtn = document.createElement("button");
         costBtn.type = "button";
@@ -566,7 +688,7 @@
         var costDot = document.createElement("span");
         costDot.className = "chart-legend-dot amber";
         costBtn.appendChild(costDot);
-        costBtn.appendChild(document.createTextNode("Coût (€)"));
+        costBtn.appendChild(document.createTextNode(self._entryUnit === "kg" ? "Coût (€ / kg)" : "Coût (€)"));
 
         chartLegend.appendChild(qtyBtn);
         chartLegend.appendChild(costBtn);
@@ -604,13 +726,14 @@
         var priceTitle = document.createElement("div");
         priceTitle.className = "chart-title";
         priceTitle.appendChild(icon("mdi:cash-multiple"));
-        priceTitle.appendChild(document.createTextNode("Prix moyen du sac par saison"));
+        priceTitle.appendChild(document.createTextNode("Prix moyen par saison"));
         var priceChart = document.createElement("div");
         priceChart.className = "price-chart";
         priceSection.appendChild(priceTitle);
         priceSection.appendChild(priceChart);
         card.appendChild(priceSection);
         els.priceChart = priceChart;
+        els.priceTitle = priceTitle;
       }
 
       if (cfg.show_history) {
@@ -708,9 +831,14 @@
       var row1 = document.createElement("div");
       row1.className = "form-row";
 
+      var unitConfigNote = document.createElement("div");
+      unitConfigNote.className = "unit-config-note";
+      unitConfigNote.textContent = "Choix kg ou sacs à configurer dans l'éditeur de carte";
+      el.appendChild(unitConfigNote);
+
       var qtyWrap = document.createElement("div");
       var qtyLabel = document.createElement("label");
-      qtyLabel.textContent = "Nombre de sacs";
+      qtyLabel.textContent = self._entryUnit === "kg" ? "Quantité (kg)" : "Nombre de sacs";
       var qtyInput = document.createElement("input");
       qtyInput.type = "number";
       qtyInput.step = "0.1";
@@ -737,7 +865,7 @@
       if (kind === "purchase") {
         var priceWrap = document.createElement("div");
         var priceLabel = document.createElement("label");
-        priceLabel.textContent = "Prix par sac (€, vide = prix moyen actuel)";
+        priceLabel.textContent = self._entryUnit === "kg" ? "Prix par kg (€, vide = prix moyen actuel)" : "Prix par sac (€, vide = prix moyen actuel)";
         priceInput = document.createElement("input");
         priceInput.type = "number";
         priceInput.step = "0.01";
@@ -796,14 +924,17 @@
           alert("Stock à 0 : impossible d'enregistrer une consommation.");
           return;
         }
-        var data = { qty_bags: qty, date: dateInput.value, season: formSeason || self._seasonForDate(dateInput.value) };
+        var data = { date: dateInput.value, season: formSeason || self._seasonForDate(dateInput.value), unit: self._entryUnit };
+        if (self._entryUnit === "kg") data.qty_kg = qty; else data.qty_bags = qty;
         if (kind === "purchase") {
           if (totalPriceInput && totalPriceInput.value) {
             data.price_eur = parseFloat(totalPriceInput.value);
           } else if (priceInput.value) {
             data.price_eur = parseFloat(priceInput.value) * qty;
           } else if (seasonMatchesDisplayed && self._currentAvgPricePerBag) {
-            data.price_eur = self._currentAvgPricePerBag * qty;
+            data.price_eur = self._entryUnit === "kg"
+              ? (self._currentAvgPricePerBag / (self._bagWeight || 15)) * qty
+              : self._currentAvgPricePerBag * qty;
           }
         }
         var service = kind === "purchase" ? "log_purchase" : "log_consumption";
@@ -894,7 +1025,7 @@
       return month >= startMonth ? year + "-" + (year + 1) : (year - 1) + "-" + year;
     }
 
-    _applyOptimisticConsumption(qtyBags, season) {
+    _applyOptimisticConsumption(qty, season, unit) {
       // Fait avancer immediatement l'affichage local (tuiles + stock)
       // pendant que le callService est en vol, pour que le bouton
       // "+1 sac aujourd'hui" paraisse instantane. _applySeasonData (issue
@@ -908,15 +1039,22 @@
       if (!els || season !== this._season) return;
       var bagWeight = this._bagWeight || 15;
       var calorificValue = this._calorificValue || 4.8;
+      var qtyBags = unit === "kg" ? qty / bagWeight : qty;
 
       if (typeof this._currentStockBags === "number") {
         this._currentStockBags = Math.max(0, this._currentStockBags - qtyBags);
-        if (els.stock) els.stock.textContent = fmt(this._currentStockBags, 1) + " sac(s)";
-        if (els.stockSub) els.stockSub.textContent = fmt(this._currentStockBags * bagWeight, 1) + " kg restant(s)";
+        if (els.stock) els.stock.textContent = this._entryUnit === "kg" ? fmt(this._currentStockBags * bagWeight, 1) + " kg" : fmt(this._currentStockBags, 1) + " sac(s)";
+        if (els.stockSub) els.stockSub.textContent = this._entryUnit === "kg" ? "" : fmt(this._currentStockBags * bagWeight, 0) + " kg restant(s)";
         if (els.btnConso) els.btnConso.disabled = this._currentStockBags <= 0;
       }
 
-            if (typeof this._currentConsumedBags === "number") { this._currentConsumedBags += qtyBags; } var newConsumed = this._currentConsumedBags; if (cfg.show_stats && els.statConsomme && typeof newConsumed === "number") { els.statConsomme.textContent = fmt(newConsumed, 1) + " sac(s)"; if (els.statEnergie) { els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh"; } }  if (this._lastChartData && this._lastChartData.entries && typeof this._renderChart === "function") { var todayISO = new Date().toISOString().slice(0, 10); var newChartEntries = this._lastChartData.entries.slice(); newChartEntries.push({ type: "consumption", date: todayISO, qty_bags: qtyBags }); this._renderChart(newChartEntries, this._lastChartData.startMonth, this._lastChartData.avgPricePerBag); } if (els.historyList && !this._openEditRow) { this._renderHistory(newChartEntries); }
+            if (typeof this._currentConsumedBags === "number") { this._currentConsumedBags += qtyBags; } var newConsumed = this._currentConsumedBags; if (cfg.show_stats && els.statConsomme && typeof newConsumed === "number") { els.statConsomme.textContent = this._entryUnit === "kg" ? fmt(newConsumed * bagWeight, 1) + " kg" : fmt(newConsumed, 1) + " sac(s)"; if (els.statEnergie) { els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh"; } }  if (this._lastChartData && this._lastChartData.entries && typeof this._renderChart === "function") { var todayISO = todayIso(); var newChartEntries = this._lastChartData.entries.slice(); newChartEntries.push({
+          type: "consumption",
+          date: todayISO,
+          unit: unit,
+          qty_kg: unit === "kg" ? qty : undefined,
+          qty_bags: unit === "bag" ? qtyBags : undefined
+        }); this._renderChart(newChartEntries, this._lastChartData.startMonth, this._lastChartData.avgPricePerBag); } if (els.historyList && !this._openEditRow) { this._renderHistory(newChartEntries); }
       if (els.calGrid) {
         this._calendarEntries = newChartEntries;
         this._renderCalendar();
@@ -999,6 +1137,7 @@
     _applySeasonData(result) {
       var els = this._els;
       var cfg = this._config || DEFAULT_CONFIG;
+      var entryUnit = this._entryUnit === "kg" ? "kg" : "bag";
       var totals = result.totals || {};
       var entries = result.entries || [];
       var startMonth = result.start_month || 9;
@@ -1020,12 +1159,12 @@
         this._populateFormSeasonSelect(els.achatSeasonSelect, todayIso());
       }
 
-      var stockBags = totals.stock_bags || 0;
+      var stockBags = Number(totals.stock_bags) || 0;
       this._currentStockBags = stockBags;
       var stockBagsRaw = totals.stock_bags_raw;
       if (els.stockAlert) {
         if (typeof stockBagsRaw === "number" && stockBagsRaw < 0) {
-          els.stockAlert.textContent = "⚠ Stock incohérent : " + fmt(stockBagsRaw, 1) + " sac(s) réel(s) pour cette saison (négatif). Vérifiez vos saisies (achats/consommations).";
+          els.stockAlert.textContent = entryUnit === "kg" ? "⚠ Stock incohérent : " + fmt(stockKg, 1) + " kg réel(s) pour cette saison (négatif). Vérifiez vos saisies (achats/consommations)." : "⚠ Stock incohérent : " + fmt(stockBagsRaw, 1) + " sac(s) réel(s) pour cette saison (négatif). Vérifiez vos saisies (achats/consommations).";
           els.stockAlert.style.display = "block";
         } else {
           els.stockAlert.style.display = "none";
@@ -1036,35 +1175,46 @@
       }
       var consumedBags = totals.consumed_bags || 0;
       this._currentConsumedBags = consumedBags;
-      var purchasedBags = totals.purchased_bags || 0;
-      var spentEur = totals.spent_eur || 0;
-      var daysLogged = totals.days_logged || 0;
+      var purchasedBags = Number(totals.purchased_bags) || 0;
+      var purchasedKg = Number(totals.purchased_kg);
+      if (!Number.isFinite(purchasedKg)) purchasedKg = purchasedBags * bagWeight;
+      var spentEur = Number(totals.spent_eur) || 0;
+      var daysLogged = Number(totals.days_logged) || 0;
 
-      var stockKg = stockBags * bagWeight;
-      var consommeKg = consumedBags * bagWeight;
-      var consommeKwh = consommeKg * calorificValue;
+      var stockKg = Number(totals.stock_kg);
+      if (!Number.isFinite(stockKg)) stockKg = stockBags * bagWeight;
+      var consumedKg = Number(totals.consumed_kg);
+      if (!Number.isFinite(consumedKg)) consumedKg = consumedBags * bagWeight;
+      var consommeKwh = Number(totals.consumed_kwh);
+      if (!Number.isFinite(consommeKwh)) consommeKwh = consumedKg * calorificValue;
 
-      els.stock.textContent = fmt(stockBags, 1) + " sac(s)";
-      els.stockSub.textContent = fmt(stockKg, 1) + " kg restant(s)";
+      els.stock.textContent = entryUnit === "kg" ? fmt(stockKg, 0) + " kg" : fmt(stockBags, 1) + " sac(s)";
+      els.stockSub.textContent = entryUnit === "kg" ? "" : fmt(stockKg, 0) + " kg restant(s)";
 
-      var avgPricePerBag = (totals.avg_price_per_bag != null) ? totals.avg_price_per_bag : (purchasedBags > 0 ? spentEur / purchasedBags : 0);
+      var avgPricePerKg = purchasedKg > 0 && spentEur > 0 ? spentEur / purchasedKg : 0;
+      var avgPricePerBag = avgPricePerKg > 0 ? avgPricePerKg * bagWeight : 0;
       this._currentAvgPricePerBag = avgPricePerBag;
+      this._currentAvgPricePerKg = avgPricePerKg;
 
       if (cfg.show_stats) {
-        els.statConsomme.textContent = fmt(consumedBags, 1) + " sac(s)";
+        els.statConsomme.textContent = entryUnit === "kg" ? fmt(consumedKg, 0) + " kg" : fmt(consumedBags, 1) + " sac(s)";
         els.statEnergie.textContent = fmt(consommeKwh, 1) + " kWh";
         els.statDepense.textContent = fmt(spentEur, 2) + " €";
         els.statJours.textContent = String(daysLogged);
       }
 
       if (cfg.show_cost_stats) {
-        var costToDate = avgPricePerBag ? consumedBags * avgPricePerBag : 0;
+        var pricePerKg = purchasedKg > 0 && spentEur > 0 ? spentEur / purchasedKg : 0;
+        var pricePerUnit = entryUnit === "kg"
+          ? pricePerKg
+          : (pricePerKg ? pricePerKg * bagWeight : 0);
+        var costToDate = pricePerKg ? consumedKg * pricePerKg : 0;
         var costPerDay = daysLogged > 0 ? costToDate / daysLogged : 0;
         var costPerMonth = costPerDay * 30.44;
 
         els.statCoutJour.textContent = fmt(costPerDay, 2) + " €";
         els.statCoutMois.textContent = fmt(costPerMonth, 2) + " €";
-        els.statCoutSac.textContent = avgPricePerBag ? fmt(avgPricePerBag, 2) + " €" : "--";
+        els.statCoutSac.textContent = pricePerUnit ? fmt(pricePerUnit, 2) + " €" : "--";
         els.statCoutAnnee.textContent = fmt(costToDate, 2) + " €";
       }
 
@@ -1076,11 +1226,33 @@
       }
       if (els.calGrid) {
         this._calendarEntries = entries;
-        if (this._calendarYear === undefined || this._calendarMonth === undefined) {
-          var today = new Date();
-          this._calendarYear = today.getFullYear();
-          this._calendarMonth = today.getMonth() + 1;
+
+        // Repositionne automatiquement le calendrier sur un mois qui
+        // contient des données lorsque l'utilisateur change de saison.
+        // Cela évite d'afficher par défaut septembre 2026 pour une saison
+        // historique (ex. 2024-2025), ce qui donnait un calendrier vide
+        // alors que les saisies existaient bien dans la saison consultée.
+        if (this._calendarSeason !== this._season) {
+          this._calendarSeason = this._season;
+
+          if (entries.length) {
+            var latestDate = entries.reduce(function (latest, entry) {
+              return !latest || entry.date > latest ? entry.date : latest;
+            }, null);
+            var latestParts = String(latestDate).split("-");
+            this._calendarYear = parseInt(latestParts[0], 10);
+            this._calendarMonth = parseInt(latestParts[1], 10);
+          } else {
+            var today = new Date();
+            this._calendarYear = today.getFullYear();
+            this._calendarMonth = today.getMonth() + 1;
+          }
+        } else if (this._calendarYear === undefined || this._calendarMonth === undefined) {
+          var today2 = new Date();
+          this._calendarYear = today2.getFullYear();
+          this._calendarMonth = today2.getMonth() + 1;
         }
+
         this._renderCalendar();
       }
 
@@ -1138,10 +1310,14 @@
       this._seasonsDirty = false;
       this._seasonsPending = true;
       this._hass.connection
-        .sendMessagePromise({ type: "suivi_stock_pellet/seasons_summary" })
+        .sendMessagePromise({ type: "suivi_stock_pellet/seasons_summary", entry_id: self._entryId })
         .then(function (result) {
           self._seasonsPending = false;
           self._seasonsFetchedAt = Date.now();
+          if (result.display_unit === "kg" || result.display_unit === "bag") {
+            self._entryUnit = result.display_unit;
+            self._seasonsDisplayUnit = result.display_unit;
+          }
           self._renderPriceChart(result.seasons || []);
           if (self._seasonsDirty) {
             self._seasonsDirty = false;
@@ -1181,14 +1357,19 @@
     }
 
     _renderComparison(result) {
+      var self = this;
+      var entryUnit = this._entryUnit === "kg" ? "kg" : "bag";
       var els = this._els;
       if (!els.comparison) return;
       var current = result.current_consumed_bags;
       var previous = result.previous_consumed_bags;
+      var currentQty = entryUnit === "kg" ? result.current_consumed_kg : current;
+      var previousQty = entryUnit === "kg" ? result.previous_consumed_kg : previous;
+      var unitLabel = entryUnit === "kg" ? " kg" : " sac(s)";
       var pct = result.pct_diff;
 
       if (previous === null || previous === undefined) {
-        els.comparisonMain.textContent = fmt(current, 1) + " sac(s) consommé(s)";
+        els.comparisonMain.textContent = fmt(currentQty, entryUnit === "kg" ? 0 : 1) + unitLabel + " consommé" + (entryUnit === "kg" ? "" : "(s)");
         els.comparisonSub.textContent = "Pas de saison précédente pour comparer à date égale.";
         els.comparisonBadge.textContent = "";
         els.comparisonBadge.className = "comparison-badge";
@@ -1196,7 +1377,7 @@
         return;
       }
 
-      els.comparisonMain.textContent = fmt(current, 1) + " sac(s) vs " + fmt(previous, 1) + " l'an dernier";
+      els.comparisonMain.textContent = fmt(currentQty, 1) + unitLabel + " vs " + fmt(previousQty, 1) + unitLabel + " l'an dernier";
       els.comparisonSub.textContent = "à la même date (saison " + result.previous_season + ")";
 
       var currentEur = result.current_spent_eur;
@@ -1236,7 +1417,7 @@
       var indexed = entries.map(function (entry, idx) {
         return { entry: entry, index: idx };
       });
-      var recent = indexed.slice().reverse().slice(0, 15);
+      var recent = indexed.slice().reverse();
       recent.forEach(function (item) {
         var entry = item.entry;
         var entryIndex = item.index;
@@ -1259,8 +1440,11 @@
 
         var value = document.createElement("span");
         value.className = "history-value";
+        var histUnit = entryUnit(entry);
+        var histQty = entryQtyDisplay(entry, histUnit, self._bagWeight || 15);
         value.textContent =
-          entry.qty_bags + " sac(s)" + (entry.price_eur ? " · " + fmt(entry.price_eur, 2) + " €" : "");
+          fmt(histQty, histUnit === "kg" ? 1 : 1) + (histUnit === "kg" ? " kg" : " sac(s)") +
+          (entry.price_eur ? " · " + fmt(entry.price_eur, 2) + " €" : "");
 
         var editBtn = document.createElement("button");
         editBtn.type = "button";
@@ -1298,8 +1482,9 @@
       this._openEditRow = row;
 
       var isPurchase = entry.type === "purchase";
-      var qtyNow = entry.qty_bags;
-      var pricePerBagNow = isPurchase && entry.price_eur ? entry.price_eur / qtyNow : "";
+      var editUnit = entryUnit(entry);
+      var qtyNow = entryQtyDisplay(entry, editUnit, self._bagWeight || 15);
+      var pricePerUnitNow = isPurchase && entry.price_eur && qtyNow ? entry.price_eur / qtyNow : "";
 
       var toHide = [].slice.call(row.children);
       toHide.forEach(function (el) {
@@ -1330,8 +1515,8 @@
         priceInput.type = "number";
         priceInput.step = "0.01";
         priceInput.min = "0";
-        priceInput.placeholder = "Prix/sac";
-        priceInput.value = pricePerBagNow ? Number(pricePerBagNow).toFixed(2) : "";
+        priceInput.placeholder = editUnit === "kg" ? "Prix/kg" : "Prix/sac";
+        priceInput.value = pricePerUnitNow ? Number(pricePerUnitNow).toFixed(2) : "";
         row1.appendChild(priceInput);
       }
 
@@ -1385,21 +1570,28 @@
       saveBtn.addEventListener("click", function () {
         var qty = parseFloat(qtyInput.value);
         if (!qty || qty <= 0) return;
-        var data = { season: self._season, index: index, qty_bags: qty, date: dateInput.value };
+        var data = { season: self._season, index: index, date: dateInput.value, unit: editUnit };
+        if (editUnit === "kg") data.qty_kg = qty;
+        else data.qty_bags = qty;
         if (isPurchase && priceInput.value) {
           data.price_eur = parseFloat(priceInput.value) * qty;
         }
         if (seasonSelect.value && seasonSelect.value !== self._season) {
           data.new_season = seasonSelect.value;
         }
-        self._hass.callService("suivi_stock_pellet", "edit_entry", data);
-        self._seasonDataFetchedAt = 0;
-        self._seasonDataDirty = true;
-        self._seasonsFetchedAt = 0;
-        self._seasonsDirty = true;
-        row.dataset.editing = "";
-        row.classList.remove("editing");
-        self._openEditRow = null;
+        self._hass.callService("suivi_stock_pellet", "edit_entry", data)
+          .then(function () {
+            self._seasonDataFetchedAt = 0;
+            self._seasonDataDirty = true;
+            self._seasonsFetchedAt = 0;
+            self._seasonsDirty = true;
+            row.dataset.editing = "";
+            row.classList.remove("editing");
+            self._openEditRow = null;
+          })
+          .catch(function (err) {
+            window.alert(err && err.message ? err.message : "Impossible de modifier cette saisie.");
+          });
       });
 
       deleteBtn.addEventListener("click", function () {
@@ -1407,18 +1599,24 @@
           self._hass.callService("suivi_stock_pellet", "delete_entry", {
             season: self._season,
             index: index
-          });
-          self._seasonDataFetchedAt = 0;
-          self._seasonDataDirty = true;
-          self._seasonsFetchedAt = 0;
-          self._seasonsDirty = true;
-          row.dataset.editing = "";
-          row.classList.remove("editing");
-          self._openEditRow = null;
+          })
+            .then(function () {
+              self._seasonDataFetchedAt = 0;
+              self._seasonDataDirty = true;
+              self._seasonsFetchedAt = 0;
+              self._seasonsDirty = true;
+              row.dataset.editing = "";
+              row.classList.remove("editing");
+              self._openEditRow = null;
+            })
+            .catch(function (err) {
+              window.alert(err && err.message ? err.message : "Impossible de supprimer cette saisie.");
+            });
         });
     }
 
     _renderCalendar() {
+      var self = this;
       var els = this._els;
       if (!els || !els.calGrid) return;
       var entries = this._calendarEntries || [];
@@ -1436,9 +1634,9 @@
         if (y !== year || m !== month) return;
         if (!byDay[d]) byDay[d] = { purchase: 0, consumption: 0 };
         if (entry.type === "purchase") {
-          byDay[d].purchase += entry.qty_bags;
+          byDay[d].purchase += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
         } else {
-          byDay[d].consumption += entry.qty_bags;
+          byDay[d].consumption += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
         }
       });
 
@@ -1473,8 +1671,8 @@
         cell.textContent = String(day);
         if (info) {
           var parts2 = [];
-          if (info.purchase > 0) parts2.push("Achat : " + fmt(info.purchase, 1) + " sac(s)");
-          if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + " sac(s)");
+          if (info.purchase > 0) parts2.push("Achat : " + fmt(info.purchase, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
+          if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
           cell.title = parts2.join(" \u00b7 ");
           cell.addEventListener("touchstart", function (e) {
                   cell.__tsX = e.touches[0].clientX;
@@ -1512,6 +1710,7 @@
     }
 
     _renderChart(entries, startMonth, avgPricePerBag) {
+      var self = this;
       var container = this._els.chart;
       if (!container) return;
       this._lastChartData = {
@@ -1558,10 +1757,13 @@
         if (entry.type !== "consumption") return;
         var m = parseInt(entry.date.split("-")[1], 10);
         var idx = months.indexOf(m);
-        if (idx !== -1) qtyBuckets[idx] += entry.qty_bags;
+        if (idx !== -1) qtyBuckets[idx] += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
       });
+      var unitPricePerKg = Number(this._currentAvgPricePerKg || 0);
+      if (!unitPricePerKg && avgPricePerBag) unitPricePerKg = Number(avgPricePerBag) / (self._bagWeight || 15);
+      var unitPrice = self._entryUnit === "kg" ? unitPricePerKg : unitPricePerKg * (self._bagWeight || 15);
       var costBuckets = qtyBuckets.map(function (q) {
-        return avgPricePerBag ? q * avgPricePerBag : 0;
+        return unitPrice ? q * unitPrice : 0;
       });
 
       if (!visible.qty && !visible.cost) {
@@ -1610,10 +1812,10 @@
           rect.setAttribute("rx", 2);
           rect.setAttribute("fill", v === 0 ? "rgba(127,127,127,0.3)" : "rgb(239, 83, 80)");
           var t = document.createElementNS(svgNS, "title");
-          t.textContent = MONTHS_FR[m] + " : " + fmt(v, 1) + " sac(s)";
+          t.textContent = MONTHS_FR[m] + " : " + fmt(v, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)");
           rect.appendChild(t);
           rect.addEventListener("pointerdown", function (evt) {
-            showTapTip(evt, MONTHS_FR[m] + " : " + fmt(v, 1) + " sac(s)");
+            showTapTip(evt, MONTHS_FR[m] + " : " + fmt(v, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
           });
           svg.appendChild(rect);
           if (singleSeries) {
@@ -1694,12 +1896,21 @@
     }
 
     _renderPriceChart(seasons) {
+      var self = this;
       var container = this._els.priceChart;
       if (!container) return;
       container.innerHTML = "";
 
+      var displayUnit = self._entryUnit === "kg" ? "kg" : "bag";
+      if (this._seasonsDisplayUnit === "kg" || this._seasonsDisplayUnit === "bag") displayUnit = this._seasonsDisplayUnit;
+      if (this._els.priceTitle) this._els.priceTitle.textContent = displayUnit === "kg" ? "Prix moyen du kg par saison" : "Prix moyen du sac par saison";
+
       var points = seasons.filter(function (s) {
-        return s.avg_price_eur !== null && s.avg_price_eur !== undefined;
+        return s.avg_price_display !== null && s.avg_price_display !== undefined;
+      }).map(function (s) {
+        var point = Object.assign({}, s);
+        point.avg_price_eur = Number(s.avg_price_display);
+        return point;
       });
 
       if (points.length === 0) {
@@ -1767,7 +1978,7 @@
         label.setAttribute("font-size", "9");
         label.setAttribute("font-weight", "700");
         label.setAttribute("fill", "rgb(102, 187, 106)");
-        label.textContent = fmt(p.avg_price_eur, 2) + "€";
+        label.textContent = fmt(p.avg_price_eur, 2) + (self._entryUnit === "kg" ? " €/kg" : " €/sac");
         svg.appendChild(label);
 
         var dot = document.createElementNS(svgNS, "circle");
@@ -1808,8 +2019,12 @@
     }
 
     _render() {
+      this._config = mergeConfig(this._config || {});
+      this._switches = this._switches || {};
+      this._unitButtons = this._unitButtons || {};
       if (this._built) {
         this._syncSwitches();
+        this._syncUnitButtons();
         return;
       }
       this._built = true;
@@ -1822,6 +2037,32 @@
 
       var self = this;
       this._switches = {};
+      this._unitButtons = {};
+
+      var unitLabel = document.createElement("div");
+      unitLabel.className = "unit-label";
+      unitLabel.textContent = "Mode de saisie des quantités";
+      this.appendChild(unitLabel);
+
+      var unitRow = document.createElement("div");
+      unitRow.className = "unit-row";
+      [{ key: "bag", label: "🛍️ Sacs" }, { key: "kg", label: "⚖️ Vrac" }].forEach(function (opt) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = opt.label;
+        btn.className = "unit-button";
+        btn.setAttribute("aria-label", "Mode " + (opt.key === "kg" ? "vrac" : "sacs"));
+        btn.setAttribute("aria-pressed", "false");
+        btn.addEventListener("click", function () {
+          self._config.entry_unit = opt.key;
+          self._syncUnitButtons();
+          self._emitConfigChanged();
+        });
+        unitRow.appendChild(btn);
+        self._unitButtons[opt.key] = btn;
+      });
+      this.appendChild(unitRow);
+      this._syncUnitButtons();
 
       TOGGLE_FIELDS.forEach(function (field) {
         var row = document.createElement("div");
@@ -1847,6 +2088,16 @@
       });
     }
 
+    _syncUnitButtons() {
+      var unit = this._config.entry_unit === "kg" ? "kg" : "bag";
+      Object.keys(this._unitButtons || {}).forEach(function (key) {
+        var btn = this._unitButtons[key];
+        if (!btn) return;
+        btn.classList.toggle("selected", key === unit);
+        btn.setAttribute("aria-pressed", key === unit ? "true" : "false");
+      });
+    }
+
     _syncSwitches() {
       var self = this;
       TOGGLE_FIELDS.forEach(function (field) {
@@ -1857,7 +2108,7 @@
 
     _emitConfigChanged() {
       var event = new CustomEvent("config-changed", {
-        detail: { config: this._config },
+        detail: { config: Object.assign({}, this._config) },
         bubbles: true,
         composed: true
       });
@@ -1868,8 +2119,8 @@
   if (!customElements.get("suivi-stock-pellet-card")) {
     customElements.define("suivi-stock-pellet-card", SuiviStockPelletCard);
   }
-  if (!customElements.get("suivi-stock-pellet-card-editor")) {
-    customElements.define("suivi-stock-pellet-card-editor", SuiviStockPelletCardEditor);
+  if (!customElements.get("suivi-stock-pellet-card-editor-v1750")) {
+    customElements.define("suivi-stock-pellet-card-editor-v1750", SuiviStockPelletCardEditor);
   }
 
   window.customCards = window.customCards || [];
