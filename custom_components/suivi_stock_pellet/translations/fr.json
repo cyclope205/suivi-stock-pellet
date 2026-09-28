@@ -2,34 +2,57 @@
   "config": {
     "step": {
       "user": {
-        "title": "Suivi Stock Pellet",
-        "description": "Renseigne les caractéristiques de tes sacs de granulés pour calculer automatiquement le stock, l'énergie et le coût.",
+        "title": "Unité d'affichage",
+        "description": "Choisis l'unité qui sera utilisée dans la carte Suivi Pellet.",
         "data": {
-          "bag_weight_kg": "Poids d'un sac (kg)",
-          "bag_price": "Prix moyen d'un sac (EUR)",
+          "display_unit": "Afficher les quantités en"
+        }
+      },
+      "details": {
+        "title": "Paramètres des granulés",
+        "description": "Le prix demandé correspond à l'unité choisie à l'étape précédente. La saison va de {start_month} à {end_month} (fin automatique).",
+        "data": {
+          "bag_price": "Prix moyen d'un sac (€)",
+          "price_per_kg": "Prix moyen au kg (€)",
           "calorific_value_kwh_per_kg": "Pouvoir calorifique (kWh/kg)",
-          "season_start_month": "Mois de début de saison (1-12)"
+          "season_start_month": "Mois de début de saison"
         }
       }
     },
     "abort": {
-      "single_instance_allowed": "Une seule instance de Suivi Stock Pellet est autorisée."
+      "single_instance_allowed": "Une seule instance de Suivi Pellet est autorisée."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Suivi Stock Pellet",
+        "title": "Unité d'affichage",
+        "description": "Choisis l'unité qui sera utilisée dans la carte Suivi Pellet.",
         "data": {
-          "bag_weight_kg": "Poids d'un sac (kg)",
-          "bag_price": "Prix moyen d'un sac (EUR)",
+          "display_unit": "Afficher les quantités en"
+        }
+      },
+      "details": {
+        "title": "Paramètres des granulés",
+        "description": "Le prix demandé correspond à l'unité choisie. Saison : {start_month} à {end_month} (fin automatique).",
+        "data": {
+          "bag_price": "Prix moyen d'un sac (€)",
+          "price_per_kg": "Prix moyen au kg (€)",
           "calorific_value_kwh_per_kg": "Pouvoir calorifique (kWh/kg)",
-          "season_start_month": "Mois de début de saison (1-12)"
+          "season_start_month": "Mois de début de saison"
         }
       }
     },
     "error": {
-      "season_start_month_locked": "Impossible de changer le mois de début de saison : le journal contient déjà des saisies, et les saisons existantes ne sont pas migrées vers une nouvelle règle."
+      "season_start_month_locked": "Le mois de début de saison ne peut plus être modifié car le journal contient déjà des données."
+    }
+  },
+  "selector": {
+    "display_unit": {
+      "options": {
+        "bag": "Sacs",
+        "kg": "Kilogrammes (kg)"
+      }
     }
   }
 }
