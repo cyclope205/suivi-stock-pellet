@@ -662,8 +662,20 @@ class PelletJournal:
         consumed_kwh = sum(_entry_qty_kg(e, default_bag_weight_kg) * (e.get("calorific_value") or default_calorific_value) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         days = _heating_days(entries)
         stock_initial_value = self._effective_stock_initial_value(season)
-        avg_price_per_bag = spent / purchased if purchased > 0 else 0.0
-        avg_price_per_kg = spent / purchased_kg if purchased_kg > 0 else 0.0
+        # Moyenne ponderee sur le stock reporte + les achats de la
+        # saison, pas seulement les achats de la saison : sans stock_initial
+        # et stock_initial_value ici, un sac reporte a 6,09 EUR/sac puis un
+        # nouvel achat a 6,67 EUR/sac affichait 6,67 EUR au lieu de la vraie
+        # moyenne ponderee 6,44 EUR sur l'ensemble du stock actuel.
+        total_bags_for_avg = stock_initial + purchased
+        total_kg_for_avg = stock_initial * default_bag_weight_kg + purchased_kg
+        total_value_for_avg = stock_initial_value + spent
+        avg_price_per_bag = (
+            total_value_for_avg / total_bags_for_avg if total_bags_for_avg > 0 else 0.0
+        )
+        avg_price_per_kg = (
+            total_value_for_avg / total_kg_for_avg if total_kg_for_avg > 0 else 0.0
+        )
         stock_bags_raw = stock_initial + purchased - consumed
         stock_kg = max(stock_initial * default_bag_weight_kg + purchased_kg - consumed_kg, 0)
         if stock_bags_raw < 0:
