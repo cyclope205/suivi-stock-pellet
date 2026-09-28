@@ -104,16 +104,28 @@ class PelletJournal:
     async def _async_save(self) -> None:
         await self._store.async_save(self._data)
 
-    def _season_entries(self, season: str) -> list[dict[str, Any]]:
-        return self._get_season(season)["entries"]
+    def _season_entries(self, season: str, carry_over: bool = True) -> list[dict[str, Any]]:
+        return self._get_season(season, carry_over=carry_over)["entries"]
 
-    def _get_season(self, season: str) -> dict[str, Any]:
+    def _get_season(self, season: str, carry_over: bool = True) -> dict[str, Any]:
         seasons = self._data["seasons"]
         if season not in seasons:
+            if carry_over:
+                stock_initial = self._effective_stock_initial(season)
+                stock_initial_value = self._effective_stock_initial_value(season)
+            else:
+                # Bulk historical backfill (CSV import): the season being
+                # created is expected to stand on its own, matching an
+                # externally-kept record of that season's own purchases/
+                # consumption - it must never silently inherit a carry-over
+                # from whatever the previous season happens to look like at
+                # import time.
+                stock_initial = 0.0
+                stock_initial_value = 0.0
             seasons[season] = {
                 "entries": [],
-                "stock_initial": self._effective_stock_initial(season),
-                "stock_initial_value_eur": self._effective_stock_initial_value(season),
+                "stock_initial": stock_initial,
+                "stock_initial_value_eur": stock_initial_value,
             }
         return seasons[season]
 
@@ -264,7 +276,7 @@ class PelletJournal:
                     qty = float(item["qty_kg"])
                     if qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
-                    self._season_entries(season).append({
+                    self._season_entries(season, carry_over=False).append({
                         "type": entry_type,
                         "unit": "kg",
                         "qty_kg": qty,
@@ -276,7 +288,7 @@ class PelletJournal:
                     qty = float(item["qty_bags"])
                     if qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
-                    self._season_entries(season).append({
+                    self._season_entries(season, carry_over=False).append({
                         "type": entry_type,
                         "unit": "bag",
                         "qty_bags": qty,
