@@ -608,6 +608,31 @@ def test_avg_price_per_bag_recalculates_when_new_purchase_added_mid_season():
     assert after["avg_price_per_bag"] == pytest.approx((262.0 + 440.0 + 400.0) / (43 + 66 + 50), abs=0.0001)
 
 
+def test_avg_price_per_bag_uses_fifo_costing_across_price_tiers():
+    """Regression test for a real reported bug: a previous season with
+    TWO purchases at different prices, where consumption crosses from
+    the cheaper batch into the pricier one, must value the carried-
+    over remainder using FIFO costing (the price actually paid for the
+    bags still on hand) - not a season-wide average of every purchase,
+    which wrongly prices the remainder toward the average even though
+    every bag still on hand physically came from the pricier batch.
+    """
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 63, "2024-06-20", price_eur=330.32))
+    run(journal.async_add_entry("2025-2026", "purchase", 64, "2025-06-24", price_eur=390.0))
+    # Consume 84 bags: fully drains the cheaper 63-bag batch, then 21
+    # bags from the 390 EUR batch, leaving 43 bags all priced at
+    # 390/64 EUR/bag - not the season average of 720.32/127.
+    run(journal.async_add_entry("2025-2026", "consumption", 84, "2025-10-01"))
+    run(journal.async_add_entry("2026-2027", "purchase", 66, "2026-07-17", price_eur=440.22))
+    totals = journal.totals("2026-2027")
+    expected_carried_value = 43 * (390.0 / 64)
+    assert totals["stock_initial_bags"] == pytest.approx(43)
+    assert totals["stock_initial_value_eur"] == pytest.approx(expected_carried_value, abs=0.01)
+    assert totals["avg_price_per_bag"] == pytest.approx(
+        (expected_carried_value + 440.22) / (43 + 66), abs=0.001
+    )
+
 def test_stock_initial_value_carries_over_only_once_on_first_touch():
     journal = _make_journal()
     run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
