@@ -914,6 +914,10 @@
         var qty = parseFloat(qtyInput.value);
         if (!qty || qty < 0) return;
         var formSeason = seasonInput.value;
+        if (!formSeason) {
+          alert("Choisis d'abord la saison a laquelle cet achat/cette consommation doit etre rattache(e).");
+          return;
+        }
         var seasonMatchesDisplayed = formSeason === self._season;
         if (
           kind !== "purchase" &&
@@ -1084,18 +1088,27 @@
       years.sort();
       var previousValue = select.value;
       select.innerHTML = "";
-      var autoOpt = document.createElement("option");
-      autoOpt.value = "";
-      autoOpt.textContent = "Auto (deduite de la date)";
-      select.appendChild(autoOpt);
+      var placeholderOpt = document.createElement("option");
+      placeholderOpt.value = "";
+      placeholderOpt.textContent = "Choisir saison";
+      placeholderOpt.disabled = true;
+      select.appendChild(placeholderOpt);
       years.forEach(function (s) {
         var opt = document.createElement("option");
         opt.value = s;
         opt.textContent = s;
         select.appendChild(opt);
       });
+      // "Choisir saison" est un placeholder desactive une fois
+      // quitte : impossible de revenir dessus par erreur. Contrairement
+      // a l'ancienne option "Auto", il ne selectionne jamais une saison
+      // implicitement - la saisie reste bloquee (voir le controle au
+      // clic sur le bouton "Enregistrer") tant que l'utilisateur n'a
+      // pas choisi une vraie saison lui-meme (cas reel : achat le
+      // 16/07 laisse sur "Auto", classe silencieusement dans
+      // l'ancienne saison au lieu de la suivante).
       select.value =
-        previousValue === "" || years.indexOf(previousValue) !== -1 ? previousValue : "";
+        previousValue && years.indexOf(previousValue) !== -1 ? previousValue : "";
     }
 
     _refreshSelectedSeason() {
