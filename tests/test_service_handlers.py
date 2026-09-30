@@ -59,6 +59,7 @@ async def _setup(options=None):
         data={},
         state=CoreState.running,
         services=services,
+        config=SimpleNamespace(config_dir="/tmp"),
         config_entries=SimpleNamespace(
             async_forward_entry_setups=AsyncMock(),
             async_unload_platforms=AsyncMock(return_value=True),
