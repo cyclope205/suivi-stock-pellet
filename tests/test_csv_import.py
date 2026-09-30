@@ -78,3 +78,23 @@ def test_csv_rejects_negative_purchase_price():
 """
     with pytest.raises(CsvImportError):
         parse_csv_history(csv_text)
+
+
+def test_event_log_accepts_bare_type_column():
+    csv_text = """Date;Type;Quantité;Prix total
+2024-10-15;Consommation;2;
+2024-10-20;Achat;10;65,00 €
+"""
+    result = parse_csv_history(csv_text)
+
+    assert result["consumption_bags"] == 2
+    assert result["purchase_bags"] == 10
+    assert result["purchase_count"] == 1
+
+
+def test_event_log_rejects_unrelated_type_column_content():
+    csv_text = """Date;Type;Quantité;Produit
+2024-10-15;Granulés;20;Pellets
+"""
+    with pytest.raises(CsvImportError):
+        parse_csv_history(csv_text)
