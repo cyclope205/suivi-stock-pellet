@@ -74,7 +74,7 @@ async def _setup(options=None):
         add_update_listener=MagicMock(return_value=lambda: None),
         async_on_unload=lambda callback: None,
     )
-
+    patch("custom_components.suivi_stock_pellet.async_dispatcher_send").start()
     journal = PelletJournal(hass, entry.entry_id)
     journal.async_load = AsyncMock()
     journal.async_prune_empty_seasons = AsyncMock()
@@ -84,8 +84,7 @@ async def _setup(options=None):
         patch("custom_components.suivi_stock_pellet.PelletJournal", return_value=journal),
         patch("custom_components.suivi_stock_pellet.async_register_ws_api"),
         patch("custom_components.suivi_stock_pellet._async_register_card", new=AsyncMock()),
-        patch("custom_components.suivi_stock_pellet.async_dispatcher_send"),
-    ):
+):
         await async_setup_entry(hass, entry)
 
     handlers = {
