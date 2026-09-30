@@ -854,3 +854,68 @@ def test_set_stock_initial_uses_previous_stock_cost_when_old_stock_is_zero():
     totals = journal.totals("2026-2027")
     assert totals["stock_initial_bags"] == 5
     assert totals["stock_initial_value_eur"] == 32.5
+
+# --- async_import_entries: report multi-saisons (format "journal d'événements") -----------------
+
+def test_import_entries_multi_season_event_log_carries_over_across_seasons():
+    # Regression test for a real reported bug (Scooby82): importing a
+    # multi-season "journal d'événements" history was wrongly rejected
+    # with "le stock ... passerait sous 0", because each new season
+    # created during the import started at stock_initial=0 instead of
+    # continuing the previous season's ending stock - even though the
+    # previous season was itself part of the very same import.
+    journal = _make_journal()
+    run(journal.async_import_entries([
+        {"season": "2019-2020", "type": "purchase", "qty_bags": 150, "date": "2019-09-10", "price_eur": 900.0},
+        {"season": "2019-2020", "type": "consumption", "qty_bags": 80, "date": "2020-01-15"},
+        {"season": "2020-2021", "type": "consumption", "qty_bags": 25, "date": "2020-09-20"},
+        {"season": "2020-2021", "type": "purchase", "qty_bags": 30, "date": "2020-11-01", "price_eur": 200.0},
+    ]))
+    # 2019-2020 has no previous season at all (absent from history and
+    # never pre-existing): it correctly starts at 0.
+    assert journal.totals("2019-2020")["stock_initial_bags"] == 0.0
+    assert journal.totals("2019-2020")["stock_bags"] == 70
+    # 2020-2021 continues 2019-2020's ending stock of 70 bags - the
+    # real history never drops below 45 bags (70 - 25), matching what
+    # Scooby82 verified by hand.
+    totals = journal.totals("2020-2021")
+    assert totals["stock_initial_bags"] == 70
+    assert totals["stock_bags"] == 75  # 70 - 25 + 30
+
+
+def test_import_entries_carries_over_past_an_empty_hole_season():
+    # Edge case: the imported history has a season with no entries at
+    # all in the middle (e.g. a year with nothing logged). The
+    # carry-over chain must skip straight past it to the last non-empty
+    # season introduced by this same import, rather than stopping at
+    # the immediately preceding (absent) season and restarting at 0.
+    journal = _make_journal()
+    run(journal.async_import_entries([
+        {"season": "2019-2020", "type": "purchase", "qty_bags": 100, "date": "2019-09-10", "price_eur": 600.0},
+        {"season": "2019-2020", "type": "consumption", "qty_bags": 40, "date": "2020-03-01"},
+        # 2020-2021 has nothing at all logged in this import - a hole.
+        {"season": "2021-2022", "type": "consumption", "qty_bags": 50, "date": "2021-10-01"},
+        {"season": "2021-2022", "type": "purchase", "qty_bags": 5, "date": "2021-11-01", "price_eur": 30.0},
+    ]))
+    assert "2020-2021" not in journal.seasons()
+    totals = journal.totals("2021-2022")
+    assert totals["stock_initial_bags"] == 60  # carried from 2019-2020 (100 - 40)
+    assert totals["stock_bags"] == 15  # 60 - 50 + 5
+
+
+def test_import_entries_does_not_inherit_from_a_pre_existing_previous_season():
+    # Non-regression: a season that already existed BEFORE this import
+    # (logged normally, outside of any import) must never have its
+    # stock silently inherited by a season created by a later import,
+    # even when it happens to be the chronologically previous season -
+    # this is the protection the single-season "grille mensuelle"
+    # import format depends on.
+    journal = _make_journal()
+    run(journal.async_add_entry("2018-2019", "purchase", 200, "2018-09-10", price_eur=1000.0))
+    run(journal.async_import_entries([
+        {"season": "2019-2020", "type": "purchase", "qty_bags": 10, "date": "2019-09-10", "price_eur": 60.0},
+        {"season": "2019-2020", "type": "consumption", "qty_bags": 5, "date": "2019-10-01"},
+    ]))
+    totals = journal.totals("2019-2020")
+    assert totals["stock_initial_bags"] == 0.0
+    assert totals["stock_bags"] == 5
