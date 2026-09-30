@@ -84,6 +84,7 @@ async def _setup(options=None):
         patch("custom_components.suivi_stock_pellet.PelletJournal", return_value=journal),
         patch("custom_components.suivi_stock_pellet.async_register_ws_api"),
         patch("custom_components.suivi_stock_pellet._async_register_card", new=AsyncMock()),
+        patch("custom_components.suivi_stock_pellet.async_dispatcher_send"),
     ):
         await async_setup_entry(hass, entry)
 
