@@ -101,13 +101,13 @@ def _find_header(rows):
 def _find_event_log_header(rows):
     for i, row in enumerate(rows):
         keys = {_norm(value): col for col, value in enumerate(row)}
-        if ("date" in keys and any("type" in key and "evenement" in key for key in keys) and any("quantite" in key for key in keys)):
+        if ("date" in keys and any("type" in key for key in keys) and any("quantite" in key for key in keys)):
             return i, keys
     return None
 
 def _parse_event_log(rows, header_idx, keys, season_start_month):
     date_col = keys["date"]
-    type_col = next(col for key, col in keys.items() if "type" in key and "evenement" in key)
+    type_col = next(col for key, col in keys.items() if "type" in key)
     qty_col = next(col for key, col in keys.items() if "quantite" in key)
     price_col = next((col for key, col in keys.items() if "prix total" in key or key in {"prix","cout","coût"}), None)
     entries = []
