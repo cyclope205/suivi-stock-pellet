@@ -329,11 +329,65 @@ class PelletJournal:
         self._season_entries(season).append(stored)
         await self._async_save()
 
+    def _import_carry_over_values(
+        self, season: str, pre_import_seasons: set[str]
+    ) -> tuple[float, float]:
+        """Return the (stock_bags, stock_value_eur) a season newly
+        created during a multi-season historical import should start
+        with.
+
+        The "journal d'événements" CSV import format represents a
+        continuous multi-season history, where one season's stock
+        naturally continues from the previous one - unlike the
+        single-season "grille mensuelle" format, where a season being
+        imported has no sibling seasons in the same import and must
+        never silently inherit a carry-over (see _get_season's
+        carry_over=False branch).
+
+        Walks back through previous_season_key() looking for the
+        closest season that was itself created by this same import and
+        already has entries logged, skipping over any season that this
+        same import left entirely empty in between (a "hole" in the
+        imported history - e.g. a season with zero consumption or
+        purchase logged at all). If the chain instead reaches a season
+        that already existed before this import started, or runs out
+        without finding one, no carry-over applies: the season starts
+        at 0, preserving the existing protection against silently
+        inheriting stock from an unrelated pre-existing season.
+
+        Relies on the caller having already added, in chronological
+        order, every entry of every season that comes before `season`
+        in this same import - true for the event-log CSV format, whose
+        parser sorts all entries by date before returning them.
+        """
+        season_key = season
+        for _ in range(200):  # season keys strictly decrease; generous bound
+            try:
+                season_key = previous_season_key(season_key)
+            except ValueError:
+                return 0.0, 0.0
+            if season_key in pre_import_seasons:
+                # Existed before this import started - never inherit
+                # across that boundary, even as the immediate previous
+                # season (this is the protection the "grille mensuelle"
+                # single-season format relies on).
+                return 0.0, 0.0
+            data = self._data.get("seasons", {}).get(season_key)
+            if data is None or not data.get("entries"):
+                # Not populated by this import (yet): either a complete
+                # hole in the imported history, or a season this import
+                # never touches at all. Either way, keep walking back.
+                continue
+            totals = self.totals(season_key)
+            return totals["stock_bags"], totals["stock_value_eur"]
+        return 0.0, 0.0
+
     async def async_import_entries(self, imported: list[dict[str, Any]]) -> None:
         """Atomically append a validated batch of historical entries."""
         from copy import deepcopy
 
         snapshot = deepcopy(self._data)
+        pre_import_seasons = set(snapshot.get("seasons", {}).keys())
         try:
             for item in imported:
                 season = item["season"]
@@ -343,11 +397,27 @@ class PelletJournal:
                 if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
                     raise ValueError(f"Type de saisie invalide: {entry_type}")
                 date.fromisoformat(entry_date)
+                if season not in self._data["seasons"]:
+                    # First time this import touches this season: decide
+                    # whether it continues a previous season introduced
+                    # by this same import (event-log format) or must
+                    # stand on its own at 0 (grille-mensuelle format, or
+                    # a season unrelated to any prior one in this
+                    # import).
+                    stock_initial, stock_initial_value = (
+                        self._import_carry_over_values(season, pre_import_seasons)
+                    )
+                    self._data["seasons"][season] = {
+                        "entries": [],
+                        "stock_initial": stock_initial,
+                        "stock_initial_value_eur": stock_initial_value,
+                    }
+                entries = self._data["seasons"][season]["entries"]
                 if unit == "kg":
                     qty = float(item["qty_kg"])
                     if qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
-                    self._season_entries(season, carry_over=False).append({
+                    entries.append({
                         "type": entry_type,
                         "unit": "kg",
                         "qty_kg": qty,
@@ -359,7 +429,7 @@ class PelletJournal:
                     qty = float(item["qty_bags"])
                     if qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
-                    self._season_entries(season, carry_over=False).append({
+                    entries.append({
                         "type": entry_type,
                         "unit": "bag",
                         "qty_bags": qty,
