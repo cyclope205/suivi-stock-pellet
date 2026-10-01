@@ -98,3 +98,17 @@ def test_event_log_rejects_unrelated_type_column_content():
 """
     with pytest.raises(CsvImportError):
         parse_csv_history(csv_text)
+
+def test_event_log_accepts_french_text_dates_mixed_with_iso():
+    csv_text = """Date;Type d'événement;Quantité;Prix total
+2024-10-15;Consommation;2;
+18 septembre 2024;Consommation;3;
+20 sept 2024;Achat;10;65,00 €
+5 déc. 2024;Consommation;1;
+"""
+    result = parse_csv_history(csv_text)
+    assert result["consumption_count"] == 3
+    assert result["purchase_count"] == 1
+    assert len(result["entries"]) == 4
+    dates = {e["date"] for e in result["entries"]}
+    assert dates == {"2024-10-15", "2024-09-18", "2024-09-20", "2024-12-05"}
