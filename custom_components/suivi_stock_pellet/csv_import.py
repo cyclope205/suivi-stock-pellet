@@ -9,6 +9,7 @@ from datetime import date, datetime
 from typing import Any
 
 MONTHS={"janvier":1,"jan":1,"fevrier":2,"février":2,"fev":2,"fév":2,"mars":3,"avril":4,"avr":4,"mai":5,"juin":6,"juillet":7,"juil":7,"aout":8,"août":8,"septembre":9,"sept":9,"octobre":10,"oct":10,"novembre":11,"nov":11,"decembre":12,"décembre":12,"dec":12,"déc":12}
+_FRENCH_TEXT_DATE_RE=re.compile(r"^(\d{1,2})\s+([^\d]+?)\.?\s+(\d{4})$")
 
 class CsvImportError(ValueError):
     """User-correctable CSV import error."""
@@ -49,6 +50,13 @@ def _date(value: Any) -> str:
     for fmt in ("%d/%m/%Y","%d-%m-%Y","%Y-%m-%d","%d.%m.%Y"):
         try: return datetime.strptime(text,fmt).date().isoformat()
         except ValueError: pass
+    m=_FRENCH_TEXT_DATE_RE.match(text)
+    if m:
+        day,month_text,year=m.groups()
+        month=_month_number(month_text)
+        if month is not None:
+            try: return date(int(year),month,int(day)).isoformat()
+            except ValueError as err: raise CsvImportError(f"Date invalide : {value!r}") from err
     raise CsvImportError(f"Date invalide : {value!r}")
 
 def _season(value: str) -> str:
