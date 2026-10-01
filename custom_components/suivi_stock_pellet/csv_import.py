@@ -114,7 +114,7 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
     for row in rows[header_idx + 1:]:
         if len(row) <= max(date_col, type_col, qty_col): continue
         raw_date = str(row[date_col] or "").strip()
-        if not raw_date or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date): continue
+        if not raw_date or not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date) or _FRENCH_TEXT_DATE_RE.match(raw_date)): continue
         event_type = _norm(row[type_col])
         if "consommation" in event_type: kind = "consumption"
         elif "achat" in event_type: kind = "purchase"
