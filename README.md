@@ -87,6 +87,12 @@ Calendrier des ajouts:
 
 <img width="600" alt="IMG_7477" src="https://github.com/user-attachments/assets/747321f7-a65f-464c-9ecb-fd71fb6361a9" />
 
+---
+
+Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance/entretien et nouveaux graphiques :
+
+<img width="600" alt="Vue d'ensemble v1.10.0" src="docs/screenshots/suivi-pellet-overview.png" />
+
 
 
 ## Fonctionnalités
@@ -116,6 +122,9 @@ Calendrier des ajouts:
 - Stock initial d'une saison automatiquement repris du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service `set_stock_initial` (comptage physique, saison déjà entamée avant l'ajout de cette fonctionnalité...).
 - Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat" et bouton rapide "+1 sac aujourd'hui" (visible uniquement sur la saison en cours), annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
 - Section calendrier en bas de la carte (navigable mois par mois), activable via l'option show_calendar. Chaque jour affiche les achats et consommations enregistrés ce jour-la, avec une couleur differente selon le type. Le calendrier se met a jour immédiatement apres un ajout, une suppression ou une modification de date d'une saisie, sans attendre un rafraichissement differe - y compris pour le bouton rapide "+1 sac aujourd'hui".
+- Suppression d'une saison entière via le bouton poubelle à côté du sélecteur de saison dans l'en-tête de la carte, avec confirmation. Un avertissement s'affiche si une saison suivante existe déjà, car son report de stock (stock initial repris de la saison supprimée) n'est pas recalculé automatiquement.
+- Suivi des frais de maintenance et d'entretien du poêle, indépendamment du stock de granulés : deux boutons dédiés ("Maintenance" / "Entretien") ouvrent chacun un formulaire (coût, date, note libre) utilisable même sur une saison passée via le champ saison. Ces saisies apparaissent dans l'historique avec leur note, dans le calendrier avec une couleur dédiée par type, et alimentent deux tuiles ("Coût maintenance", "Coût entretien") ainsi que deux courbes "par saison" masquables.
+- La tuile "Dépensé" a été renommée "Dépense pellet" pour la distinguer des nouveaux coûts de maintenance et d'entretien, qui ne sont pas comptés dans le prix moyen du sac.
 
 ## Installation
 
@@ -163,6 +172,8 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_actions` | Boutons et formulaires de saisie |
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
 | `show_price_chart` | Graphique "Prix moyen du sac par saison" |
+| `show_maintenance_chart` | Graphique "Coût maintenance par saison" |
+| `show_entretien_chart` | Graphique "Coût entretien par saison" |
 | `show_history` | Liste des dernières saisies |
 | `show_comparison` | Comparaison avec la saison précédente à date égale |
 
@@ -176,6 +187,9 @@ Ou utilise directement les services :
 - `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier)
 - `suivi_stock_pellet.delete_entry` (`season`, `index`)
 - `suivi_stock_pellet.set_stock_initial` (`season`, `stock_initial_bags`) — définit ou corrige le stock de départ d'une saison
+- `suivi_stock_pellet.delete_season` (`season`) — supprime entièrement une saison (toutes ses saisies)
+- `suivi_stock_pellet.log_maintenance` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût de maintenance
+- `suivi_stock_pellet.log_entretien` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût d'entretien
 
 ## Entités créées
 
