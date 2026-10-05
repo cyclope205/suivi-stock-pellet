@@ -216,6 +216,7 @@
     show_entretien_chart: true,
     show_achat_chart: true,
     show_cost_total_chart: true,
+    show_csv_import: true,
   };
 
   var TOGGLE_FIELDS = [
@@ -230,7 +231,8 @@
     { key: "show_maintenance_chart", label: "Graphique coût maintenance par saison" },
     { key: "show_entretien_chart", label: "Graphique coût entretien par saison" },
     { key: "show_achat_chart", label: "Graphique coût achat par saison" },
-    { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" }
+    { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" },
+    { key: "show_csv_import", label: "Bouton Importer CSV achats/conso" }
   ];
 
   function findEntity(hass, key) {
@@ -664,6 +666,7 @@
         els.maintenanceSeasonSelect = formMaintenance.seasonSelect;
         els.entretienSeasonSelect = formEntretien.seasonSelect;
 
+        if (cfg.show_csv_import) {
         // Historical CSV import: visible only to admins, with backend admin enforcement.
         var importBtn = document.createElement("button");
         importBtn.type = "button";
@@ -729,6 +732,8 @@
           };
           reader.readAsArrayBuffer(file);
         });
+
+        }
 
         var actionPairs = [
           { btn: btnConso, form: formConso },
