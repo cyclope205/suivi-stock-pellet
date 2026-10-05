@@ -968,3 +968,164 @@ def test_import_entries_does_not_overwrite_a_manually_corrected_successor_season
 
     totals = journal.totals("2026-2027")
     assert totals["stock_initial_bags"] == 20
+
+# --- maintenance / entretien entries --------------------------------------
+
+def test_add_maintenance_entry_requires_nonnegative_price():
+    journal = _make_journal()
+    with pytest.raises(ValueError):
+        run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-10-01", price_eur=-5.0))
+
+
+def test_add_maintenance_entry_requires_price():
+    journal = _make_journal()
+    with pytest.raises(ValueError):
+        run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-10-01"))
+
+
+def test_add_maintenance_entry_stores_cost_and_note():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "maintenance", None, "2025-10-01", price_eur=80.0, note="Ramonage"
+    ))
+    entries = journal.entries("2025-2026")
+    assert len(entries) == 1
+    assert entries[0]["type"] == "maintenance"
+    assert entries[0]["price_eur"] == 80.0
+    assert entries[0]["note"] == "Ramonage"
+    assert "qty_bags" not in entries[0]
+
+
+def test_add_entretien_entry_stores_cost_and_note():
+    journal = _make_journal()
+    run(journal.async_add_entry(
+        "2025-2026", "entretien", None, "2025-11-01", price_eur=45.5, note="Nettoyage filtre"
+    ))
+    entries = journal.entries("2025-2026")
+    assert entries[0]["type"] == "entretien"
+    assert entries[0]["price_eur"] == 45.5
+    assert entries[0]["note"] == "Nettoyage filtre"
+
+
+def test_totals_sums_multiple_maintenance_entries():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-10-01", price_eur=80.0))
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2026-02-01", price_eur=20.0))
+    totals = journal.totals("2025-2026")
+    assert totals["maintenance_eur"] == 100.0
+
+
+def test_totals_sums_multiple_entretien_entries():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "entretien", None, "2025-10-01", price_eur=45.5))
+    run(journal.async_add_entry("2025-2026", "entretien", None, "2026-03-01", price_eur=30.0))
+    totals = journal.totals("2025-2026")
+    assert totals["entretien_eur"] == 75.5
+
+
+def test_totals_maintenance_and_entretien_default_to_zero():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    totals = journal.totals("2025-2026")
+    assert totals["maintenance_eur"] == 0
+    assert totals["entretien_eur"] == 0
+
+
+def test_maintenance_entries_do_not_affect_stock_or_spent():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-10-01", price_eur=80.0))
+    totals = journal.totals("2025-2026")
+    assert totals["stock_bags"] == 10
+    assert totals["spent_eur"] == 65.0
+    assert totals["purchased_bags"] == 10
+    assert totals["consumed_bags"] == 0
+
+
+def test_maintenance_entry_can_be_added_to_a_past_season():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    run(journal.async_add_entry("2026-2027", "purchase", 5, "2026-09-05", price_eur=35.0))
+    # Current season is 2026-2027, log a maintenance entry retroactively
+    # into the earlier season 2025-2026.
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2026-01-15", price_eur=60.0))
+    totals = journal.totals("2025-2026")
+    assert totals["maintenance_eur"] == 60.0
+    # Does not leak into the other season's totals.
+    assert journal.totals("2026-2027")["maintenance_eur"] == 0
+
+
+# --- async_edit_entry for maintenance/entretien ---------------------------
+
+def test_edit_maintenance_entry_updates_price_date_and_note():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-10-01", price_eur=80.0, note="Ramonage"))
+    edited = run(journal.async_edit_entry(
+        "2025-2026", 0, price_eur=90.0, entry_date="2025-10-05", note="Ramonage + revision"
+    ))
+    assert edited["price_eur"] == 90.0
+    assert edited["date"] == "2025-10-05"
+    assert edited["note"] == "Ramonage + revision"
+
+
+def test_edit_entretien_entry_can_move_to_another_season():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "entretien", None, "2025-10-01", price_eur=45.0))
+    run(journal.async_edit_entry(
+        "2025-2026", 0, entry_date="2026-10-05", new_season="2026-2027"
+    ))
+    assert journal.entries("2025-2026") == []
+    moved = journal.entries("2026-2027")
+    assert len(moved) == 1
+    assert moved[0]["date"] == "2026-10-05"
+    assert moved[0]["type"] == "entretien"
+
+
+def test_edit_maintenance_entry_without_price_keeps_old_price():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-10-01", price_eur=80.0))
+    edited = run(journal.async_edit_entry("2025-2026", 0, note="Note ajoutee"))
+    assert edited["price_eur"] == 80.0
+    assert edited["note"] == "Note ajoutee"
+
+
+def test_edit_maintenance_entry_is_not_subject_to_stock_safety_check():
+    # Unlike purchase/consumption edits, maintenance/entretien never
+    # touch stock, so no ValueError should ever come from the stock
+    # safety assertion - even in a season with inconsistent stock.
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05"))
+    run(journal.async_add_entry("2025-2026", "consumption", 20, "2025-10-01"))
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-11-01", price_eur=50.0))
+    edited = run(journal.async_edit_entry("2025-2026", 2, price_eur=55.0))
+    assert edited["price_eur"] == 55.0
+
+
+# --- async_delete_season ----------------------------------------------------
+
+def test_delete_season_removes_season_and_its_entries():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    assert "2025-2026" in journal.seasons()
+    result = run(journal.async_delete_season("2025-2026"))
+    assert result is True
+    assert "2025-2026" not in journal.seasons()
+    assert journal.entries("2025-2026") == []
+
+
+def test_delete_season_returns_false_when_season_does_not_exist():
+    journal = _make_journal()
+    result = run(journal.async_delete_season("1999-2000"))
+    assert result is False
+
+
+def test_delete_season_does_not_retroactively_fix_successor_stock_initial():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    # Touch 2026-2027 so it carries over the 10 bags now.
+    run(journal.async_add_entry("2026-2027", "purchase", 1, "2026-09-10", price_eur=6.5))
+    assert journal.totals("2026-2027")["stock_initial_bags"] == 10
+    run(journal.async_delete_season("2025-2026"))
+    # As documented: the successor keeps its already-frozen carried
+    # stock_initial, since this method never revisits it.
+    assert journal.totals("2026-2027")["stock_initial_bags"] == 10
