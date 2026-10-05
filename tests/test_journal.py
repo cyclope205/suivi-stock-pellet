@@ -919,3 +919,52 @@ def test_import_entries_does_not_inherit_from_a_pre_existing_previous_season():
     totals = journal.totals("2019-2020")
     assert totals["stock_initial_bags"] == 0.0
     assert totals["stock_bags"] == 5
+
+
+# --- async_import_entries: report retroactif vers une saison existante -----------------
+
+
+def test_import_entries_backfills_a_successor_season_created_before_the_import():
+    # Regression test for a real reported bug: logging a purchase in the
+    # current season before importing its two previous seasons left the
+    # current season's average price stuck ignoring the newly imported
+    # carry-over stock - importing the same two seasons BEFORE logging
+    # the purchase gave the correct, carried-over price instead. A
+    # season's stock_initial is only computed once, when the season is
+    # first touched (see _get_season) - if its predecessor doesn't exist
+    # yet at that moment, nothing used to go back and fix it once a
+    # later import backfilled the missing history.
+    journal = _make_journal()
+    run(journal.async_add_entry("2026-2027", "purchase", 50, "2026-10-01", price_eur=300.0))
+    totals_before = journal.totals("2026-2027")
+    assert totals_before["stock_initial_bags"] == 0.0
+    assert totals_before["avg_price_per_bag"] == 6.0
+
+    run(journal.async_import_entries([
+        {"season": "2024-2025", "type": "purchase", "qty_bags": 100, "date": "2024-09-10", "price_eur": 600.0},
+        {"season": "2024-2025", "type": "consumption", "qty_bags": 40, "date": "2025-01-15"},
+        {"season": "2025-2026", "type": "purchase", "qty_bags": 40, "date": "2025-09-10", "price_eur": 300.0},
+    ]))
+
+    totals_after = journal.totals("2026-2027")
+    assert totals_after["stock_initial_bags"] == 100
+    assert totals_after["stock_initial_value_eur"] == 660.0
+    assert totals_after["avg_price_per_bag"] == 6.4
+    assert totals_after["stock_bags"] == 150
+
+
+def test_import_entries_does_not_overwrite_a_manually_corrected_successor_season():
+    # The forward-propagation fix above must never override a stock the
+    # user explicitly set via async_set_stock_initial - that's a
+    # deliberate correction, not the untouched default it's safe to
+    # recompute.
+    journal = _make_journal()
+    run(journal.async_add_entry("2026-2027", "purchase", 50, "2026-10-01", price_eur=300.0))
+    run(journal.async_set_stock_initial("2026-2027", 20))
+
+    run(journal.async_import_entries([
+        {"season": "2025-2026", "type": "purchase", "qty_bags": 40, "date": "2025-09-10", "price_eur": 300.0},
+    ]))
+
+    totals = journal.totals("2026-2027")
+    assert totals["stock_initial_bags"] == 20
