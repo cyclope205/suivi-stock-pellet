@@ -211,10 +211,8 @@
     show_calendar: true,
     show_maintenance_chart: true,
     show_entretien_chart: true,
+    show_achat_chart: true,
     show_cost_total_chart: true,
-    show_cost_total_achat: true,
-    show_cost_total_maintenance: true,
-    show_cost_total_entretien: true,
   };
 
   var TOGGLE_FIELDS = [
@@ -228,10 +226,8 @@
     { key: "show_calendar", label: "Calendrier des ajouts avec navigation mensuelle" },
     { key: "show_maintenance_chart", label: "Graphique coût maintenance par saison" },
     { key: "show_entretien_chart", label: "Graphique coût entretien par saison" },
-    { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + entretien + maintenance)" },
-    { key: "show_cost_total_achat", label: "Courbe Achat dans le graphique coût total" },
-    { key: "show_cost_total_maintenance", label: "Courbe Maintenance dans le graphique coût total" },
-    { key: "show_cost_total_entretien", label: "Courbe Entretien dans le graphique coût total" }
+    { key: "show_achat_chart", label: "Graphique coût achat par saison" },
+    { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" }
   ];
 
   function findEntity(hass, key) {
@@ -962,6 +958,21 @@
         });
       }
 
+      if (cfg.show_achat_chart) {
+        var achatSection = document.createElement("div");
+        achatSection.className = "chart-section";
+        var achatTitle = document.createElement("div");
+        achatTitle.className = "chart-title";
+        achatTitle.appendChild(icon("mdi:cart-plus"));
+        achatTitle.appendChild(document.createTextNode("Coût achat par saison"));
+        var achatChart = document.createElement("div");
+        achatChart.className = "price-chart";
+        achatSection.appendChild(achatTitle);
+        achatSection.appendChild(achatChart);
+        card.appendChild(achatSection);
+        els.achatChart = achatChart;
+      }
+
       if (cfg.show_cost_total_chart) {
         var costTotalSection = document.createElement("div");
         costTotalSection.className = "chart-section";
@@ -969,29 +980,9 @@
         costTotalTitle.className = "chart-title";
         costTotalTitle.appendChild(icon("mdi:cash-check"));
         costTotalTitle.appendChild(document.createTextNode("Coût total par saison"));
-        costTotalSection.appendChild(costTotalTitle);
-
-        var costTotalLegend = document.createElement("div");
-        costTotalLegend.className = "calendar-legend";
-        [
-          { label: "Achat", color: COLORS.amber, show: cfg.show_cost_total_achat },
-          { label: "Maintenance", color: COLORS.teal, show: cfg.show_cost_total_maintenance },
-          { label: "Entretien", color: COLORS.pink, show: cfg.show_cost_total_entretien }
-        ].forEach(function (s) {
-          if (!s.show) return;
-          var item = document.createElement("span");
-          item.className = "calendar-legend-item";
-          var dot = document.createElement("span");
-          dot.className = "calendar-dot";
-          dot.style.background = "rgb(" + s.color + ")";
-          item.appendChild(dot);
-          item.appendChild(document.createTextNode(s.label));
-          costTotalLegend.appendChild(item);
-        });
-        costTotalSection.appendChild(costTotalLegend);
-
         var costTotalChart = document.createElement("div");
         costTotalChart.className = "price-chart";
+        costTotalSection.appendChild(costTotalTitle);
         costTotalSection.appendChild(costTotalChart);
         card.appendChild(costTotalSection);
         els.costTotalChart = costTotalChart;
@@ -1629,7 +1620,7 @@
       }
       var now = Date.now();
       if (!this._seasonsDirty && this._seasonsFetchedAt && now - this._seasonsFetchedAt < 15000) return;
-      if (!this._hass || !this._hass.connection || (!this._els.priceChart && !this._els.maintenanceChart && !this._els.entretienChart && !this._els.costTotalChart)) return;
+      if (!this._hass || !this._hass.connection || (!this._els.priceChart && !this._els.maintenanceChart && !this._els.entretienChart && !this._els.costTotalChart && !this._els.achatChart)) return;
       this._seasonsDirty = false;
       this._seasonsPending = true;
       this._hass.connection
@@ -1648,8 +1639,16 @@
           if (self._els.entretienChart) {
             self._renderCostChart(result.seasons || [], "entretien_eur", COLORS.pink, self._els.entretienChart, "Coût entretien (€)");
           }
+          if (self._els.achatChart) {
+            self._renderCostChart(result.seasons || [], "spent_eur", COLORS.amber, self._els.achatChart, "Coût achat (€)");
+          }
           if (self._els.costTotalChart) {
-            self._renderMultiCostChart(result.seasons || [], self._els.costTotalChart);
+            var seasonsWithTotal = (result.seasons || []).map(function (s) {
+              var copy = Object.assign({}, s);
+              copy.total_eur = (Number(s.spent_eur) || 0) + (Number(s.maintenance_eur) || 0) + (Number(s.entretien_eur) || 0);
+              return copy;
+            });
+            self._renderCostChart(seasonsWithTotal, "total_eur", COLORS.green, self._els.costTotalChart, "Coût total (€)");
           }
           if (self._seasonsDirty) {
             self._seasonsDirty = false;
@@ -2488,111 +2487,6 @@
       container.appendChild(svg);
     }
 
-    _renderMultiCostChart(seasons, container) {
-      // Courbe combinee "cout total par saison" : jusqu'a 3 series
-      // superposees (achat / maintenance / entretien), calquee sur
-      // _renderCostChart mais avec un axe Y partage entre les series
-      // affichees, et sans etiquette numerique par point (illisible a
-      // 3 courbes) - une legende couleur remplace les etiquettes.
-      var self = this;
-      if (!container) return;
-      container.innerHTML = "";
-
-      var cfg = this._config || {};
-      var series = [
-        { field: "spent_eur", color: COLORS.amber, enabled: cfg.show_cost_total_achat !== false },
-        { field: "maintenance_eur", color: COLORS.teal, enabled: cfg.show_cost_total_maintenance !== false },
-        { field: "entretien_eur", color: COLORS.pink, enabled: cfg.show_cost_total_entretien !== false }
-      ].filter(function (s) { return s.enabled; });
-
-      var seasonList = (seasons || []).slice();
-
-      if (seasonList.length === 0 || series.length === 0) {
-        var empty = document.createElement("div");
-        empty.className = "price-chart-empty";
-        empty.textContent = series.length === 0
-          ? "Toutes les courbes sont masquées dans la configuration de la carte."
-          : "Pas encore de données pour cette saison.";
-        container.appendChild(empty);
-        return;
-      }
-
-      var width = 300;
-      var height = 90;
-      var padX = 24;
-      var padTop = 22;
-      var padBottom = 20;
-      var plotHeight = height - padTop - padBottom;
-
-      var allValues = [];
-      series.forEach(function (s) {
-        seasonList.forEach(function (season) {
-          allValues.push(Number(season[s.field]) || 0);
-        });
-      });
-      var minV = Math.min.apply(null, allValues.concat([0]));
-      var maxV = Math.max.apply(null, allValues.concat([0.0001]));
-      if (minV === maxV) {
-        minV = minV - 1;
-        maxV = maxV + 1;
-      }
-
-      var stepX = seasonList.length > 1 ? (width - padX * 2) / (seasonList.length - 1) : 0;
-      function xFor(idx) { return padX + idx * stepX; }
-      function yFor(v) { return padTop + (1 - (v - minV) / (maxV - minV)) * plotHeight; }
-
-      var svgNS = "http://www.w3.org/2000/svg";
-      var svg = document.createElementNS(svgNS, "svg");
-      svg.setAttribute("viewBox", "0 0 " + width + " " + (height + padBottom));
-      svg.setAttribute("preserveAspectRatio", "none");
-
-      series.forEach(function (s) {
-        var points = seasonList.map(function (season) {
-          return { season: season.season, current: season.current, value: Number(season[s.field]) || 0 };
-        });
-
-        if (points.length > 1) {
-          var pathD = points.map(function (p, idx) {
-            return (idx === 0 ? "M" : "L") + xFor(idx) + " " + yFor(p.value);
-          }).join(" ");
-          var path = document.createElementNS(svgNS, "path");
-          path.setAttribute("d", pathD);
-          path.setAttribute("fill", "none");
-          path.setAttribute("stroke", "rgb(" + s.color + ")");
-          path.setAttribute("stroke-width", "2.5");
-          path.setAttribute("stroke-linecap", "round");
-          path.setAttribute("stroke-linejoin", "round");
-          svg.appendChild(path);
-        }
-
-        points.forEach(function (p, idx) {
-          var cx = points.length > 1 ? xFor(idx) : width / 2;
-          var cy = yFor(p.value);
-          var dot = document.createElementNS(svgNS, "circle");
-          dot.setAttribute("cx", cx);
-          dot.setAttribute("cy", cy);
-          dot.setAttribute("r", p.current ? "4" : "3");
-          dot.setAttribute("fill", "rgb(" + s.color + ")");
-          svg.appendChild(dot);
-        });
-      });
-
-      seasonList.forEach(function (season, idx) {
-        var cx = seasonList.length > 1 ? xFor(idx) : width / 2;
-        var seasonLabel = document.createElementNS(svgNS, "text");
-        seasonLabel.setAttribute("x", cx);
-        seasonLabel.setAttribute("y", height + padBottom - 4);
-        seasonLabel.setAttribute("text-anchor", "middle");
-        seasonLabel.setAttribute("font-size", "8");
-        seasonLabel.setAttribute("fill", season.current ? "rgb(" + COLORS.amber + ")" : "currentColor");
-        seasonLabel.setAttribute("opacity", season.current ? "1" : "0.6");
-        seasonLabel.setAttribute("font-weight", season.current ? "700" : "400");
-        seasonLabel.textContent = season.season;
-        svg.appendChild(seasonLabel);
-      });
-
-      container.appendChild(svg);
-    }
   }
 
   class SuiviStockPelletCardEditor extends HTMLElement {
