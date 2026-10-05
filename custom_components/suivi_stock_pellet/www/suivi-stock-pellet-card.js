@@ -147,7 +147,19 @@
     ".calendar-legend-item { display: inline-flex; align-items: center; gap: 5px; }",
     ".calendar-dot { width: 7px; height: 7px; border-radius: 50%; }",
     ".calendar-dot.purchase { background: rgb(102, 187, 106); }",
-    ".calendar-dot.consumption { background: rgb(239, 83, 80); }"
+    ".calendar-dot.consumption { background: rgb(239, 83, 80); }",
+    ".calendar-cell.maintenance { background: rgba(38, 166, 154, 0.85); color: #fff; }",
+    ".calendar-cell.entretien { background: rgba(236, 64, 122, 0.85); color: #fff; }",
+    ".calendar-dot.maintenance { background: rgb(38, 166, 154); }",
+    ".calendar-dot.entretien { background: rgb(236, 64, 122); }",
+    ".actions button.type-maintenance:not(.secondary) { background: linear-gradient(135deg, #4db6ac, rgb(38, 166, 154)); color: #fff; }",
+    ".actions button.type-maintenance.secondary { background: rgba(38, 166, 154, 0.12); color: rgb(38, 166, 154); border: 1px solid rgba(38, 166, 154, 0.35); }",
+    ".actions button.type-entretien:not(.secondary) { background: linear-gradient(135deg, #f06292, rgb(236, 64, 122)); color: #fff; }",
+    ".actions button.type-entretien.secondary { background: rgba(236, 64, 122, 0.12); color: rgb(236, 64, 122); border: 1px solid rgba(236, 64, 122, 0.35); }",
+    ".season-delete-btn { background: none; border: none; color: inherit; opacity: 0.55; cursor: pointer; padding: 4px; display: inline-flex; align-items: center; margin-left: 2px; }",
+    ".season-delete-btn:hover { opacity: 1; color: rgb(239, 83, 80); }",
+    ".season-delete-btn ha-icon { --mdc-icon-size: 16px; }",
+    ".header-season-wrap { display: flex; align-items: center; gap: 2px; }"
   ].join("\n");
 
   var EDITOR_STYLE = [
@@ -183,7 +195,9 @@
     red: "239, 83, 80",
     blue: "66, 165, 245",
     green: "102, 187, 106",
-    purple: "171, 71, 188"
+    purple: "171, 71, 188",
+    teal: "38, 166, 154",
+    pink: "236, 64, 122"
   };
 
   var DEFAULT_CONFIG = {
@@ -195,6 +209,8 @@
     show_price_chart: true,
     show_history: true,
     show_calendar: true,
+    show_maintenance_chart: true,
+    show_entretien_chart: true,
   };
 
   var TOGGLE_FIELDS = [
@@ -205,7 +221,9 @@
     { key: "show_monthly_chart", label: "Graphique évolution de la consommation" },
     { key: "show_price_chart", label: "Graphique prix moyen par unité par saison" },
     { key: "show_history", label: "Historique complet des saisies" },
-    { key: "show_calendar", label: "Calendrier des ajouts avec navigation mensuelle" }
+    { key: "show_calendar", label: "Calendrier des ajouts avec navigation mensuelle" },
+    { key: "show_maintenance_chart", label: "Graphique coût maintenance par saison" },
+    { key: "show_entretien_chart", label: "Graphique coût entretien par saison" }
   ];
 
   function findEntity(hass, key) {
@@ -398,8 +416,48 @@
         self._comparisonFetchedAt = 0;
         self._refreshComparison();
       });
+      var seasonWrapHeader = document.createElement("div");
+      seasonWrapHeader.className = "header-season-wrap";
+      var seasonDeleteBtn = document.createElement("button");
+      seasonDeleteBtn.type = "button";
+      seasonDeleteBtn.className = "season-delete-btn";
+      seasonDeleteBtn.title = "Supprimer la saison affichée";
+      seasonDeleteBtn.appendChild(icon("mdi:trash-can-outline"));
+      seasonDeleteBtn.addEventListener("click", function () {
+        if (!self._season || !self._hass) return;
+        var known = (self._knownSeasons || []).slice().sort();
+        var idx = known.indexOf(self._season);
+        var hasSuccessor = idx !== -1 && idx < known.length - 1;
+        var msg = "Supprimer définitivement la saison " + self._season + " et toutes ses saisies ? Cette action est irréversible.";
+        if (hasSuccessor) {
+          msg += "\n\nAttention : une saison suivante existe déjà et a peut-être hérité du stock de report de celle-ci. Sa supprimer ne recalculera pas automatiquement ce report.";
+        }
+        if (!window.confirm(msg)) return;
+        seasonDeleteBtn.disabled = true;
+        self._hass.callService("suivi_stock_pellet", "delete_season", { season: self._season })
+          .then(function () {
+            self._season = self._currentSeason;
+            self._seasonDataFetchedFor = null;
+            self._seasonDataFetchedAt = 0;
+            self._seasonDataDirty = true;
+            self._seasonsFetchedAt = 0;
+            self._seasonsDirty = true;
+            self._refreshSelectedSeason();
+            if (self._refreshSeasonsSummary) self._refreshSeasonsSummary();
+            self._comparisonFetchedAt = 0;
+            self._refreshComparison();
+          })
+          .catch(function (err) {
+            alert("Impossible de supprimer cette saison : " + ((err && err.message) || String(err)));
+          })
+          .finally(function () {
+            seasonDeleteBtn.disabled = false;
+          });
+      });
+      seasonWrapHeader.appendChild(season);
+      seasonWrapHeader.appendChild(seasonDeleteBtn);
       header.appendChild(titleWrap);
-      header.appendChild(season);
+      header.appendChild(seasonWrapHeader);
       card.appendChild(header);
 
       var seasonNote = document.createElement("div");
@@ -485,7 +543,7 @@
         stats.className = "stats";
         els.statConsomme = addStat(stats, "Consommé", "mdi:fire", COLORS.red);
         els.statEnergie = addStat(stats, "Énergie", "mdi:lightning-bolt", COLORS.purple);
-        els.statDepense = addStat(stats, "Dépensé", "mdi:currency-eur", COLORS.green);
+        els.statDepense = addStat(stats, "Dépense pellet", "mdi:currency-eur", COLORS.green);
         els.statJours = addStat(stats, "Jours chauffés", "mdi:calendar-range", COLORS.blue);
         card.appendChild(stats);
       }
@@ -497,6 +555,8 @@
         els.statCoutMois = addStat(costStats, "Coût / mois", "mdi:calendar-month", COLORS.blue);
         els.statCoutSac = addStat(costStats, self._entryUnit === "kg" ? "Coût moyen / kg" : "Coût moyen / sac", self._entryUnit === "kg" ? "mdi:weight-kilogram" : "mdi:sack", COLORS.amber);
         els.statCoutAnnee = addStat(costStats, "Coût consommé", "mdi:cash-multiple", COLORS.purple);
+        els.statCoutMaintenance = addStat(costStats, "Coût maintenance", "mdi:wrench", COLORS.teal);
+        els.statCoutEntretien = addStat(costStats, "Coût entretien", "mdi:broom", COLORS.pink);
         card.appendChild(costStats);
       }
 
@@ -559,19 +619,40 @@
               });
           });
         }
+        var btnMaintenance = document.createElement("button");
+        btnMaintenance.type = "button";
+        btnMaintenance.className = "secondary type-maintenance";
+        btnMaintenance.appendChild(icon("mdi:wrench"));
+        btnMaintenance.appendChild(document.createTextNode("Maintenance"));
+        var btnEntretien = document.createElement("button");
+        btnEntretien.type = "button";
+        btnEntretien.className = "secondary type-entretien";
+        btnEntretien.appendChild(icon("mdi:broom"));
+        btnEntretien.appendChild(document.createTextNode("Entretien"));
+
         actions.appendChild(btnConso);
         els.btnConso = btnConso;
         actions.appendChild(btnAchat);
+        actions.appendChild(btnMaintenance);
+        els.btnMaintenance = btnMaintenance;
+        actions.appendChild(btnEntretien);
+        els.btnEntretien = btnEntretien;
         if (btnQuick) actions.appendChild(btnQuick);
         els.btnQuick = btnQuick;
         actionsWrap.appendChild(actions);
 
         var formConso = this._buildForm("consumption");
         var formAchat = this._buildForm("purchase");
+        var formMaintenance = this._buildCostForm("maintenance");
+        var formEntretien = this._buildCostForm("entretien");
         actionsWrap.appendChild(formConso.el);
         actionsWrap.appendChild(formAchat.el);
+        actionsWrap.appendChild(formMaintenance.el);
+        actionsWrap.appendChild(formEntretien.el);
         els.consoSeasonSelect = formConso.seasonSelect;
         els.achatSeasonSelect = formAchat.seasonSelect;
+        els.maintenanceSeasonSelect = formMaintenance.seasonSelect;
+        els.entretienSeasonSelect = formEntretien.seasonSelect;
 
         // Historical CSV import: visible only to admins, with backend admin enforcement.
         var importBtn = document.createElement("button");
@@ -638,26 +719,30 @@
           reader.readAsArrayBuffer(file);
         });
 
+        var actionPairs = [
+          { btn: btnConso, form: formConso },
+          { btn: btnAchat, form: formAchat },
+          { btn: btnMaintenance, form: formMaintenance },
+          { btn: btnEntretien, form: formEntretien }
+        ];
         function updateActionButtons() {
-          var consoOpen = formConso.el.classList.contains("visible");
-          var achatOpen = formAchat.el.classList.contains("visible");
-          if (achatOpen) {
-            btnAchat.classList.remove("secondary");
-            btnConso.classList.add("secondary");
-          } else {
-            btnConso.classList.remove("secondary");
-            btnAchat.classList.add("secondary");
-          }
+          actionPairs.forEach(function (pair) {
+            if (pair.form.el.classList.contains("visible")) {
+              pair.btn.classList.remove("secondary");
+            } else {
+              pair.btn.classList.add("secondary");
+            }
+          });
         }
-        btnConso.addEventListener("click", function () {
-          formAchat.el.classList.remove("visible");
-          formConso.el.classList.toggle("visible");
-          updateActionButtons();
-        });
-        btnAchat.addEventListener("click", function () {
-          formConso.el.classList.remove("visible");
-          formAchat.el.classList.toggle("visible");
-          updateActionButtons();
+        actionPairs.forEach(function (pair) {
+          pair.btn.addEventListener("click", function () {
+            var wasVisible = pair.form.el.classList.contains("visible");
+            actionPairs.forEach(function (p) {
+              if (p !== pair) p.form.el.classList.remove("visible");
+            });
+            pair.form.el.classList.toggle("visible", !wasVisible);
+            updateActionButtons();
+          });
         });
 
       }
@@ -736,6 +821,36 @@
         els.priceTitle = priceTitle;
       }
 
+      if (cfg.show_maintenance_chart) {
+        var maintenanceSection = document.createElement("div");
+        maintenanceSection.className = "chart-section";
+        var maintenanceTitle = document.createElement("div");
+        maintenanceTitle.className = "chart-title";
+        maintenanceTitle.appendChild(icon("mdi:wrench"));
+        maintenanceTitle.appendChild(document.createTextNode("Coût maintenance par saison"));
+        var maintenanceChart = document.createElement("div");
+        maintenanceChart.className = "price-chart";
+        maintenanceSection.appendChild(maintenanceTitle);
+        maintenanceSection.appendChild(maintenanceChart);
+        card.appendChild(maintenanceSection);
+        els.maintenanceChart = maintenanceChart;
+      }
+
+      if (cfg.show_entretien_chart) {
+        var entretienSection = document.createElement("div");
+        entretienSection.className = "chart-section";
+        var entretienTitle = document.createElement("div");
+        entretienTitle.className = "chart-title";
+        entretienTitle.appendChild(icon("mdi:broom"));
+        entretienTitle.appendChild(document.createTextNode("Coût entretien par saison"));
+        var entretienChart = document.createElement("div");
+        entretienChart.className = "price-chart";
+        entretienSection.appendChild(entretienTitle);
+        entretienSection.appendChild(entretienChart);
+        card.appendChild(entretienSection);
+        els.entretienChart = entretienChart;
+      }
+
       if (cfg.show_history) {
         var history = document.createElement("div");
         history.className = "history";
@@ -794,8 +909,23 @@
         calDotConso.className = "calendar-dot consumption";
         calLegendConso.appendChild(calDotConso);
         calLegendConso.appendChild(document.createTextNode("Consommation"));
+        var calLegendMaintenance = document.createElement("span");
+        calLegendMaintenance.className = "calendar-legend-item";
+        var calDotMaintenance = document.createElement("span");
+        calDotMaintenance.className = "calendar-dot maintenance";
+        calLegendMaintenance.appendChild(calDotMaintenance);
+        calLegendMaintenance.appendChild(document.createTextNode("Maintenance"));
+        var calLegendEntretien = document.createElement("span");
+        calLegendEntretien.className = "calendar-legend-item";
+        var calDotEntretien = document.createElement("span");
+        calDotEntretien.className = "calendar-dot entretien";
+        calLegendEntretien.appendChild(calDotEntretien);
+        calLegendEntretien.appendChild(document.createTextNode("Entretien"));
+
         calLegend.appendChild(calLegendPurchase);
         calLegend.appendChild(calLegendConso);
+        calLegend.appendChild(calLegendMaintenance);
+        calLegend.appendChild(calLegendEntretien);
         calSection.appendChild(calLegend);
 
         card.appendChild(calSection);
@@ -978,6 +1108,111 @@
       return { el: el, seasonSelect: seasonInput };
     }
 
+    _buildCostForm(kind) {
+      // kind: "maintenance" ou "entretien". Formulaire jumeau de
+      // _buildForm mais sans quantite/unite : ces saisies ne portent
+      // qu un cout, une date et une note libre, et n interviennent
+      // jamais dans le calcul du stock de granules.
+      var self = this;
+      var el = document.createElement("div");
+      el.className = "form";
+
+      var row1 = document.createElement("div");
+      row1.className = "form-row";
+
+      var priceWrap = document.createElement("div");
+      var priceLabel = document.createElement("label");
+      priceLabel.textContent = "Coût (€)";
+      var priceInput = document.createElement("input");
+      priceInput.type = "number";
+      priceInput.step = "0.01";
+      priceInput.min = "0";
+      priceWrap.appendChild(priceLabel);
+      priceWrap.appendChild(priceInput);
+      row1.appendChild(priceWrap);
+
+      var dateWrap = document.createElement("div");
+      var dateLabel = document.createElement("label");
+      dateLabel.textContent = "Date";
+      var dateInput = document.createElement("input");
+      dateInput.type = "date";
+      dateInput.value = todayIso();
+      dateWrap.appendChild(dateLabel);
+      dateWrap.appendChild(dateInput);
+      row1.appendChild(dateWrap);
+
+      el.appendChild(row1);
+
+      var noteWrap = document.createElement("div");
+      var noteLabel = document.createElement("label");
+      noteLabel.textContent = "Note (facultatif, ex. : ramonage, remplacement joint...)";
+      var noteInput = document.createElement("input");
+      noteInput.type = "text";
+      noteWrap.appendChild(noteLabel);
+      noteWrap.appendChild(noteInput);
+      el.appendChild(noteWrap);
+
+      var seasonWrap = document.createElement("div");
+      var seasonLabel = document.createElement("label");
+      seasonLabel.textContent = "Saison à incrémenter";
+      var seasonInput = document.createElement("select");
+      seasonWrap.appendChild(seasonLabel);
+      seasonWrap.appendChild(seasonInput);
+      el.appendChild(seasonWrap);
+      self._populateFormSeasonSelect(seasonInput, dateInput.value);
+      dateInput.addEventListener("change", function () {
+        self._populateFormSeasonSelect(seasonInput, dateInput.value);
+      });
+
+      var formActions = document.createElement("div");
+      formActions.className = "form-actions";
+      var submitBtn = document.createElement("button");
+      submitBtn.type = "button";
+      submitBtn.textContent = kind === "maintenance" ? "Enregistrer la maintenance" : "Enregistrer l entretien";
+      formActions.appendChild(submitBtn);
+      el.appendChild(formActions);
+
+      submitBtn.addEventListener("click", function () {
+        var price = parseFloat(priceInput.value);
+        if (isNaN(price) || price < 0) {
+          alert("Indique un coût valide (0 ou plus).");
+          return;
+        }
+        var formSeason = seasonInput.value;
+        if (!formSeason) {
+          alert("Choisis d abord la saison a laquelle cette saisie doit etre rattachee.");
+          return;
+        }
+        var data = { price_eur: price, date: dateInput.value, season: formSeason };
+        if (noteInput.value) data.note = noteInput.value;
+        var service = kind === "maintenance" ? "log_maintenance" : "log_entretien";
+        submitBtn.disabled = true;
+        self._hass
+          .callService("suivi_stock_pellet", service, data)
+          .then(function () {
+            self._seasonDataFetchedAt = 0;
+            self._seasonDataDirty = true;
+            self._seasonsFetchedAt = 0;
+            self._seasonsDirty = true;
+            el.classList.remove("visible");
+            priceInput.value = "";
+            noteInput.value = "";
+            dateInput.value = todayIso();
+            self._populateFormSeasonSelect(seasonInput, dateInput.value);
+            self._refreshSelectedSeason();
+            if (self._refreshSeasonsSummary) self._refreshSeasonsSummary();
+          })
+          .catch(function (err) {
+            alert("Échec de l enregistrement : " + ((err && err.message) || String(err)));
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+          });
+      });
+
+      return { el: el, seasonSelect: seasonInput };
+    }
+
     _render() {
       if (!this._els) return;
       var hass = this._hass;
@@ -1006,7 +1241,7 @@
       }
 
       this._refreshSelectedSeason();
-      if (cfg.show_price_chart) {
+      if (cfg.show_price_chart || cfg.show_maintenance_chart || cfg.show_entretien_chart) {
         this._refreshSeasonsSummary();
       }
       if (cfg.show_comparison) {
@@ -1235,6 +1470,8 @@
         els.statCoutMois.textContent = fmt(costPerMonth, 2) + " €";
         els.statCoutSac.textContent = pricePerUnit ? fmt(pricePerUnit, 2) + " €" : "--";
         els.statCoutAnnee.textContent = fmt(costToDate, 2) + " €";
+        if (els.statCoutMaintenance) els.statCoutMaintenance.textContent = fmt(Number(totals.maintenance_eur) || 0, 2) + " €";
+        if (els.statCoutEntretien) els.statCoutEntretien.textContent = fmt(Number(totals.entretien_eur) || 0, 2) + " €";
       }
 
       if (els.historyList && !this._openEditRow) {
@@ -1325,7 +1562,7 @@
       }
       var now = Date.now();
       if (!this._seasonsDirty && this._seasonsFetchedAt && now - this._seasonsFetchedAt < 15000) return;
-      if (!this._hass || !this._hass.connection || !this._els.priceChart) return;
+      if (!this._hass || !this._hass.connection || (!this._els.priceChart && !this._els.maintenanceChart && !this._els.entretienChart)) return;
       this._seasonsDirty = false;
       this._seasonsPending = true;
       this._hass.connection
@@ -1338,6 +1575,12 @@
             self._seasonsDisplayUnit = result.display_unit;
           }
           self._renderPriceChart(result.seasons || []);
+          if (self._els.maintenanceChart) {
+            self._renderCostChart(result.seasons || [], "maintenance_eur", COLORS.teal, self._els.maintenanceChart, "Coût maintenance (€)");
+          }
+          if (self._els.entretienChart) {
+            self._renderCostChart(result.seasons || [], "entretien_eur", COLORS.pink, self._els.entretienChart, "Coût entretien (€)");
+          }
           if (self._seasonsDirty) {
             self._seasonsDirty = false;
             self._refreshSeasonsSummary();
@@ -1443,27 +1686,37 @@
         var row = document.createElement("div");
         row.className = "history-row";
         var isConso = entry.type === "consumption";
+        var isMaintenance = entry.type === "maintenance";
+        var isEntretien = entry.type === "entretien";
+        var isCostEntry = isMaintenance || isEntretien;
 
         var dot = document.createElement("div");
         dot.className = "history-dot";
-        dot.style.background = isConso
-          ? "rgba(" + COLORS.red + ", 0.2)"
-          : "rgba(" + COLORS.green + ", 0.2)";
-        var dotIcon = icon(isConso ? "mdi:fire" : "mdi:cart");
-        dotIcon.style.color = isConso ? "rgb(" + COLORS.red + ")" : "rgb(" + COLORS.green + ")";
+        var dotColor = isCostEntry
+          ? (isMaintenance ? COLORS.teal : COLORS.pink)
+          : (isConso ? COLORS.red : COLORS.green);
+        dot.style.background = "rgba(" + dotColor + ", 0.2)";
+        var dotIconName = isMaintenance ? "mdi:wrench" : isEntretien ? "mdi:broom" : isConso ? "mdi:fire" : "mdi:cart";
+        var dotIcon = icon(dotIconName);
+        dotIcon.style.color = "rgb(" + dotColor + ")";
         dot.appendChild(dotIcon);
 
         var label = document.createElement("span");
         label.className = "history-label";
-        label.textContent = (isConso ? "Consommation" : "Achat") + " · " + entry.date;
+        var typeLabel = isMaintenance ? "Maintenance" : isEntretien ? "Entretien" : isConso ? "Consommation" : "Achat";
+        label.textContent = typeLabel + " · " + entry.date + (isCostEntry && entry.note ? " · " + entry.note : "");
 
         var value = document.createElement("span");
         value.className = "history-value";
-        var histUnit = entryUnit(entry);
-        var histQty = entryQtyDisplay(entry, histUnit, self._bagWeight || 15);
-        value.textContent =
-          fmt(histQty, histUnit === "kg" ? 1 : 1) + (histUnit === "kg" ? " kg" : " sac(s)") +
-          (entry.price_eur ? " · " + fmt(entry.price_eur, 2) + " €" : "");
+        if (isCostEntry) {
+          value.textContent = fmt(entry.price_eur, 2) + " €";
+        } else {
+          var histUnit = entryUnit(entry);
+          var histQty = entryQtyDisplay(entry, histUnit, self._bagWeight || 15);
+          value.textContent =
+            fmt(histQty, histUnit === "kg" ? 1 : 1) + (histUnit === "kg" ? " kg" : " sac(s)") +
+            (entry.price_eur ? " · " + fmt(entry.price_eur, 2) + " €" : "");
+        }
 
         var editBtn = document.createElement("button");
         editBtn.type = "button";
@@ -1501,6 +1754,7 @@
       this._openEditRow = row;
 
       var isPurchase = entry.type === "purchase";
+      var isCostEntry = entry.type === "maintenance" || entry.type === "entretien";
       var editUnit = entryUnit(entry);
       var qtyNow = entryQtyDisplay(entry, editUnit, self._bagWeight || 15);
       var pricePerUnitNow = isPurchase && entry.price_eur && qtyNow ? entry.price_eur / qtyNow : "";
@@ -1516,12 +1770,25 @@
       var row1 = document.createElement("div");
       row1.className = "history-edit-form-row";
 
-      var qtyInput = document.createElement("input");
-      qtyInput.type = "number";
-      qtyInput.step = "0.1";
-      qtyInput.min = "0.1";
-      qtyInput.value = qtyNow;
-      row1.appendChild(qtyInput);
+      var qtyInput = null;
+      var costPriceInput = null;
+      var noteInput = null;
+      if (isCostEntry) {
+        costPriceInput = document.createElement("input");
+        costPriceInput.type = "number";
+        costPriceInput.step = "0.01";
+        costPriceInput.min = "0";
+        costPriceInput.placeholder = "Coût (€)";
+        costPriceInput.value = entry.price_eur != null ? entry.price_eur : "";
+        row1.appendChild(costPriceInput);
+      } else {
+        qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.step = "0.1";
+        qtyInput.min = "0.1";
+        qtyInput.value = qtyNow;
+        row1.appendChild(qtyInput);
+      }
 
       var dateInput = document.createElement("input");
       dateInput.type = "date";
@@ -1537,6 +1804,13 @@
         priceInput.placeholder = editUnit === "kg" ? "Prix/kg" : "Prix/sac";
         priceInput.value = pricePerUnitNow ? Number(pricePerUnitNow).toFixed(2) : "";
         row1.appendChild(priceInput);
+      }
+      if (isCostEntry) {
+        noteInput = document.createElement("input");
+        noteInput.type = "text";
+        noteInput.placeholder = "Note";
+        noteInput.value = entry.note || "";
+        row1.appendChild(noteInput);
       }
 
       var seasonSelect = document.createElement("select");
@@ -1587,13 +1861,20 @@
       });
 
       saveBtn.addEventListener("click", function () {
-        var qty = parseFloat(qtyInput.value);
-        if (!qty || qty <= 0) return;
-        var data = { season: self._season, index: index, date: dateInput.value, unit: editUnit };
-        if (editUnit === "kg") data.qty_kg = qty;
-        else data.qty_bags = qty;
-        if (isPurchase && priceInput.value) {
-          data.price_eur = parseFloat(priceInput.value) * qty;
+        var data;
+        if (isCostEntry) {
+          var price = parseFloat(costPriceInput.value);
+          if (isNaN(price) || price < 0) return;
+          data = { season: self._season, index: index, date: dateInput.value, price_eur: price, note: noteInput.value || "" };
+        } else {
+          var qty = parseFloat(qtyInput.value);
+          if (!qty || qty <= 0) return;
+          data = { season: self._season, index: index, date: dateInput.value, unit: editUnit };
+          if (editUnit === "kg") data.qty_kg = qty;
+          else data.qty_bags = qty;
+          if (isPurchase && priceInput.value) {
+            data.price_eur = parseFloat(priceInput.value) * qty;
+          }
         }
         if (seasonSelect.value && seasonSelect.value !== self._season) {
           data.new_season = seasonSelect.value;
@@ -1651,11 +1932,15 @@
         var m = parseInt(parts[1], 10);
         var d = parseInt(parts[2], 10);
         if (y !== year || m !== month) return;
-        if (!byDay[d]) byDay[d] = { purchase: 0, consumption: 0 };
+        if (!byDay[d]) byDay[d] = { purchase: 0, consumption: 0, maintenance: 0, entretien: 0 };
         if (entry.type === "purchase") {
           byDay[d].purchase += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
-        } else {
+        } else if (entry.type === "consumption") {
           byDay[d].consumption += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
+        } else if (entry.type === "maintenance") {
+          byDay[d].maintenance += Number(entry.price_eur) || 0;
+        } else if (entry.type === "entretien") {
+          byDay[d].entretien += Number(entry.price_eur) || 0;
         }
       });
 
@@ -1687,11 +1972,19 @@
         if (info && info.consumption > 0) {
           cell.classList.add("consumption");
         }
+        if (info && info.maintenance > 0) {
+          cell.classList.add("maintenance");
+        }
+        if (info && info.entretien > 0) {
+          cell.classList.add("entretien");
+        }
         cell.textContent = String(day);
         if (info) {
           var parts2 = [];
           if (info.purchase > 0) parts2.push("Achat : " + fmt(info.purchase, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
           if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
+          if (info.maintenance > 0) parts2.push("Maintenance : " + fmt(info.maintenance, 2) + " €");
+          if (info.entretien > 0) parts2.push("Entretien : " + fmt(info.entretien, 2) + " €");
           cell.title = parts2.join(" \u00b7 ");
           cell.addEventListener("touchstart", function (e) {
                   cell.__tsX = e.touches[0].clientX;
@@ -2021,6 +2314,105 @@
         seasonLabel.setAttribute("font-weight", p.current ? "700" : "400");
         seasonLabel.textContent = p.season;
         svg.appendChild(seasonLabel);
+      });
+
+      container.appendChild(svg);
+    }
+
+    _renderCostChart(seasons, field, color, container, emptyUnit) {
+      // Courbe generique "cout par saison", calquee sur _renderPriceChart
+      // mais pour une somme absolue (maintenance_eur / entretien_eur)
+      // plutot qu un prix moyen pondere - toutes les saisons connues sont
+      // affichees, y compris celles a 0 EUR, contrairement au graphique
+      // de prix qui exclut les saisons sans aucun achat.
+      var self = this;
+      if (!container) return;
+      container.innerHTML = "";
+
+      var points = (seasons || []).slice().map(function (s) {
+        return { season: s.season, current: s.current, value: Number(s[field]) || 0 };
+      });
+
+      if (points.length === 0) {
+        var empty = document.createElement("div");
+        empty.className = "price-chart-empty";
+        empty.textContent = "Pas encore de données pour cette saison.";
+        container.appendChild(empty);
+        return;
+      }
+
+      var width = 300;
+      var height = 90;
+      var padX = 24;
+      var padTop = 22;
+      var padBottom = 20;
+      var plotHeight = height - padTop - padBottom;
+      var values = points.map(function (p) { return p.value; });
+      var minV = Math.min.apply(null, values.concat([0]));
+      var maxV = Math.max.apply(null, values.concat([0.0001]));
+      if (minV === maxV) {
+        minV = minV - 1;
+        maxV = maxV + 1;
+      }
+
+      var stepX = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
+      function xFor(idx) { return padX + idx * stepX; }
+      function yFor(v) { return padTop + (1 - (v - minV) / (maxV - minV)) * plotHeight; }
+
+      var svgNS = "http://www.w3.org/2000/svg";
+      var svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("viewBox", "0 0 " + width + " " + (height + padBottom));
+      svg.setAttribute("preserveAspectRatio", "none");
+
+      if (points.length > 1) {
+        var pathD = points.map(function (p, idx) {
+          return (idx === 0 ? "M" : "L") + xFor(idx) + " " + yFor(p.value);
+        }).join(" ");
+        var path = document.createElementNS(svgNS, "path");
+        path.setAttribute("d", pathD);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "rgb(" + color + ")");
+        path.setAttribute("stroke-width", "2.5");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(path);
+      }
+
+      points.forEach(function (p, idx) {
+        var cx = points.length > 1 ? xFor(idx) : width / 2;
+        var cy = yFor(p.value);
+
+        var label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", cx);
+        label.setAttribute("y", cy - 10);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-size", "9");
+        label.setAttribute("font-weight", "700");
+        label.setAttribute("fill", "rgb(" + color + ")");
+        label.textContent = fmt(p.value, 2) + " €";
+        svg.appendChild(label);
+
+        var dot = document.createElementNS(svgNS, "circle");
+        dot.setAttribute("cx", cx);
+        dot.setAttribute("cy", cy);
+        dot.setAttribute("r", p.current ? "4.5" : "3.5");
+        dot.setAttribute("fill", "rgb(" + color + ")");
+        if (p.current) {
+          dot.setAttribute("stroke", "rgba(255,167,38,0.35)");
+          dot.setAttribute("stroke-width", "5");
+        }
+        svg.appendChild(dot);
+
+        var seasonLabel2 = document.createElementNS(svgNS, "text");
+        seasonLabel2.setAttribute("x", cx);
+        seasonLabel2.setAttribute("y", height + padBottom - 4);
+        seasonLabel2.setAttribute("text-anchor", "middle");
+        seasonLabel2.setAttribute("font-size", "8");
+        seasonLabel2.setAttribute("fill", p.current ? "rgb(" + color + ")" : "currentColor");
+        seasonLabel2.setAttribute("opacity", p.current ? "1" : "0.6");
+        seasonLabel2.setAttribute("font-weight", p.current ? "700" : "400");
+        seasonLabel2.textContent = p.season;
+        svg.appendChild(seasonLabel2);
       });
 
       container.appendChild(svg);
