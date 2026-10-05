@@ -557,6 +557,9 @@
         els.statCoutAnnee = addStat(costStats, "Coût consommé", "mdi:cash-multiple", COLORS.purple);
         els.statCoutMaintenance = addStat(costStats, "Coût maintenance", "mdi:wrench", COLORS.teal);
         els.statCoutEntretien = addStat(costStats, "Coût entretien", "mdi:broom", COLORS.pink);
+        els.statCoutTotal = addStat(costStats, "Coût total saison", "mdi:cash-check", COLORS.green);
+        var coutTotalStat = els.statCoutTotal.parentElement && els.statCoutTotal.parentElement.parentElement;
+        if (coutTotalStat) coutTotalStat.style.gridColumn = "1 / -1";
         card.appendChild(costStats);
       }
 
@@ -633,12 +636,12 @@
         actions.appendChild(btnConso);
         els.btnConso = btnConso;
         actions.appendChild(btnAchat);
+        if (btnQuick) actions.appendChild(btnQuick);
+        els.btnQuick = btnQuick;
         actions.appendChild(btnMaintenance);
         els.btnMaintenance = btnMaintenance;
         actions.appendChild(btnEntretien);
         els.btnEntretien = btnEntretien;
-        if (btnQuick) actions.appendChild(btnQuick);
-        els.btnQuick = btnQuick;
         actionsWrap.appendChild(actions);
 
         var formConso = this._buildForm("consumption");
@@ -658,8 +661,9 @@
         var importBtn = document.createElement("button");
         importBtn.type = "button";
         importBtn.className = "secondary";
+        importBtn.title = "Importe un historique d'achats et de consommations depuis un fichier CSV";
         importBtn.appendChild(icon("mdi:file-import"));
-        importBtn.appendChild(document.createTextNode("Importer un CSV"));
+        importBtn.appendChild(document.createTextNode("Importer CSV achats/conso"));
         var importInput = document.createElement("input");
         importInput.type = "file";
         importInput.accept = ".csv,text/csv";
@@ -1030,6 +1034,11 @@
       dateInput.addEventListener("change", function () {
         self._populateFormSeasonSelect(seasonInput, dateInput.value);
       });
+      var refreshSeasonOptions = function () {
+        self._populateFormSeasonSelect(seasonInput, dateInput.value);
+      };
+      seasonInput.addEventListener("focus", refreshSeasonOptions);
+      seasonInput.addEventListener("mousedown", refreshSeasonOptions);
 
       var formActions = document.createElement("div");
       formActions.className = "form-actions";
@@ -1163,6 +1172,11 @@
       dateInput.addEventListener("change", function () {
         self._populateFormSeasonSelect(seasonInput, dateInput.value);
       });
+      var refreshSeasonOptions = function () {
+        self._populateFormSeasonSelect(seasonInput, dateInput.value);
+      };
+      seasonInput.addEventListener("focus", refreshSeasonOptions);
+      seasonInput.addEventListener("mousedown", refreshSeasonOptions);
 
       var formActions = document.createElement("div");
       formActions.className = "form-actions";
@@ -1478,6 +1492,10 @@
         els.statCoutAnnee.textContent = fmt(costToDate, 2) + " €";
         if (els.statCoutMaintenance) els.statCoutMaintenance.textContent = fmt(Number(totals.maintenance_eur) || 0, 2) + " €";
         if (els.statCoutEntretien) els.statCoutEntretien.textContent = fmt(Number(totals.entretien_eur) || 0, 2) + " €";
+        if (els.statCoutTotal) {
+          var coutTotalSaison = spentEur + (Number(totals.maintenance_eur) || 0) + (Number(totals.entretien_eur) || 0);
+          els.statCoutTotal.textContent = fmt(coutTotalSaison, 2) + " €";
+        }
       }
 
       if (els.historyList && !this._openEditRow) {
