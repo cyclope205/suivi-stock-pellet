@@ -98,6 +98,9 @@
     ".price-chart { position: relative; height: 110px; }",
     ".price-chart svg { width: 100%; height: 100%; overflow: visible; }",
     ".price-chart-empty { opacity: 0.6; font-style: italic; font-size: 0.82em; padding: 10px 0; }",
+    ".chart-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }",
+    ".chart-tab { border: none; border-radius: 999px; padding: 5px 12px; font-size: 0.75em; font-weight: 600; cursor: pointer; background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: inherit; font-family: inherit; opacity: 0.75; }",
+    ".chart-tab.active { background: var(--pellet-amber); color: #1c1c1c; opacity: 1; }",
     ".history { margin-top: 12px; font-size: 0.85em; }",
     ".history-title { font-weight: 700; opacity: 0.85; margin-bottom: 6px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; }",
     ".history-list { max-height: 260px; overflow-y: auto; }",
@@ -813,80 +816,59 @@
         });
       }
 
-      if (cfg.show_price_chart) {
-        var priceSection = document.createElement("div");
-        priceSection.className = "chart-section";
-        var priceTitle = document.createElement("div");
-        priceTitle.className = "chart-title";
-        priceTitle.appendChild(icon("mdi:cash-multiple"));
-        priceTitle.appendChild(document.createTextNode("Prix moyen par saison"));
-        var priceChart = document.createElement("div");
-        priceChart.className = "price-chart";
-        priceSection.appendChild(priceTitle);
-        priceSection.appendChild(priceChart);
-        card.appendChild(priceSection);
-        els.priceChart = priceChart;
-        els.priceTitle = priceTitle;
-      }
+      var costTabDefs = [];
+      if (cfg.show_price_chart) costTabDefs.push({ key: "price", label: "Prix moyen", icon: "mdi:cash-multiple" });
+      if (cfg.show_maintenance_chart) costTabDefs.push({ key: "maintenance", label: "Maintenance", icon: "mdi:wrench" });
+      if (cfg.show_entretien_chart) costTabDefs.push({ key: "entretien", label: "Entretien", icon: "mdi:broom" });
+      if (cfg.show_achat_chart) costTabDefs.push({ key: "achat", label: "Achat", icon: "mdi:cart-plus" });
+      if (cfg.show_cost_total_chart) costTabDefs.push({ key: "total", label: "Total", icon: "mdi:cash-check" });
 
-      if (cfg.show_maintenance_chart) {
-        var maintenanceSection = document.createElement("div");
-        maintenanceSection.className = "chart-section";
-        var maintenanceTitle = document.createElement("div");
-        maintenanceTitle.className = "chart-title";
-        maintenanceTitle.appendChild(icon("mdi:wrench"));
-        maintenanceTitle.appendChild(document.createTextNode("Coût maintenance par saison"));
-        var maintenanceChart = document.createElement("div");
-        maintenanceChart.className = "price-chart";
-        maintenanceSection.appendChild(maintenanceTitle);
-        maintenanceSection.appendChild(maintenanceChart);
-        card.appendChild(maintenanceSection);
-        els.maintenanceChart = maintenanceChart;
-      }
+      if (costTabDefs.length) {
+        var costSection = document.createElement("div");
+        costSection.className = "chart-section";
 
-      if (cfg.show_entretien_chart) {
-        var entretienSection = document.createElement("div");
-        entretienSection.className = "chart-section";
-        var entretienTitle = document.createElement("div");
-        entretienTitle.className = "chart-title";
-        entretienTitle.appendChild(icon("mdi:broom"));
-        entretienTitle.appendChild(document.createTextNode("Coût entretien par saison"));
-        var entretienChart = document.createElement("div");
-        entretienChart.className = "price-chart";
-        entretienSection.appendChild(entretienTitle);
-        entretienSection.appendChild(entretienChart);
-        card.appendChild(entretienSection);
-        els.entretienChart = entretienChart;
-      }
+        var costTitle = document.createElement("div");
+        costTitle.className = "chart-title";
+        var costTitleIcon = icon(costTabDefs[0].icon);
+        var costTitleText = document.createTextNode("");
+        costTitle.appendChild(costTitleIcon);
+        costTitle.appendChild(costTitleText);
 
-      if (cfg.show_achat_chart) {
-        var achatSection = document.createElement("div");
-        achatSection.className = "chart-section";
-        var achatTitle = document.createElement("div");
-        achatTitle.className = "chart-title";
-        achatTitle.appendChild(icon("mdi:cart-plus"));
-        achatTitle.appendChild(document.createTextNode("Coût achat par saison"));
-        var achatChart = document.createElement("div");
-        achatChart.className = "price-chart";
-        achatSection.appendChild(achatTitle);
-        achatSection.appendChild(achatChart);
-        card.appendChild(achatSection);
-        els.achatChart = achatChart;
-      }
+        var costTabsBar = document.createElement("div");
+        costTabsBar.className = "chart-tabs";
+        var costTabButtons = {};
+        costTabDefs.forEach(function (def) {
+          var tabBtn = document.createElement("button");
+          tabBtn.type = "button";
+          tabBtn.className = "chart-tab";
+          tabBtn.textContent = def.label;
+          tabBtn.addEventListener("click", function () {
+            self._activeCostTab = def.key;
+            self._renderActiveCostChart();
+          });
+          costTabsBar.appendChild(tabBtn);
+          costTabButtons[def.key] = tabBtn;
+        });
 
-      if (cfg.show_cost_total_chart) {
-        var costTotalSection = document.createElement("div");
-        costTotalSection.className = "chart-section";
-        var costTotalTitle = document.createElement("div");
-        costTotalTitle.className = "chart-title";
-        costTotalTitle.appendChild(icon("mdi:cash-check"));
-        costTotalTitle.appendChild(document.createTextNode("Coût total par saison"));
-        var costTotalChart = document.createElement("div");
-        costTotalChart.className = "price-chart";
-        costTotalSection.appendChild(costTotalTitle);
-        costTotalSection.appendChild(costTotalChart);
-        card.appendChild(costTotalSection);
-        els.costTotalChart = costTotalChart;
+        var costChart = document.createElement("div");
+        costChart.className = "price-chart";
+
+        costSection.appendChild(costTitle);
+        costSection.appendChild(costTabsBar);
+        costSection.appendChild(costChart);
+        card.appendChild(costSection);
+
+        els.costTabDefs = costTabDefs;
+        els.costTabButtons = costTabButtons;
+        els.costTitleIcon = costTitleIcon;
+        els.costTitleText = costTitleText;
+        els.costChart = costChart;
+        els.priceChart = costChart;
+        els.priceTitle = costTitleText;
+
+        if (!this._activeCostTab || !costTabButtons[this._activeCostTab]) {
+          this._activeCostTab = costTabDefs[0].key;
+        }
       }
 
       if (cfg.show_history) {
@@ -1620,7 +1602,7 @@
       }
       var now = Date.now();
       if (!this._seasonsDirty && this._seasonsFetchedAt && now - this._seasonsFetchedAt < 15000) return;
-      if (!this._hass || !this._hass.connection || (!this._els.priceChart && !this._els.maintenanceChart && !this._els.entretienChart && !this._els.costTotalChart && !this._els.achatChart)) return;
+      if (!this._hass || !this._hass.connection || !this._els.costChart) return;
       this._seasonsDirty = false;
       this._seasonsPending = true;
       this._hass.connection
@@ -1632,24 +1614,8 @@
             self._entryUnit = result.display_unit;
             self._seasonsDisplayUnit = result.display_unit;
           }
-          self._renderPriceChart(result.seasons || []);
-          if (self._els.maintenanceChart) {
-            self._renderCostChart(result.seasons || [], "maintenance_eur", COLORS.teal, self._els.maintenanceChart, "Coût maintenance (€)");
-          }
-          if (self._els.entretienChart) {
-            self._renderCostChart(result.seasons || [], "entretien_eur", COLORS.pink, self._els.entretienChart, "Coût entretien (€)");
-          }
-          if (self._els.achatChart) {
-            self._renderCostChart(result.seasons || [], "spent_eur", COLORS.amber, self._els.achatChart, "Coût achat (€)");
-          }
-          if (self._els.costTotalChart) {
-            var seasonsWithTotal = (result.seasons || []).map(function (s) {
-              var copy = Object.assign({}, s);
-              copy.total_eur = (Number(s.spent_eur) || 0) + (Number(s.maintenance_eur) || 0) + (Number(s.entretien_eur) || 0);
-              return copy;
-            });
-            self._renderCostChart(seasonsWithTotal, "total_eur", COLORS.green, self._els.costTotalChart, "Coût total (€)");
-          }
+          self._lastSeasonsResult = result.seasons || [];
+          self._renderActiveCostChart();
           if (self._seasonsDirty) {
             self._seasonsDirty = false;
             self._refreshSeasonsSummary();
@@ -2386,6 +2352,49 @@
       });
 
       container.appendChild(svg);
+    }
+
+    _renderActiveCostChart() {
+      var self = this;
+      var els = this._els;
+      if (!els.costChart || !els.costTabDefs || !els.costTabDefs.length) return;
+      var tab = this._activeCostTab || els.costTabDefs[0].key;
+      var seasons = this._lastSeasonsResult || [];
+      var defs = {
+        maintenance: { field: "maintenance_eur", color: COLORS.teal, label: "Coût maintenance par saison", icon: "mdi:wrench", emptyUnit: "Coût maintenance (€)" },
+        entretien: { field: "entretien_eur", color: COLORS.pink, label: "Coût entretien par saison", icon: "mdi:broom", emptyUnit: "Coût entretien (€)" },
+        achat: { field: "spent_eur", color: COLORS.amber, label: "Coût achat par saison", icon: "mdi:cart-plus", emptyUnit: "Coût achat (€)" },
+        total: { field: "total_eur", color: COLORS.green, label: "Coût total par saison", icon: "mdi:cash-check", emptyUnit: "Coût total (€)" }
+      };
+      if (tab === "price") {
+        if (els.costTitleIcon) els.costTitleIcon.setAttribute("icon", "mdi:cash-multiple");
+        this._renderPriceChart(seasons);
+      } else {
+        var def = defs[tab];
+        if (def) {
+          if (els.costTitleIcon) els.costTitleIcon.setAttribute("icon", def.icon);
+          if (els.costTitleText) els.costTitleText.textContent = def.label;
+          var data = seasons;
+          if (tab === "total") {
+            data = seasons.map(function (s) {
+              var copy = Object.assign({}, s);
+              copy.total_eur = (Number(s.spent_eur) || 0) + (Number(s.maintenance_eur) || 0) + (Number(s.entretien_eur) || 0);
+              return copy;
+            });
+          }
+          this._renderCostChart(data, def.field, def.color, els.costChart, def.emptyUnit);
+        }
+      }
+      this._updateCostTabsUI();
+    }
+
+    _updateCostTabsUI() {
+      var els = this._els;
+      if (!els.costTabButtons) return;
+      var active = this._activeCostTab;
+      Object.keys(els.costTabButtons).forEach(function (key) {
+        els.costTabButtons[key].classList.toggle("active", key === active);
+      });
     }
 
     _renderCostChart(seasons, field, color, container, emptyUnit) {
