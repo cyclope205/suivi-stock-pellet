@@ -52,7 +52,7 @@
     ".stat-label { font-size: 0.68em; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.02em; }",
     ".stat-value { font-size: 1.05em; font-weight: 700; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
     ".actions { display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }",
-    ".actions button { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 12px; padding: 11px 12px; font-size: 0.92em; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; transition: filter 0.15s ease, transform 0.05s ease; }",
+    ".actions button { flex: 0 1 calc(50% - 4px); display: flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 12px; padding: 11px 12px; font-size: 0.92em; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; transition: filter 0.15s ease, transform 0.05s ease; }",
     ".actions button ha-icon { --mdc-icon-size: 18px; }",
     ".actions button:hover { filter: brightness(1.06); }",
     ".actions button:active { transform: scale(0.98); }",
