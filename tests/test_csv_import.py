@@ -80,6 +80,31 @@ def test_csv_rejects_negative_purchase_price():
         parse_csv_history(csv_text)
 
 
+def test_legacy_achat_skips_non_positive_quantity():
+    csv_text = """;septembre;octobre;Saison 2024-2025
+1;1;0;0
+Achats granules
+Qté;Date;Prix;Coût du sac
+0;23/03/2024;152,72 €;4,627878788
+10;24/03/2024;50,00 €;5,00
+"""
+    result = parse_csv_history(csv_text)
+
+    assert result["purchase_count"] == 1
+    assert result["purchase_bags"] == 10
+
+
+def test_legacy_achat_rejects_negative_price():
+    csv_text = """;septembre;octobre;Saison 2024-2025
+1;1;0;0
+Achats granules
+Qté;Date;Prix;Coût du sac
+33;23/03/2024;-152,72 €;4,627878788
+"""
+    with pytest.raises(CsvImportError):
+        parse_csv_history(csv_text)
+
+
 def test_event_log_accepts_bare_type_column():
     csv_text = """Date;Type;Quantité;Prix total
 2024-10-15;Consommation;2;
