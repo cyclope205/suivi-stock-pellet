@@ -176,13 +176,28 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_stats` | Tuiles consommé / énergie / dépensé / jours |
 | `show_cost_stats` | Tuiles coût / jour, coût / mois, coût du sac, coût saison |
 | `show_actions` | Boutons et formulaires de saisie |
+| `show_csv_import` | Bouton "Importer CSV achats/conso" (réservé aux administrateurs Home Assistant) |
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
-| `show_price_chart` | Graphique "Prix moyen du sac par saison" |
-| `show_maintenance_chart` | Graphique "Coût maintenance par saison" |
-| `show_entretien_chart` | Graphique "Coût entretien par saison" |
+| `show_price_chart` | Onglet "Prix moyen" du graphique de coût par saison |
+| `show_maintenance_chart` | Onglet "Maintenance" du graphique de coût par saison |
+| `show_entretien_chart` | Onglet "Entretien" du graphique de coût par saison |
+| `show_achat_chart` | Onglet "Achat" du graphique de coût par saison |
+| `show_cost_total_chart` | Onglet "Total" du graphique de coût par saison (achat + maintenance + entretien) |
 | `show_history` | Liste des dernières saisies |
 | `show_calendar` | Calendrier des ajouts, navigable mois par mois |
 | `show_comparison` | Comparaison avec la saison précédente à date égale |
+
+Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
+
+#### Captures d'écran du graphique à onglets
+
+| Prix moyen | Maintenance | Entretien |
+|---|---|---|
+| ![Prix moyen](docs/screenshots/70a9d5d9-c62b-462f-a81f-8b9e0b595f6c-IMG_7577.jpeg) | ![Maintenance](docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg) | ![Entretien](docs/screenshots/14cb9b1e-5d83-4699-bca6-31c668aad8eb-IMG_7579.jpeg) |
+
+| Achat | Total |
+|---|---|
+| ![Achat](docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg) | ![Total](docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg) |
 
 Les formulaires Achat/Consommation de la carte acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent aussi un champ "Saison" optionnel (AAAA-AAAA) pour rattacher la saisie à une saison différente de celle déduite de la date (ex. un achat fait en avance pour la saison suivante), et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
 
