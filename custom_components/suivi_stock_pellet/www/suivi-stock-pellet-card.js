@@ -859,6 +859,36 @@
         els.entretienChart = entretienChart;
       }
 
+      if (cfg.show_achat_chart) {
+        var achatSection = document.createElement("div");
+        achatSection.className = "chart-section";
+        var achatTitle = document.createElement("div");
+        achatTitle.className = "chart-title";
+        achatTitle.appendChild(icon("mdi:cart-plus"));
+        achatTitle.appendChild(document.createTextNode("Coût achat par saison"));
+        var achatChart = document.createElement("div");
+        achatChart.className = "price-chart";
+        achatSection.appendChild(achatTitle);
+        achatSection.appendChild(achatChart);
+        card.appendChild(achatSection);
+        els.achatChart = achatChart;
+      }
+
+      if (cfg.show_cost_total_chart) {
+        var costTotalSection = document.createElement("div");
+        costTotalSection.className = "chart-section";
+        var costTotalTitle = document.createElement("div");
+        costTotalTitle.className = "chart-title";
+        costTotalTitle.appendChild(icon("mdi:cash-check"));
+        costTotalTitle.appendChild(document.createTextNode("Coût total par saison"));
+        var costTotalChart = document.createElement("div");
+        costTotalChart.className = "price-chart";
+        costTotalSection.appendChild(costTotalTitle);
+        costTotalSection.appendChild(costTotalChart);
+        card.appendChild(costTotalSection);
+        els.costTotalChart = costTotalChart;
+      }
+
       if (cfg.show_history) {
         var history = document.createElement("div");
         history.className = "history";
@@ -956,36 +986,6 @@
           }
           self._renderCalendar();
         });
-      }
-
-      if (cfg.show_achat_chart) {
-        var achatSection = document.createElement("div");
-        achatSection.className = "chart-section";
-        var achatTitle = document.createElement("div");
-        achatTitle.className = "chart-title";
-        achatTitle.appendChild(icon("mdi:cart-plus"));
-        achatTitle.appendChild(document.createTextNode("Coût achat par saison"));
-        var achatChart = document.createElement("div");
-        achatChart.className = "price-chart";
-        achatSection.appendChild(achatTitle);
-        achatSection.appendChild(achatChart);
-        card.appendChild(achatSection);
-        els.achatChart = achatChart;
-      }
-
-      if (cfg.show_cost_total_chart) {
-        var costTotalSection = document.createElement("div");
-        costTotalSection.className = "chart-section";
-        var costTotalTitle = document.createElement("div");
-        costTotalTitle.className = "chart-title";
-        costTotalTitle.appendChild(icon("mdi:cash-check"));
-        costTotalTitle.appendChild(document.createTextNode("Coût total par saison"));
-        var costTotalChart = document.createElement("div");
-        costTotalChart.className = "price-chart";
-        costTotalSection.appendChild(costTotalTitle);
-        costTotalSection.appendChild(costTotalChart);
-        card.appendChild(costTotalSection);
-        els.costTotalChart = costTotalChart;
       }
 
       this._els = els;
