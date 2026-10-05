@@ -1,6 +1,5 @@
 # Suivi Stock Pellet
 
-
 [![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/releases)
 [![Build](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
 [![Tests](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml)
@@ -50,7 +49,6 @@ Configuration de l'intégration — **Kilogrammes (kg)** :
 
 <img width="600" alt="Capture d&#39;écran 2026-09-27 105513" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105513.png" />
 
-
 ---
 
 Import d'une ancienne saison par **CSV** :
@@ -97,9 +95,13 @@ Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance
 
 Graphique de coût par saison (maintenance, entretien, achat, total) — désormais un seul graphique à onglets :
 
-<img width="600" alt="Graphique de coût à onglets - Maintenance" src="docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg" />
+| Prix moyen | Maintenance | Entretien |
+|---|---|---|
+| ![Prix moyen](docs/screenshots/70a9d5d9-c62b-462f-a81f-8b9e0b595f6c-IMG_7577.jpeg) | ![Maintenance](docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg) | ![Entretien](docs/screenshots/14cb9b1e-5d83-4699-bca6-31c668aad8eb-IMG_7579.jpeg) |
 
-
+| Achat | Total |
+|---|---|
+| ![Achat](docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg) | ![Total](docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg) |
 
 ## Fonctionnalités
 
@@ -188,16 +190,6 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_comparison` | Comparaison avec la saison précédente à date égale |
 
 Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
-
-#### Captures d'écran du graphique à onglets
-
-| Prix moyen | Maintenance | Entretien |
-|---|---|---|
-| ![Prix moyen](docs/screenshots/70a9d5d9-c62b-462f-a81f-8b9e0b595f6c-IMG_7577.jpeg) | ![Maintenance](docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg) | ![Entretien](docs/screenshots/14cb9b1e-5d83-4699-bca6-31c668aad8eb-IMG_7579.jpeg) |
-
-| Achat | Total |
-|---|---|
-| ![Achat](docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg) | ![Total](docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg) |
 
 Les formulaires Achat/Consommation de la carte acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent aussi un champ "Saison" optionnel (AAAA-AAAA) pour rattacher la saisie à une saison différente de celle déduite de la date (ex. un achat fait en avance pour la saison suivante), et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
 
