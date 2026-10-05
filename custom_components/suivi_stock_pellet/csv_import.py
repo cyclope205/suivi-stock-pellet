@@ -190,9 +190,10 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
             for row in rows[i+1:]:
                 if len(row)<=max(qc,keys["date"],pc or 0): continue
                 qty=_number(row[qc])
-                if qty is None or not str(row[keys["date"]]).strip(): continue
+                if qty is None or qty<=0 or not str(row[keys["date"]]).strip(): continue
                 price=_number(row[pc]) if pc is not None else None
                 if price is None: raise CsvImportError(f"Prix d'achat manquant pour {row[keys['date']]}." )
+                if price<0: raise CsvImportError(f"Prix d'achat invalide pour {row[keys['date']]}." )
                 entries.append({"type":"purchase","qty_bags":qty,"date":_date(row[keys["date"]]),"price_eur":price,"bag_weight_kg":None,"calorific_value":None,"season":season})
     if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
     entries.sort(key=lambda e:(e["date"],0 if e["type"]=="purchase" else 1))
