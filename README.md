@@ -181,6 +181,7 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_maintenance_chart` | Graphique "Coût maintenance par saison" |
 | `show_entretien_chart` | Graphique "Coût entretien par saison" |
 | `show_history` | Liste des dernières saisies |
+| `show_calendar` | Calendrier des ajouts, navigable mois par mois |
 | `show_comparison` | Comparaison avec la saison précédente à date égale |
 
 Les formulaires Achat/Consommation de la carte acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent aussi un champ "Saison" optionnel (AAAA-AAAA) pour rattacher la saisie à une saison différente de celle déduite de la date (ex. un achat fait en avance pour la saison suivante), et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
