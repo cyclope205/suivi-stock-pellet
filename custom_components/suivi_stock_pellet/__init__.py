@@ -41,12 +41,18 @@ from .const import (
     DEFAULT_CALORIFIC_VALUE,
     DEFAULT_SEASON_START_MONTH,
     DOMAIN,
+    ATTR_NOTE,
     ENTRY_TYPE_CONSUMPTION,
+    ENTRY_TYPE_ENTRETIEN,
+    ENTRY_TYPE_MAINTENANCE,
     ENTRY_TYPE_PURCHASE,
     ATTR_STOCK_INITIAL_BAGS,
     SERVICE_DELETE_ENTRY,
+    SERVICE_DELETE_SEASON,
     SERVICE_EDIT_ENTRY,
     SERVICE_LOG_CONSUMPTION,
+    SERVICE_LOG_ENTRETIEN,
+    SERVICE_LOG_MAINTENANCE,
     SERVICE_LOG_PURCHASE,
     SERVICE_SET_STOCK_INITIAL,
     SERVICE_UNDO_LAST_ENTRY,
@@ -120,6 +126,7 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
         vol.Optional(ATTR_UNIT): vol.In(["bag", "kg"]),
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
+        vol.Optional(ATTR_NOTE): cv.string,
         # Explicit destination season for a deliberate move (e.g. correcting
         # a purchase filed under the wrong season). Never auto-derived from
         # ATTR_DATE - see _handle_edit_entry.
@@ -140,6 +147,30 @@ SET_STOCK_INITIAL_SCHEMA = vol.Schema(
         vol.Required(ATTR_STOCK_INITIAL_BAGS): vol.All(
             vol.Coerce(float), vol.Range(min=0)
         ),
+    }
+)
+
+DELETE_SEASON_SCHEMA = vol.Schema(
+    {
+        vol.Required("season"): _valid_season,
+    }
+)
+
+LOG_MAINTENANCE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Optional(ATTR_DATE): cv.date,
+        vol.Optional("season"): _valid_season,
+        vol.Optional(ATTR_NOTE): cv.string,
+    }
+)
+
+LOG_ENTRETIEN_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Optional(ATTR_DATE): cv.date,
+        vol.Optional("season"): _valid_season,
+        vol.Optional(ATTR_NOTE): cv.string,
     }
 )
 
@@ -242,6 +273,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         price = call.data.get(ATTR_PRICE_EUR)
         entry_date = call.data.get(ATTR_DATE)
         new_season = call.data.get("new_season")
+        note = call.data.get(ATTR_NOTE)
         # NOTE: editing an entry never re-derives its season from the
         # (possibly unchanged) date field - a purchase/consumption can be
         # deliberately filed under a season other than the one its date
@@ -263,6 +295,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 new_season=new_season,
                 unit=unit,
                 qty_kg=qty_kg,
+                note=note,
             )
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
@@ -289,6 +322,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         season = call.data["season"]
         value = call.data[ATTR_STOCK_INITIAL_BAGS]
         await journal.async_set_stock_initial(season, value)
+        _notify()
+
+    async def _handle_delete_season(call: ServiceCall) -> None:
+        season = call.data["season"]
+        removed = await journal.async_delete_season(season)
+        if not removed:
+            raise ServiceValidationError(f"Saison introuvable : {season}")
+        _notify()
+
+    async def _handle_log_maintenance(call: ServiceCall) -> None:
+        price = call.data[ATTR_PRICE_EUR]
+        note = call.data.get(ATTR_NOTE)
+        entry_date = call.data.get(ATTR_DATE, date_cls.today())
+        season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        await journal.async_add_entry(
+            season,
+            ENTRY_TYPE_MAINTENANCE,
+            None,
+            entry_date.isoformat(),
+            price_eur=price,
+            note=note,
+        )
+        _notify()
+
+    async def _handle_log_entretien(call: ServiceCall) -> None:
+        price = call.data[ATTR_PRICE_EUR]
+        note = call.data.get(ATTR_NOTE)
+        entry_date = call.data.get(ATTR_DATE, date_cls.today())
+        season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        await journal.async_add_entry(
+            season,
+            ENTRY_TYPE_ENTRETIEN,
+            None,
+            entry_date.isoformat(),
+            price_eur=price,
+            note=note,
+        )
         _notify()
 
     hass.services.async_register(
@@ -324,6 +394,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _handle_set_stock_initial,
         schema=SET_STOCK_INITIAL_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DELETE_SEASON,
+        _handle_delete_season,
+        schema=DELETE_SEASON_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LOG_MAINTENANCE,
+        _handle_log_maintenance,
+        schema=LOG_MAINTENANCE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_LOG_ENTRETIEN,
+        _handle_log_entretien,
+        schema=LOG_ENTRETIEN_SCHEMA,
+    )
 
     async_register_ws_api(hass)
 
@@ -345,6 +433,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 SERVICE_EDIT_ENTRY,
                 SERVICE_DELETE_ENTRY,
                 SERVICE_SET_STOCK_INITIAL,
+                SERVICE_DELETE_SEASON,
+                SERVICE_LOG_MAINTENANCE,
+                SERVICE_LOG_ENTRETIEN,
             )
             if hass.services.has_service(DOMAIN, service)
         ]
