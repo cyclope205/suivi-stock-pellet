@@ -67,6 +67,12 @@ def previous_season_key(season: str) -> str:
     return f"{year_start - 1}-{year_end - 1}"
 
 
+def next_season_key(season: str) -> str:
+    """Return the season key immediately following the given one (e.g. '2024-2025' -> '2025-2026')."""
+    year_start, year_end = (int(part) for part in season.split("-"))
+    return f"{year_start + 1}-{year_end + 1}"
+
+
 def season_start_date(season: str, season_start_month: int) -> date:
     """Return the calendar date a season key starts on."""
     year_start = int(season.split("-")[0])
@@ -382,6 +388,53 @@ class PelletJournal:
             return totals["stock_bags"], totals["stock_value_eur"]
         return 0.0, 0.0
 
+    def _propagate_carry_over_forward(
+        self, affected: list[str], pre_import_seasons: set[str]
+    ) -> None:
+        """Fix a successor season's stale stock_initial after a historical
+        import fills in (or extends) its predecessor.
+
+        A season created outside of an import (a regular purchase or
+        consumption) computes its stock_initial once, at creation time -
+        see _get_season/_carry_over_stock. If its predecessor season did
+        not exist yet at that moment, the successor is permanently stuck
+        with stock_initial 0, even once a later import backfills the
+        predecessor's history (a real reported bug: logging a purchase in
+        the current season, then importing its two previous seasons, left
+        the current season's average price ignoring the newly imported
+        stock - importing the same two seasons BEFORE logging the
+        purchase gave the correct, carried-over price).
+
+        Walks forward from each season this import touched, correcting
+        any immediately-following season that already existed before this
+        import, was never manually corrected (stock_initial_manual), and
+        still has the untouched default stock_initial of 0 - cascading
+        further forward as long as each next season meets the same
+        condition, so a chain of several stale successor seasons is fixed
+        in one pass.
+        """
+        seasons = self._data.get("seasons", {})
+        to_check = list(dict.fromkeys(affected))
+        seen: set[str] = set()
+        while to_check:
+            season = to_check.pop(0)
+            if season in seen:
+                continue
+            seen.add(season)
+            successor = next_season_key(season)
+            successor_data = seasons.get(successor)
+            if (
+                successor_data is None
+                or successor not in pre_import_seasons
+                or successor_data.get("stock_initial_manual")
+                or successor_data.get("stock_initial", 0.0) != 0
+            ):
+                continue
+            totals = self.totals(season)
+            successor_data["stock_initial"] = totals["stock_bags"]
+            successor_data["stock_initial_value_eur"] = totals["stock_value_eur"]
+            to_check.append(successor)
+
     async def async_import_entries(self, imported: list[dict[str, Any]]) -> None:
         """Atomically append a validated batch of historical entries."""
         from copy import deepcopy
@@ -449,6 +502,7 @@ class PelletJournal:
                         f"Import refusé : le stock de la saison {season} "
                         "passerait sous 0 à un moment de l'historique."
                     )
+            self._propagate_carry_over_forward(affected, pre_import_seasons)
             await self._async_save()
         except Exception:
             self._data = snapshot
