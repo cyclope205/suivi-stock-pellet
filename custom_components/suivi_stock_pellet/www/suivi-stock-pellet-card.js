@@ -1406,6 +1406,12 @@
       if (els.achatSeasonSelect) {
         this._populateFormSeasonSelect(els.achatSeasonSelect, todayIso());
       }
+      if (els.maintenanceSeasonSelect) {
+        this._populateFormSeasonSelect(els.maintenanceSeasonSelect, todayIso());
+      }
+      if (els.entretienSeasonSelect) {
+        this._populateFormSeasonSelect(els.entretienSeasonSelect, todayIso());
+      }
 
       var stockBags = Number(totals.stock_bags) || 0;
       this._currentStockBags = stockBags;
