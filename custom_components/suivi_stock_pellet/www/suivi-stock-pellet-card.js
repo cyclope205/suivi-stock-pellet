@@ -51,18 +51,18 @@
     ".stat-text { min-width: 0; }",
     ".stat-label { font-size: 0.68em; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.02em; }",
     ".stat-value { font-size: 1.05em; font-weight: 700; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
-    ".actions { display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }",
-    ".actions button { flex: 0 1 calc(50% - 4px); display: flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 12px; padding: 11px 12px; font-size: 0.92em; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; transition: filter 0.15s ease, transform 0.05s ease; }",
-    ".actions button ha-icon { --mdc-icon-size: 18px; }",
-    ".actions button:hover { filter: brightness(1.06); }",
-    ".actions button:active { transform: scale(0.98); }",
-    ".actions button.secondary { background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: var(--primary-text-color, inherit); }",
-    ".actions button.type-conso:not(.secondary) { background: linear-gradient(135deg, #ff8a80, rgb(239, 83, 80)); color: #fff; }",
-    ".actions button.type-conso.secondary { background: rgba(239, 83, 80, 0.12); color: rgb(239, 83, 80); border: 1px solid rgba(239, 83, 80, 0.35); }",
-    ".actions button.type-achat:not(.secondary) { background: linear-gradient(135deg, #81c784, rgb(102, 187, 106)); color: #fff; }",
-    ".actions button.type-achat.secondary { background: rgba(102, 187, 106, 0.12); color: rgb(102, 187, 106); border: 1px solid rgba(102, 187, 106, 0.35); }",
+    ".actions-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: nowrap; justify-content: center; }",
+    ".actions-row button { flex: 0 1 calc((100% - 16px) / 3); min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 12px; padding: 11px 12px; font-size: 0.92em; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; transition: filter 0.15s ease, transform 0.05s ease; }",
+    ".actions-row button ha-icon { --mdc-icon-size: 18px; }",
+    ".actions-row button:hover { filter: brightness(1.06); }",
+    ".actions-row button:active { transform: scale(0.98); }",
+    ".actions-row button.secondary { background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: var(--primary-text-color, inherit); }",
+    ".actions-row button.type-conso:not(.secondary) { background: linear-gradient(135deg, #ff8a80, rgb(239, 83, 80)); color: #fff; }",
+    ".actions-row button.type-conso.secondary { background: rgba(239, 83, 80, 0.12); color: rgb(239, 83, 80); border: 1px solid rgba(239, 83, 80, 0.35); }",
+    ".actions-row button.type-achat:not(.secondary) { background: linear-gradient(135deg, #81c784, rgb(102, 187, 106)); color: #fff; }",
+    ".actions-row button.type-achat.secondary { background: rgba(102, 187, 106, 0.12); color: rgb(102, 187, 106); border: 1px solid rgba(102, 187, 106, 0.35); }",
     "@keyframes pellet-quick-flash { 0% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.9); } 100% { box-shadow: 0 0 0 14px rgba(239, 83, 80, 0); } }",
-    ".actions button.flash { animation: pellet-quick-flash 0.45s ease-out; }",
+    ".actions-row button.flash { animation: pellet-quick-flash 0.45s ease-out; }",
     ".calendar-tip { background: rgba(15,15,15,0.98); color: #fff; font-size: 0.75em; padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 9999; pointer-events: none; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.65); }",
 ".form { display: none; flex-direction: column; gap: 10px; margin-top: 6px; padding: 14px; border-radius: 14px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".form.visible { display: flex; }",
@@ -124,7 +124,7 @@
     ".history-edit-form-actions button ha-icon { --mdc-icon-size: 16px; display: block; }",
     ".history-delete-btn { background: rgba(239, 83, 80, 0.15) !important; color: rgb(239, 83, 80) !important; }",
     ".history-delete-btn.confirm { background: rgb(239, 83, 80) !important; color: #fff !important; }",
-    ".actions button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }",
+    ".actions-row button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }",
     ".comparison { display: flex; align-items: center; gap: 12px; margin: -4px 0 16px; padding: 10px 12px; border-radius: 12px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); }",
     ".comparison-icon { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(66,165,245,0.18); }",
     ".comparison-icon ha-icon { --mdc-icon-size: 16px; color: rgb(66,165,245); }",
@@ -155,10 +155,10 @@
     ".calendar-cell.entretien { background: rgba(236, 64, 122, 0.85); color: #fff; }",
     ".calendar-dot.maintenance { background: rgb(38, 166, 154); }",
     ".calendar-dot.entretien { background: rgb(236, 64, 122); }",
-    ".actions button.type-maintenance:not(.secondary) { background: linear-gradient(135deg, #4db6ac, rgb(38, 166, 154)); color: #fff; }",
-    ".actions button.type-maintenance.secondary { background: rgba(38, 166, 154, 0.12); color: rgb(38, 166, 154); border: 1px solid rgba(38, 166, 154, 0.35); }",
-    ".actions button.type-entretien:not(.secondary) { background: linear-gradient(135deg, #f06292, rgb(236, 64, 122)); color: #fff; }",
-    ".actions button.type-entretien.secondary { background: rgba(236, 64, 122, 0.12); color: rgb(236, 64, 122); border: 1px solid rgba(236, 64, 122, 0.35); }",
+    ".actions-row button.type-maintenance:not(.secondary) { background: linear-gradient(135deg, #4db6ac, rgb(38, 166, 154)); color: #fff; }",
+    ".actions-row button.type-maintenance.secondary { background: rgba(38, 166, 154, 0.12); color: rgb(38, 166, 154); border: 1px solid rgba(38, 166, 154, 0.35); }",
+    ".actions-row button.type-entretien:not(.secondary) { background: linear-gradient(135deg, #f06292, rgb(236, 64, 122)); color: #fff; }",
+    ".actions-row button.type-entretien.secondary { background: rgba(236, 64, 122, 0.12); color: rgb(236, 64, 122); border: 1px solid rgba(236, 64, 122, 0.35); }",
     ".season-delete-btn { background: none; border: none; color: inherit; opacity: 0.55; cursor: pointer; padding: 4px; display: inline-flex; align-items: center; margin-left: 2px; }",
     ".season-delete-btn:hover { opacity: 1; color: rgb(239, 83, 80); }",
     ".season-delete-btn ha-icon { --mdc-icon-size: 16px; }",
@@ -577,8 +577,6 @@
         els.actionsWrap = actionsWrap;
         card.appendChild(actionsWrap);
 
-        var actions = document.createElement("div");
-        actions.className = "actions";
         var btnConso = document.createElement("button");
         btnConso.type = "button";
         btnConso.className = "type-conso";
@@ -642,16 +640,23 @@
         btnEntretien.appendChild(icon("mdi:broom"));
         btnEntretien.appendChild(document.createTextNode("Entretien"));
 
-        actions.appendChild(btnConso);
+        var actionsRow1 = document.createElement("div");
+        actionsRow1.className = "actions-row";
+        var actionsRow2 = document.createElement("div");
+        actionsRow2.className = "actions-row";
+
+        actionsRow1.appendChild(btnConso);
         els.btnConso = btnConso;
-        actions.appendChild(btnAchat);
-        if (btnQuick) actions.appendChild(btnQuick);
+        actionsRow1.appendChild(btnAchat);
+        if (btnQuick) actionsRow1.appendChild(btnQuick);
         els.btnQuick = btnQuick;
-        actions.appendChild(btnMaintenance);
+        actionsRow2.appendChild(btnMaintenance);
         els.btnMaintenance = btnMaintenance;
-        actions.appendChild(btnEntretien);
+        actionsRow2.appendChild(btnEntretien);
         els.btnEntretien = btnEntretien;
-        actionsWrap.appendChild(actions);
+        actionsWrap.appendChild(actionsRow1);
+        actionsWrap.appendChild(actionsRow2);
+        els.actionsRow2 = actionsRow2;
 
         var formConso = this._buildForm("consumption");
         var formAchat = this._buildForm("purchase");
@@ -679,7 +684,7 @@
         importInput.accept = ".csv,text/csv";
         importInput.style.display = "none";
         actionsWrap.appendChild(importInput);
-        actions.appendChild(importBtn);
+        actionsRow2.appendChild(importBtn);
         els.importBtn = importBtn;
         els.importInput = importInput;
 
