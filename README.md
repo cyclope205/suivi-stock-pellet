@@ -87,12 +87,6 @@ Calendrier des ajouts:
 
 <img width="600" alt="IMG_7477" src="https://github.com/user-attachments/assets/747321f7-a65f-464c-9ecb-fd71fb6361a9" />
 
----
-
-Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance/entretien et nouveaux graphiques :
-
-<img width="600" alt="Vue d'ensemble v1.10.0" src="docs/screenshots/suivi-pellet-overview.png" />
-
 
 
 ## Fonctionnalités
