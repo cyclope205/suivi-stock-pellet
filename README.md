@@ -95,9 +95,9 @@ Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance
 
 ---
 
-Graphiques coût maintenance / entretien par saison :
+Graphique de coût par saison (maintenance, entretien, achat, total) — désormais un seul graphique à onglets :
 
-<img width="600" alt="Graphiques coût maintenance et entretien" src="docs/screenshots/09dcf9fa-c531-4bd6-b4bc-c5875db12b44-FullSizeRender.jpeg" />
+<img width="600" alt="Graphique de coût à onglets - Maintenance" src="docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg" />
 
 
 
