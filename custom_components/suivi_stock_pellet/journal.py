@@ -18,6 +18,8 @@ from .const import (
     DEFAULT_BAG_WEIGHT_KG,
     DEFAULT_CALORIFIC_VALUE,
     ENTRY_TYPE_CONSUMPTION,
+    ENTRY_TYPE_ENTRETIEN,
+    ENTRY_TYPE_MAINTENANCE,
     ENTRY_TYPE_PURCHASE,
     STORAGE_VERSION,
 )
@@ -308,7 +310,24 @@ class PelletJournal:
         calorific_value: float | None = None,
         unit: str = "bag",
         qty_kg: float | None = None,
+        note: str | None = None,
     ) -> None:
+        if entry_type in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
+            # Maintenance/entretien entries track a cost and an optional
+            # note, not a pellet quantity - they never participate in the
+            # stock/bag math (purchase/consumption only), only in
+            # totals()'s maintenance_eur/entretien_eur sums.
+            if price_eur is None or price_eur < 0:
+                raise ValueError("Le cout doit etre positif ou nul")
+            stored = {
+                "type": entry_type,
+                "date": entry_date,
+                "price_eur": float(price_eur),
+                "note": note,
+            }
+            self._season_entries(season).append(stored)
+            await self._async_save()
+            return
         if unit == "kg":
             if qty_kg is None or qty_kg <= 0:
                 raise ValueError("La quantité en kg doit être strictement positive")
@@ -535,6 +554,7 @@ class PelletJournal:
         new_season: str | None = None,
         unit: str | None = None,
         qty_kg: float | None = None,
+        note: str | None = None,
     ) -> dict[str, Any] | None:
         entries = self._season_entries(season)
         if index < 0 or index >= len(entries):
@@ -546,6 +566,29 @@ class PelletJournal:
             return None
         entry = entries[index]
         updated = dict(entry)
+
+        if entry["type"] in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
+            # No qty/unit concept for these - only cost, date and note.
+            if entry_date is not None:
+                date.fromisoformat(entry_date)
+                updated["date"] = entry_date
+            if price_eur is not None:
+                updated["price_eur"] = price_eur
+            if note is not None:
+                updated["note"] = note
+            target_season = (
+                new_season
+                if (new_season is not None and new_season != season)
+                else season
+            )
+            entry.clear()
+            entry.update(updated)
+            if target_season != season:
+                entries.pop(index)
+                self._season_entries(target_season).append(entry)
+            self._prune_if_empty(season)
+            await self._async_save()
+            return entry
 
         effective_unit = unit if unit is not None else _entry_unit(entry)
         if effective_unit not in ("bag", "kg"):
@@ -809,6 +852,31 @@ class PelletJournal:
             del seasons[s]
         await self._async_save()
 
+    async def async_delete_season(self, season: str) -> bool:
+        """Permanently delete a season and every entry it contains.
+
+        Unlike _prune_if_empty (which only ever removes a season once
+        it has naturally become empty on its own), this is an explicit,
+        user-requested deletion that can remove a season with real
+        entries still in it - used by the card's season-selector trash
+        button.
+
+        Does not retroactively fix a successor season's stock_initial
+        if that successor had already carried over stock from this
+        season before the deletion - the same limitation already
+        documented on _carry_over_stock/_propagate_carry_over_forward
+        (a season's stock_initial is only ever computed once, at first
+        touch, and not automatically revisited afterwards). The caller
+        (the delete_season service) is expected to warn the user about
+        this when a following season already exists.
+        """
+        seasons = self._data.get("seasons", {})
+        if season not in seasons:
+            return False
+        del seasons[season]
+        await self._async_save()
+        return True
+
     async def async_set_stock_initial(self, season: str, value: float) -> None:
         """Manually (re)set a season's starting stock.
 
@@ -854,6 +922,8 @@ class PelletJournal:
         purchased = purchased_kg / default_bag_weight_kg
         consumed = consumed_kg / default_bag_weight_kg
         spent = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_PURCHASE)
+        maintenance_eur = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_MAINTENANCE)
+        entretien_eur = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_ENTRETIEN)
         consumed_kwh = sum(_entry_qty_kg(e, default_bag_weight_kg) * (e.get("calorific_value") or default_calorific_value) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         days = _heating_days(entries)
         stock_initial_value = self._effective_stock_initial_value(season)
@@ -894,6 +964,8 @@ class PelletJournal:
                 2,
             ),
             "spent_eur": round(spent, 2),
+            "maintenance_eur": round(maintenance_eur, 2),
+            "entretien_eur": round(entretien_eur, 2),
             "days_logged": days,
             "consumed_kg": round(consumed_kg, 2),
             "purchased_kg": round(purchased_kg, 2),
