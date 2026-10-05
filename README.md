@@ -87,6 +87,18 @@ Calendrier des ajouts:
 
 <img width="600" alt="IMG_7477" src="https://github.com/user-attachments/assets/747321f7-a65f-464c-9ecb-fd71fb6361a9" />
 
+---
+
+Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance/entretien :
+
+<img width="600" alt="Vue d'ensemble v1.10.0" src="docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
+
+---
+
+Graphiques coût maintenance / entretien par saison :
+
+<img width="600" alt="Graphiques coût maintenance et entretien" src="docs/screenshots/09dcf9fa-c531-4bd6-b4bc-c5875db12b44-FullSizeRender.jpeg" />
+
 
 
 ## Fonctionnalités
