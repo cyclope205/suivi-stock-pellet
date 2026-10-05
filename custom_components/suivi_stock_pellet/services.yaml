@@ -172,6 +172,12 @@ edit_entry:
       required: false
       selector:
         date: {}
+    note:
+      name: Note
+      description: "Nouvelle note (facultative). Pertinent surtout pour les saisies de maintenance ou d'entretien ; inchangee si absente."
+      required: false
+      selector:
+        text: {}
     new_season:
       name: Nouvelle saison
       description: Deplace deliberement la saisie vers cette saison, au format AAAA-AAAA (facultatif, sinon la saisie reste dans sa saison actuelle meme si la date change).
@@ -221,3 +227,83 @@ set_stock_initial:
           min: 0
           max: 10000
           mode: box
+
+delete_season:
+  name: Supprimer une saison
+  description: Supprime definitivement une saison et toutes ses saisies (achats, consommations, entretien, maintenance). Ne corrige pas retroactivement le stock reporte d'une saison suivante qui aurait deja herite du stock de la saison supprimee.
+  fields:
+    season:
+      name: Saison
+      description: Saison a supprimer, au format AAAA-AAAA (ex. 2024-2025).
+      required: true
+      example: "2024-2025"
+      selector:
+        text: {}
+
+log_maintenance:
+  name: Enregistrer une maintenance
+  description: Ajoute une entree de frais de maintenance au journal (reparation, piece, intervention...). La saison est determinee automatiquement a partir de la date, sauf si une saison est precisee explicitement.
+  fields:
+    price_eur:
+      name: Cout
+      description: Cout de la maintenance en euros.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    date:
+      name: Date
+      description: Date de la maintenance (par defaut aujourd'hui).
+      required: false
+      selector:
+        date: {}
+    season:
+      name: Saison
+      description: Force la saison de destination, au format AAAA-AAAA (ex. 2024-2025), si elle doit differer de celle deduite de la date (facultatif).
+      required: false
+      example: "2024-2025"
+      selector:
+        text: {}
+    note:
+      name: Note
+      description: Note libre pour se rappeler ce qui a ete fait (facultatif).
+      required: false
+      selector:
+        text: {}
+
+log_entretien:
+  name: Enregistrer un entretien
+  description: Ajoute une entree de frais d'entretien au journal (ramonage, nettoyage, revision...). La saison est determinee automatiquement a partir de la date, sauf si une saison est precisee explicitement.
+  fields:
+    price_eur:
+      name: Cout
+      description: Cout de l'entretien en euros.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    date:
+      name: Date
+      description: Date de l'entretien (par defaut aujourd'hui).
+      required: false
+      selector:
+        date: {}
+    season:
+      name: Saison
+      description: Force la saison de destination, au format AAAA-AAAA (ex. 2024-2025), si elle doit differer de celle deduite de la date (facultatif).
+      required: false
+      example: "2024-2025"
+      selector:
+        text: {}
+    note:
+      name: Note
+      description: Note libre pour se rappeler ce qui a ete fait (facultatif).
+      required: false
+      selector:
+        text: {}
