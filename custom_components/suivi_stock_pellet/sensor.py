@@ -286,13 +286,13 @@ class PelletDaysUsedSensor(_BasePelletSensor):
     _attr_native_unit_of_measurement = "j"
 
     def __init__(self, entry: ConfigEntry, journal: PelletJournal) -> None:
-        super().__init__(entry, journal, "jours_utilisation", "Jours d'utilisation")
+        super().__init__(entry, journal, "jours_utilisation", "Jours de suivi")
 
     @property
     def native_value(self) -> int:
         return self._journal.totals(
             self._season, as_of_date=date_cls.today().isoformat()
-        )["days_logged"]
+        )["real_days_logged"]
 
     @property
     def extra_state_attributes(self) -> dict:
