@@ -161,8 +161,11 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
     header_idx,months=_find_header(rows)
     season=_season(default_season) if default_season else _find_season(rows,header_idx)
     start_year=int(season[:4])
+    marker=None
+    for i,row in enumerate(rows):
+        if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
     entries=[]
-    for row in rows[header_idx+1:]:
+    for row in rows[header_idx+1:(marker if marker is not None else len(rows))]:
         first=str(row[0] if row else "").strip()
         if not re.fullmatch(r"\d{1,2}",first): continue
         day=int(first)
@@ -175,9 +178,6 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
             try: d=date(year,month,day).isoformat()
             except ValueError as err: raise CsvImportError(f"Date impossible : {day:02d}/{month:02d}") from err
             entries.append({"type":"consumption","qty_bags":qty,"date":d,"price_eur":None,"bag_weight_kg":None,"calorific_value":None,"season":season})
-    marker=None
-    for i,row in enumerate(rows):
-        if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
     if marker is not None:
         header=None
         for i in range(marker+1,min(marker+6,len(rows))):
