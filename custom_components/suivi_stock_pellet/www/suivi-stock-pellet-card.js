@@ -33,6 +33,8 @@
     ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }",
     ".header-title { display: flex; align-items: center; gap: 8px; }",
     ".header-title ha-icon { color: var(--pellet-amber); }",
+  ".header-right { display: flex; align-items: center; gap: 8px; }",
+  ".header-camera { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--secondary-background-color, rgba(127,127,127,0.15)); cursor: pointer; }",
     ".season { font-size: 0.68em; font-weight: 600; opacity: 0.85; background: var(--secondary-background-color, rgba(127,127,127,0.15)); padding: 4px 10px; border-radius: 999px; border: none; color: inherit; -webkit-appearance: none; appearance: none; cursor: pointer; font-family: inherit; }",
     ".season option { color: initial; }",
     ".season-note { font-size: 0.72em; opacity: 0.7; text-align: right; margin: -8px 0 12px; }",
@@ -219,6 +221,8 @@
     show_achat_chart: true,
     show_cost_total_chart: true,
     show_csv_import: true,
+    show_camera: false,
+    camera_card: null,
   };
 
   var TOGGLE_FIELDS = [
@@ -234,7 +238,8 @@
     { key: "show_entretien_chart", label: "Graphique coût entretien par saison" },
     { key: "show_achat_chart", label: "Graphique coût achat par saison" },
     { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" },
-    { key: "show_csv_import", label: "Bouton Importer CSV achats/conso" }
+    { key: "show_csv_import", label: "Bouton Importer CSV achats/conso" },
+    { key: "show_camera", label: "Afficher la vignette caméra dans l'en-tête" }
   ];
 
   var TOGGLE_GROUPS = [
@@ -242,7 +247,8 @@
     { key: "group_cost_chart", title: "Graphique de coût par saison", fields: ["show_price_chart", "show_maintenance_chart", "show_entretien_chart", "show_achat_chart", "show_cost_total_chart"] },
     { key: "group_consumption_chart", title: "Graphique de consommation", fields: ["show_monthly_chart"] },
     { key: "group_history_calendar", title: "Historique & calendrier", fields: ["show_history", "show_calendar"] },
-    { key: "group_actions", title: "Saisie & actions", fields: ["show_actions", "show_csv_import"] }
+    { key: "group_actions", title: "Saisie & actions", fields: ["show_actions", "show_csv_import"] },
+    { key: "group_camera", title: "Caméra", fields: ["show_camera"] }
   ];
 
   function findEntity(hass, key) {
@@ -339,7 +345,7 @@
     static getConfigForm() {
       return {
         schema: [
-        ...TOGGLE_GROUPS.map(function (group) {
+        ...TOGGLE_GROUPS.filter(function (group) { return group.key !== "group_camera"; }).map(function (group) {
           return {
             name: group.key,
             type: "expandable",
@@ -354,9 +360,19 @@
             }),
           };
         }),
+        {
+          name: "group_camera",
+          type: "expandable",
+          title: "Caméra",
+          expanded: true,
+          schema: [
+            { name: "show_camera", default: DEFAULT_CONFIG.show_camera, selector: { boolean: {} } },
+            { name: "camera_card", default: DEFAULT_CONFIG.camera_card, selector: { object: {} } }
+          ]
+        }
       ],      computeLabel: function (schema) {
           var field = TOGGLE_FIELDS.find(function (item) { return item.key === schema.name; });
-          return field ? field.label : schema.name;
+          if (schema.name === "camera_card") return "Configuration de la carte caméra (type, entité...)"; return field ? field.label : schema.name;
         }
       };
     }
@@ -369,6 +385,8 @@
       this._config = mergeConfig(config);
       this._entryUnit = "bag";
       this._entryId = null;
+    this._cameraCardEl = null;
+    this._cameraCardLoading = false;
       this._built = false;
       if (this._hass) {
         this._ensureDom();
@@ -402,6 +420,7 @@
       }
       this._ensureDom();
       this._render();
+    this._ensureCameraCard();
     }
 
     getCardSize() {
@@ -482,8 +501,17 @@
       });
       seasonWrapHeader.appendChild(season);
       seasonWrapHeader.appendChild(seasonDeleteBtn);
+      var headerRight = document.createElement("div");
+      headerRight.className = "header-right";
+      headerRight.appendChild(seasonWrapHeader);
+      var cameraThumb = null;
+      if (cfg.show_camera && cfg.camera_card && cfg.camera_card.type) {
+        cameraThumb = document.createElement("div");
+        cameraThumb.className = "header-camera";
+        headerRight.appendChild(cameraThumb);
+      }
       header.appendChild(titleWrap);
-      header.appendChild(seasonWrapHeader);
+      header.appendChild(headerRight);
       card.appendChild(header);
 
       var seasonNote = document.createElement("div");
@@ -513,7 +541,8 @@
         seasonNote: seasonNote,
         stock: stock,
         stockSub: stockSub,
-        stockAlert: stockAlert
+        stockAlert: stockAlert,
+        cameraThumb: cameraThumb
       };
 
       if (cfg.show_comparison) {
@@ -1008,6 +1037,7 @@
       }
 
       this._els = els;
+    this._ensureCameraCard();
     }
 
     _watchResize(container, onResize) {
@@ -1028,6 +1058,38 @@
         });
       });
       ro.observe(container);
+    }
+
+    _ensureCameraCard() {
+      var cfg = this._config || DEFAULT_CONFIG;
+      if (!cfg.show_camera || !cfg.camera_card || !cfg.camera_card.type) return;
+      if (!this._els || !this._els.cameraThumb) return;
+      var self = this;
+      if (this._cameraCardEl) {
+        if (this._hass) this._cameraCardEl.hass = this._hass;
+        return;
+      }
+      if (this._cameraCardLoading) return;
+      if (typeof window.loadCardHelpers !== "function") return;
+      this._cameraCardLoading = true;
+      window.loadCardHelpers().then(function (helpers) {
+        self._cameraCardLoading = false;
+        if (self._cameraCardEl) return;
+        if (!self._els || !self._els.cameraThumb) return;
+        try {
+          var el = helpers.createCardElement(cfg.camera_card);
+          el.style.cssText = "width:100%;height:100%;display:block;";
+          if (self._hass) el.hass = self._hass;
+          self._els.cameraThumb.innerHTML = "";
+          self._els.cameraThumb.appendChild(el);
+          self._cameraCardEl = el;
+        } catch (err) {
+          self._els.cameraThumb.textContent = "?";
+          self._els.cameraThumb.title = "Configuration caméra invalide : " + ((err && err.message) || String(err));
+        }
+      }).catch(function () {
+        self._cameraCardLoading = false;
+      });
     }
 
     _buildForm(kind) {
