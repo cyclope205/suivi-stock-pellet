@@ -822,6 +822,12 @@
         card.appendChild(chartSection);
         els.chart = chart;
 
+      self._watchResize(chart, function () {
+        if (self._lastChartData) {
+          self._renderChart(self._lastChartData.entries, self._lastChartData.startMonth, self._lastChartData.avgPricePerBag);
+        }
+      });
+
         this._chartVisible = { qty: true, cost: true };
 
         var toggleSeries = function (key, btn) {
@@ -892,6 +898,10 @@
         els.costChart = costChart;
         els.priceChart = costChart;
         els.priceTitle = costTitleText;
+
+      self._watchResize(costChart, function () {
+        self._renderActiveCostChart();
+      });
 
         if (!this._activeCostTab || !costTabButtons[this._activeCostTab]) {
           this._activeCostTab = costTabDefs[0].key;
@@ -998,6 +1008,26 @@
       }
 
       this._els = els;
+    }
+
+    _watchResize(container, onResize) {
+      if (!container || container.__pelletResizeObserved) return;
+      container.__pelletResizeObserved = true;
+      if (typeof ResizeObserver === "undefined") return;
+      var lastW = 0;
+      var pending = false;
+      var ro = new ResizeObserver(function (entries) {
+        var w = Math.round(entries[0].contentRect.width);
+        if (w <= 0 || Math.abs(w - lastW) < 2) return;
+        lastW = w;
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function () {
+          pending = false;
+          onResize();
+        });
+      });
+      ro.observe(container);
     }
 
     _buildForm(kind) {
