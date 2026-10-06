@@ -600,7 +600,7 @@
         els.statConsomme = addStat(stats, "Consommé", "mdi:fire", COLORS.red);
         els.statEnergie = addStat(stats, "Énergie", "mdi:lightning-bolt", COLORS.purple);
         els.statDepense = addStat(stats, "Dépense pellet", "mdi:currency-eur", COLORS.green);
-        els.statJours = addStat(stats, "Jours chauffés", "mdi:calendar-range", COLORS.blue);
+        els.statJours = addStat(stats, "Jours de suivi", "mdi:calendar-range", COLORS.blue);
         card.appendChild(stats);
       }
 
@@ -1602,6 +1602,7 @@
       if (!Number.isFinite(purchasedKg)) purchasedKg = purchasedBags * bagWeight;
       var spentEur = Number(totals.spent_eur) || 0;
       var daysLogged = Number(totals.days_logged) || 0;
+      var realDaysLogged = Number(totals.real_days_logged) || 0;
 
       var stockKg = Number(totals.stock_kg);
       if (!Number.isFinite(stockKg)) stockKg = stockBags * bagWeight;
@@ -1628,7 +1629,7 @@
         els.statConsomme.textContent = entryUnit === "kg" ? fmt(consumedKg, 0) + " kg" : fmt(consumedBags, 1) + " sac(s)";
         els.statEnergie.textContent = fmt(consommeKwh, 1) + " kWh";
         els.statDepense.textContent = fmt(spentEur, 2) + " €";
-        els.statJours.textContent = String(daysLogged);
+        els.statJours.textContent = String(realDaysLogged);
       }
 
       if (cfg.show_cost_stats) {
