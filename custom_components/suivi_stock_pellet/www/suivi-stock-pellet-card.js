@@ -34,7 +34,7 @@
     ".header-title { display: flex; align-items: center; gap: 8px; }",
     ".header-title ha-icon { color: var(--pellet-amber); }",
   ".header-right { display: flex; align-items: center; gap: 8px; }",
-  ".header-camera { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--secondary-background-color, rgba(127,127,127,0.15)); cursor: pointer; }",
+  ".header-camera { width: clamp(56px, 20vw, 96px); height: clamp(56px, 20vw, 96px); border-radius: 12px; overflow: hidden; flex-shrink: 0; background: var(--secondary-background-color, rgba(127,127,127,0.15)); cursor: pointer; }",
     ".season { font-size: 0.68em; font-weight: 600; opacity: 0.85; background: var(--secondary-background-color, rgba(127,127,127,0.15)); padding: 4px 10px; border-radius: 999px; border: none; color: inherit; -webkit-appearance: none; appearance: none; cursor: pointer; font-family: inherit; }",
     ".season option { color: initial; }",
     ".season-note { font-size: 0.72em; opacity: 0.7; text-align: right; margin: -8px 0 12px; }",
