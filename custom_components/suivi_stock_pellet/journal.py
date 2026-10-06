@@ -56,6 +56,27 @@ def _heating_days(entries: list[dict[str, Any]]) -> int:
     return total
 
 
+def _real_days(entries: list[dict[str, Any]]) -> int:
+    """Real elapsed calendar days from the first consumption entry to the last.
+
+    Unlike _heating_days (which rounds up to full months to keep cost/day and
+    cost/month stable), this reflects the actual number of days since
+    tracking started, advancing by one every calendar day regardless of
+    whether a new entry was logged. Used for display only, never for cost
+    calculations.
+    """
+    conso_dates = sorted(
+        e["date"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION
+    )
+    if not conso_dates:
+        return 0
+    first = date.fromisoformat(conso_dates[0])
+    last = date.fromisoformat(conso_dates[-1])
+    today = date.today()
+    last = max(last, today)
+    return (last - first).days + 1
+
+
 def season_for_date(d: date, season_start_month: int) -> str:
     """Return the season key (e.g. '2025-2026') a given date belongs to."""
     if d.month >= season_start_month:
@@ -926,6 +947,7 @@ class PelletJournal:
         entretien_eur = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_ENTRETIEN)
         consumed_kwh = sum(_entry_qty_kg(e, default_bag_weight_kg) * (e.get("calorific_value") or default_calorific_value) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         days = _heating_days(entries)
+        real_days = _real_days(entries)
         stock_initial_value = self._effective_stock_initial_value(season)
         # Moyenne ponderee sur le stock reporte + les achats de la
         # saison, pas seulement les achats de la saison : sans stock_initial
@@ -967,6 +989,7 @@ class PelletJournal:
             "maintenance_eur": round(maintenance_eur, 2),
             "entretien_eur": round(entretien_eur, 2),
             "days_logged": days,
+            "real_days_logged": real_days,
             "consumed_kg": round(consumed_kg, 2),
             "purchased_kg": round(purchased_kg, 2),
             "stock_kg": round(stock_kg, 2),
