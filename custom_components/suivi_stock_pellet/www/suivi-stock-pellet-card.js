@@ -2148,7 +2148,8 @@
         return;
       }
 
-      var width = 300;
+      var __measuredW = Math.round((container.getBoundingClientRect ? container.getBoundingClientRect().width : 0) || container.clientWidth || 0);
+      var width = __measuredW > 60 ? __measuredW : 300;
       var height = 78;
       var padX = 12;
       var padTop = singleSeries ? 16 : 10;
@@ -2295,7 +2296,8 @@
         return;
       }
 
-      var width = 300;
+      var __measuredW = Math.round((container.getBoundingClientRect ? container.getBoundingClientRect().width : 0) || container.clientWidth || 0);
+      var width = __measuredW > 60 ? __measuredW : 300;
       var height = 90;
       var padX = 24;
       var padTop = 22;
@@ -2446,7 +2448,8 @@
         return;
       }
 
-      var width = 300;
+      var __measuredW = Math.round((container.getBoundingClientRect ? container.getBoundingClientRect().width : 0) || container.clientWidth || 0);
+      var width = __measuredW > 60 ? __measuredW : 300;
       var height = 90;
       var padX = 24;
       var padTop = 22;
