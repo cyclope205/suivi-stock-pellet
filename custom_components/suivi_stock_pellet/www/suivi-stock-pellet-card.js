@@ -30,11 +30,11 @@
 
   var STYLE = [
     "ha-card { padding: 18px 18px 14px; border-radius: 18px; overflow: hidden; position: relative; }",
-    ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }",
+    ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; flex-wrap: wrap; row-gap: 8px; justify-content: space-between; align-items: center; }",
     ".header-title { display: flex; align-items: center; gap: 8px; }",
     ".header-title ha-icon { color: var(--pellet-amber); }",
-  ".header-right { display: flex; align-items: center; gap: 8px; }",
-  ".header-camera { width: clamp(56px, 20vw, 96px); height: clamp(56px, 20vw, 96px); border-radius: 12px; overflow: hidden; flex-shrink: 0; background: var(--secondary-background-color, rgba(127,127,127,0.15)); cursor: pointer; }",
+  ".header-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }",
+  ".header-camera { width: 56px; height: 56px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: var(--secondary-background-color, rgba(127,127,127,0.15)); cursor: pointer; }",
     ".season { font-size: 0.68em; font-weight: 600; opacity: 0.85; background: var(--secondary-background-color, rgba(127,127,127,0.15)); padding: 4px 10px; border-radius: 999px; border: none; color: inherit; -webkit-appearance: none; appearance: none; cursor: pointer; font-family: inherit; }",
     ".season option { color: initial; }",
     ".season-note { font-size: 0.72em; opacity: 0.7; text-align: right; margin: -8px 0 12px; }",
@@ -509,6 +509,7 @@
         cameraThumb = document.createElement("div");
         cameraThumb.className = "header-camera";
         headerRight.appendChild(cameraThumb);
+          self._watchCameraSize(cameraThumb);
       }
       header.appendChild(titleWrap);
       header.appendChild(headerRight);
@@ -1090,6 +1091,24 @@
       }).catch(function () {
         self._cameraCardLoading = false;
       });
+    }
+
+    _watchCameraSize(el) {
+      if (!el || typeof ResizeObserver === "undefined") return;
+      var self = this;
+      var apply = function () {
+        var w = self.getBoundingClientRect().width || self.offsetWidth || 300;
+        var size = Math.max(56, Math.min(96, Math.round(w * 0.22)));
+        el.style.width = size + "px";
+        el.style.height = size + "px";
+      };
+      apply();
+      if (this._cameraResizeObserver) return;
+      var ro = new ResizeObserver(function () {
+        apply();
+      });
+      ro.observe(this);
+      this._cameraResizeObserver = ro;
     }
 
     _buildForm(kind) {
