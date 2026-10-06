@@ -169,6 +169,8 @@
     ":host { display: block; }",
     ".row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".row:last-child { border-bottom: none; }",
+    ".group-title { font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; margin: 18px 0 6px; }",
+    ".group-title:first-child { margin-top: 0; }",
     ".row-label { font-size: 0.95em; }",
     ".row-sub { font-size: 0.78em; opacity: 0.65; margin-top: 2px; }",
     ".unit-label { font-size: 0.95em; margin: 10px 0 6px; }",
@@ -233,6 +235,14 @@
     { key: "show_achat_chart", label: "Graphique coût achat par saison" },
     { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" },
     { key: "show_csv_import", label: "Bouton Importer CSV achats/conso" }
+  ];
+
+  var TOGGLE_GROUPS = [
+    { key: "group_season_tiles", title: "Indicateurs & tuiles de saison", fields: ["show_stats", "show_cost_stats", "show_comparison"] },
+    { key: "group_cost_chart", title: "Graphique de coût par saison", fields: ["show_price_chart", "show_maintenance_chart", "show_entretien_chart", "show_achat_chart", "show_cost_total_chart"] },
+    { key: "group_consumption_chart", title: "Graphique de consommation", fields: ["show_monthly_chart"] },
+    { key: "group_history_calendar", title: "Historique & calendrier", fields: ["show_history", "show_calendar"] },
+    { key: "group_actions", title: "Saisie & actions", fields: ["show_actions", "show_csv_import"] }
   ];
 
   function findEntity(hass, key) {
@@ -329,15 +339,22 @@
     static getConfigForm() {
       return {
         schema: [
-          ...TOGGLE_FIELDS.map(function (field) {
-            return {
-              name: field.key,
-              default: DEFAULT_CONFIG[field.key],
-              selector: { boolean: {} }
-            };
-          })
-        ],
-        computeLabel: function (schema) {
+        ...TOGGLE_GROUPS.map(function (group) {
+          return {
+            name: group.key,
+            type: "expandable",
+            title: group.title,
+            expanded: true,
+            schema: group.fields.map(function (key) {
+              return {
+                name: key,
+                default: DEFAULT_CONFIG[key],
+                selector: { boolean: {} },
+              };
+            }),
+          };
+        }),
+      ],      computeLabel: function (schema) {
           var field = TOGGLE_FIELDS.find(function (item) { return item.key === schema.name; });
           return field ? field.label : schema.name;
         }
@@ -2564,27 +2581,34 @@
       this.appendChild(unitRow);
       this._syncUnitButtons();
 
-      TOGGLE_FIELDS.forEach(function (field) {
-        var row = document.createElement("div");
-        row.className = "row";
-
-        var labelWrap = document.createElement("div");
-        var label = document.createElement("div");
-        label.className = "row-label";
-        label.textContent = field.label;
-        labelWrap.appendChild(label);
-
-        var toggle = document.createElement("ha-switch");
-        toggle.checked = !!self._config[field.key];
-        toggle.addEventListener("change", function (ev) {
-          self._config[field.key] = ev.target.checked;
-          self._emitConfigChanged();
+      TOGGLE_GROUPS.forEach(function (group) {
+        var groupTitle = document.createElement("div");
+        groupTitle.className = "group-title";
+        groupTitle.textContent = group.title;
+        self.appendChild(groupTitle);
+        group.fields.forEach(function (key) {
+          var field = TOGGLE_FIELDS.find(function (item) {
+            return item.key === key;
+          });
+          if (!field) return;
+          var row = document.createElement("div");
+          row.className = "row";
+          var labelWrap = document.createElement("div");
+          var label = document.createElement("div");
+          label.className = "row-label";
+          label.textContent = field.label;
+          labelWrap.appendChild(label);
+          var toggle = document.createElement("ha-switch");
+          toggle.checked = !!self._config[field.key];
+          toggle.addEventListener("change", function (ev) {
+            self._config[field.key] = ev.target.checked;
+            self._emitConfigChanged();
+          });
+          row.appendChild(labelWrap);
+          row.appendChild(toggle);
+          self.appendChild(row);
+          self._switches[field.key] = toggle;
         });
-
-        row.appendChild(labelWrap);
-        row.appendChild(toggle);
-        self.appendChild(row);
-        self._switches[field.key] = toggle;
       });
     }
 
