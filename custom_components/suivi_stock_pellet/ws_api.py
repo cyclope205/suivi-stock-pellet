@@ -56,13 +56,27 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
     )
     season = msg.get("season") or season_for_date(date_cls.today(), start_month)
 
+    # Bound the "Jours de suivi" count (real_days_logged) to this season's
+    # own end when it is a CLOSED season being browsed via the card's season
+    # selector - otherwise journal.totals() has no as_of_date to work with
+    # and _real_days() used to always extend all the way to the real
+    # calendar today(), making a long-finished season's day count keep
+    # climbing forever instead of staying frozen at its real length. The
+    # live current season keeps using today, unchanged.
+    real_current_season = season_for_date(date_cls.today(), start_month)
+    if season == real_current_season:
+        as_of_date = date_cls.today().isoformat()
+    else:
+        entry_dates = [e["date"] for e in journal.entries(season)]
+        as_of_date = max(entry_dates) if entry_dates else None
+
     connection.send_result(
         msg["id"],
         {
             "season": season,
             "seasons": journal.seasons(),
             "entries": journal.entries(season),
-            "totals": journal.totals(season),
+            "totals": journal.totals(season, as_of_date=as_of_date),
             "start_month": start_month,
         },
     )
