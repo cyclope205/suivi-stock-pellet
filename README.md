@@ -103,6 +103,14 @@ Graphique de coût par saison (maintenance, entretien, achat, total) — désorm
 |---|---|
 | ![Achat](docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg) | ![Total](docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg) |
 
+Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
+
+| Déplié | Replié |
+|---|---|
+| ![Bloc déplié](docs/screenshots/screenshot-1791384983624-52154cbe.png) | ![Bloc replié](docs/screenshots/screenshot-1791384969974-6a7533d1.png) |
+
+---
+
 ## Fonctionnalités
 
 - Suivi du stock en temps réel (kg et sacs), calculé à partir d'un journal d'achats/consommations — jamais de compteur qui dérive.
@@ -191,6 +199,8 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_comparison` | Comparaison avec la saison précédente à date égale |
 
 Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
+
+Le titre "Évolution de la consommation" est cliquable : il replie ou déplie en un seul geste tout le bas de la carte (graphique mensuel, graphique de coût par saison, historique des dernières saisies et calendrier des ajouts). Pratique pour réduire la hauteur de la carte sur un tableau de bord en vue portrait (tablette, par exemple) sans perdre l'accès aux informations, disponibles en un clic. L'état plié/déplié est mémorisé dans le navigateur et survit aux rechargements de page et aux redémarrages de Home Assistant.
 
 Les formulaires Achat/Consommation de la carte acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent aussi un champ "Saison" optionnel (AAAA-AAAA) pour rattacher la saisie à une saison différente de celle déduite de la date (ex. un achat fait en avance pour la saison suivante), et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
 
