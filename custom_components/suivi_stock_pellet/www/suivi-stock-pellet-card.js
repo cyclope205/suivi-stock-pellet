@@ -573,7 +573,7 @@
         els.statConsomme = addStat(stats, "Consommé", "mdi:fire", COLORS.red);
         els.statEnergie = addStat(stats, "Énergie", "mdi:lightning-bolt", COLORS.purple);
         els.statDepense = addStat(stats, "Dépense pellet", "mdi:currency-eur", COLORS.green);
-        els.statJours = addStat(stats, "Jours de suivi", "mdi:calendar-range", COLORS.blue);
+        els.statJours = addStat(stats, "Jours chauffés", "mdi:calendar-range", COLORS.blue);
         card.appendChild(stats);
       }
 
@@ -1551,7 +1551,7 @@
         els.statConsomme.textContent = entryUnit === "kg" ? fmt(consumedKg, 0) + " kg" : fmt(consumedBags, 1) + " sac(s)";
         els.statEnergie.textContent = fmt(consommeKwh, 1) + " kWh";
         els.statDepense.textContent = fmt(spentEur, 2) + " €";
-        els.statJours.textContent = String(realDaysLogged);
+        els.statJours.textContent = String(daysLogged);
       }
 
       if (cfg.show_cost_stats) {
