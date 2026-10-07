@@ -80,6 +80,9 @@
     ".undo-row button:hover { color: var(--primary-text-color, inherit); }",
     ".chart-section { margin-top: 14px; }",
     ".chart-title { display: flex; align-items: center; gap: 6px; font-weight: 700; opacity: 0.85; margin-bottom: 10px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; }",
+    ".chart-title.collapsible { cursor: pointer; user-select: none; }",
+    ".chart-title-toggle { --mdc-icon-size: 18px; opacity: 0.7; transition: transform 0.15s ease; margin-left: auto; }",
+    ".card-bottom-collapsible.collapsed { display: none; }",
     ".chart-title ha-icon { --mdc-icon-size: 15px; color: var(--pellet-amber); }",
     ".chart { display: flex; align-items: flex-end; gap: 4px; height: 90px; padding: 0 2px 8px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }",
@@ -103,9 +106,7 @@
     ".chart-tab { border: none; border-radius: 999px; padding: 5px 12px; font-size: 0.75em; font-weight: 600; cursor: pointer; background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: inherit; font-family: inherit; opacity: 0.75; }",
     ".chart-tab.active { background: var(--pellet-amber); color: #1c1c1c; opacity: 1; }",
     ".history { margin-top: 12px; font-size: 0.85em; }",
-    ".history-title { font-weight: 700; opacity: 0.85; margin-bottom: 6px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }",
-    ".history-toggle { --mdc-icon-size: 18px; opacity: 0.7; transition: transform 0.15s ease; }",
-    ".history.collapsed .history-list { display: none; }",
+    ".history-title { font-weight: 700; opacity: 0.85; margin-bottom: 6px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; }",
     ".history-list { max-height: 260px; overflow-y: auto; }",
     ".history-row { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.15)); }",
     ".history-row:last-child { border-bottom: none; }",
@@ -790,6 +791,10 @@
 
       }
 
+      var bottomWrap = document.createElement("div");
+      bottomWrap.className = "card-bottom-collapsible";
+      card.appendChild(bottomWrap);
+
       if (cfg.show_monthly_chart) {
         var chartSection = document.createElement("div");
         chartSection.className = "chart-section";
@@ -821,10 +826,19 @@
         chartLegend.appendChild(qtyBtn);
         chartLegend.appendChild(costBtn);
 
+        chartTitle.classList.add("collapsible");
+        var bottomToggleIcon = icon("mdi:chevron-up");
+        bottomToggleIcon.classList.add("chart-title-toggle");
+        chartTitle.appendChild(bottomToggleIcon);
+        chartTitle.addEventListener("click", function () {
+          var collapsed = bottomWrap.classList.toggle("collapsed");
+          bottomToggleIcon.setAttribute("icon", collapsed ? "mdi:chevron-down" : "mdi:chevron-up");
+        });
+
         chartSection.appendChild(chartTitle);
-        chartSection.appendChild(chart);
-        chartSection.appendChild(chartLegend);
         card.appendChild(chartSection);
+        bottomWrap.appendChild(chart);
+        bottomWrap.appendChild(chartLegend);
         els.chart = chart;
 
       self._watchResize(chart, function () {
@@ -894,7 +908,7 @@
         costSection.appendChild(costTitle);
         costSection.appendChild(costTabsBar);
         costSection.appendChild(costChart);
-        card.appendChild(costSection);
+        bottomWrap.appendChild(costSection);
 
         els.costTabDefs = costTabDefs;
         els.costTabButtons = costTabButtons;
@@ -918,21 +932,12 @@
         history.className = "history";
         var historyTitle = document.createElement("div");
         historyTitle.className = "history-title";
-        var historyTitleText = document.createElement("span");
-        historyTitleText.textContent = "Dernières saisies";
-        var historyToggle = icon("mdi:chevron-up");
-        historyToggle.className = "history-toggle";
-        historyTitle.appendChild(historyTitleText);
-        historyTitle.appendChild(historyToggle);
+        historyTitle.textContent = "Dernières saisies";
         var historyList = document.createElement("div");
         historyList.className = "history-list";
-        historyTitle.addEventListener("click", function () {
-          var collapsed = history.classList.toggle("collapsed");
-          historyToggle.setAttribute("icon", collapsed ? "mdi:chevron-down" : "mdi:chevron-up");
-        });
         history.appendChild(historyTitle);
         history.appendChild(historyList);
-        card.appendChild(history);
+        bottomWrap.appendChild(history);
         els.historyList = historyList;
       }
 
@@ -999,7 +1004,7 @@
         calLegend.appendChild(calLegendEntretien);
         calSection.appendChild(calLegend);
 
-        card.appendChild(calSection);
+        bottomWrap.appendChild(calSection);
         els.calLabel = calLabel;
         els.calGrid = calGrid;
 
