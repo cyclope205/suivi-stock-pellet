@@ -16,6 +16,7 @@ from homeassistant.helpers.storage import Store
 from .const import (
     DEFAULT_BAG_WEIGHT_KG,
     DEFAULT_CALORIFIC_VALUE,
+    DEFAULT_SEASON_START_MONTH,
     ENTRY_TYPE_CONSUMPTION,
     ENTRY_TYPE_ENTRETIEN,
     ENTRY_TYPE_MAINTENANCE,
@@ -27,20 +28,32 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _heating_days(entries: list[dict[str, Any]]) -> int:
-    """Number of distinct calendar days with at least one real consumption logged.
+def _heating_days(
+    entries: list[dict[str, Any]],
+    season: str,
+    season_start_month: int,
+    today: date | None = None,
+) -> int:
+    """Calendar days elapsed from the season's start date to the last
+    relevant date.
 
-    Counts only days pellets were actually burned - not a date span, not
-    whole calendar months, not manually-tracked zero-days. Unlike the
-    previous "full months" method, this can't be inflated by a gap
-    between two consumption entries, and matches the reference
-    spreadsheet once its own formula counts the same way (days with a
-    strictly positive value, not every filled cell).
+    Matches the reference spreadsheet, which counts every tracked day of
+    the season - including days explicitly logged with zero consumption -
+    from the 1st of the season's start month onward, not just days with a
+    strictly positive entry. Mirrors _real_days' freezing behaviour: for a
+    CLOSED season `today` is the caller-supplied reference date, so a
+    finished season doesn't keep growing after the fact.
     """
-    conso_dates = {
+    conso_dates = sorted(
         e["date"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION
-    }
-    return len(conso_dates)
+    )
+    if not conso_dates:
+        return 0
+    start = season_start_date(season, season_start_month)
+    last = date.fromisoformat(conso_dates[-1])
+    reference = today if today is not None else date.today()
+    last = max(last, reference)
+    return (last - start).days + 1
 
 
 def _real_days(entries: list[dict[str, Any]], today: date | None = None) -> int:
@@ -942,9 +955,11 @@ class PelletJournal:
         maintenance_eur = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_MAINTENANCE)
         entretien_eur = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_ENTRETIEN)
         consumed_kwh = sum(_entry_qty_kg(e, default_bag_weight_kg) * (e.get("calorific_value") or default_calorific_value) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
-        days = _heating_days(entries)
         real_days_reference = (
             date.fromisoformat(as_of_date) if as_of_date is not None else None
+        )
+        days = _heating_days(
+            entries, season, DEFAULT_SEASON_START_MONTH, today=real_days_reference
         )
         real_days = _real_days(entries, today=real_days_reference)
         stock_initial_value = self._effective_stock_initial_value(season)
