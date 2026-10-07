@@ -56,14 +56,23 @@ def _heating_days(entries: list[dict[str, Any]]) -> int:
     return total
 
 
-def _real_days(entries: list[dict[str, Any]]) -> int:
-    """Real elapsed calendar days from the first consumption entry to the last.
+def _real_days(entries: list[dict[str, Any]], today: date | None = None) -> int:
+    """Real elapsed calendar days from the first consumption entry to the
+    reference date `today` (defaults to date.today()).
 
     Unlike _heating_days (which rounds up to full months to keep cost/day and
     cost/month stable), this reflects the actual number of days since
     tracking started, advancing by one every calendar day regardless of
     whether a new entry was logged. Used for display only, never for cost
     calculations.
+
+    The caller controls the reference date via `today` so a CLOSED season
+    (browsed via the card's season selector, or any as_of_date-bounded
+    query) freezes at its own last relevant date instead of always
+    extending all the way to the real calendar date.today() - which used
+    to make a past, finished season's displayed day count keep growing
+    forever (e.g. 737 "jours de suivi" for a season that ended over a
+    year ago), since nothing ever bounded it to that season's own end.
     """
     conso_dates = sorted(
         e["date"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION
@@ -72,8 +81,8 @@ def _real_days(entries: list[dict[str, Any]]) -> int:
         return 0
     first = date.fromisoformat(conso_dates[0])
     last = date.fromisoformat(conso_dates[-1])
-    today = date.today()
-    last = max(last, today)
+    reference = today if today is not None else date.today()
+    last = max(last, reference)
     return (last - first).days + 1
 
 
@@ -947,7 +956,10 @@ class PelletJournal:
         entretien_eur = sum((e.get("price_eur") or 0) for e in entries if e["type"] == ENTRY_TYPE_ENTRETIEN)
         consumed_kwh = sum(_entry_qty_kg(e, default_bag_weight_kg) * (e.get("calorific_value") or default_calorific_value) for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION)
         days = _heating_days(entries)
-        real_days = _real_days(entries)
+        real_days_reference = (
+            date.fromisoformat(as_of_date) if as_of_date is not None else None
+        )
+        real_days = _real_days(entries, today=real_days_reference)
         stock_initial_value = self._effective_stock_initial_value(season)
         # Moyenne ponderee sur le stock reporte + les achats de la
         # saison, pas seulement les achats de la saison : sans stock_initial
