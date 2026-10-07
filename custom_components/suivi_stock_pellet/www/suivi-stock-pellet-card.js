@@ -583,15 +583,14 @@
       if (cfg.show_cost_stats) {
         var costStats = document.createElement("div");
         costStats.className = "stats";
-        els.statCoutJour = addStat(costStats, "Coût / jour", "mdi:cash-clock", COLORS.green);
-        els.statCoutMois = addStat(costStats, "Coût / mois", "mdi:calendar-month", COLORS.blue);
+        els.statCoutJour = addStat(costStats, "Coût / jour CONSO", "mdi:cash-clock", COLORS.green);
+        els.statCoutMois = addStat(costStats, "Coût / mois CONSO", "mdi:calendar-month", COLORS.blue);
         els.statCoutSac = addStat(costStats, self._entryUnit === "kg" ? "Coût moyen / kg" : "Coût moyen / sac", self._entryUnit === "kg" ? "mdi:weight-kilogram" : "mdi:sack", COLORS.amber);
         els.statCoutAnnee = addStat(costStats, "Coût consommé", "mdi:cash-multiple", COLORS.purple);
         els.statCoutMaintenance = addStat(costStats, "Coût maintenance", "mdi:wrench", COLORS.teal);
         els.statCoutEntretien = addStat(costStats, "Coût entretien", "mdi:broom", COLORS.pink);
         els.statCoutTotal = addStat(costStats, "Coût total saison", "mdi:cash-check", COLORS.green);
-        var coutTotalStat = els.statCoutTotal.parentElement && els.statCoutTotal.parentElement.parentElement;
-        if (coutTotalStat) coutTotalStat.style.gridColumn = "1 / -1";
+        els.statCoutMoisTotal = addStat(costStats, "Coût/mois total saison", "mdi:calendar-sync", COLORS.blue);
         card.appendChild(costStats);
       }
 
@@ -1598,6 +1597,10 @@
         if (els.statCoutTotal) {
           var coutTotalSaison = spentEur + (Number(totals.maintenance_eur) || 0) + (Number(totals.entretien_eur) || 0);
           els.statCoutTotal.textContent = fmt(coutTotalSaison, 2) + " €";
+          if (els.statCoutMoisTotal) {
+            var coutMoisTotalSaison = daysLogged > 0 ? (coutTotalSaison / daysLogged) * 30.44 : 0;
+            els.statCoutMoisTotal.textContent = fmt(coutMoisTotalSaison, 2) + " €";
+          }
         }
       }
 
