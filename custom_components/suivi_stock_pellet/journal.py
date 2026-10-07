@@ -6,7 +6,6 @@ journal on read, so there is nothing that can drift out of sync.
 """
 from __future__ import annotations
 
-from calendar import monthrange
 from datetime import date
 import logging
 from typing import Any
@@ -29,31 +28,19 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _heating_days(entries: list[dict[str, Any]]) -> int:
-    """Calendar days spanning the full months of logged consumption.
+    """Number of distinct calendar days with at least one real consumption logged.
 
-    Mirrors the spreadsheet method this integration replaces: every month
-    that has at least one consumption entry counts in full (all its
-    calendar days), from the month of the first consumption entry through
-    the month of the last one. This avoids the wild early-season swings of
-    counting raw log-entry occurrences (e.g. a single first entry giving
-    "1 day" and an absurd extrapolated monthly cost).
+    Counts only days pellets were actually burned - not a date span, not
+    whole calendar months, not manually-tracked zero-days. Unlike the
+    previous "full months" method, this can't be inflated by a gap
+    between two consumption entries, and matches the reference
+    spreadsheet once its own formula counts the same way (days with a
+    strictly positive value, not every filled cell).
     """
-    conso_dates = sorted(
+    conso_dates = {
         e["date"] for e in entries if e["type"] == ENTRY_TYPE_CONSUMPTION
-    )
-    if not conso_dates:
-        return 0
-    first = date.fromisoformat(conso_dates[0])
-    last = date.fromisoformat(conso_dates[-1])
-    total = 0
-    y, m = first.year, first.month
-    while (y, m) <= (last.year, last.month):
-        total += monthrange(y, m)[1]
-        m += 1
-        if m > 12:
-            m = 1
-            y += 1
-    return total
+    }
+    return len(conso_dates)
 
 
 def _real_days(entries: list[dict[str, Any]], today: date | None = None) -> int:
