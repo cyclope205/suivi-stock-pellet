@@ -103,7 +103,9 @@
     ".chart-tab { border: none; border-radius: 999px; padding: 5px 12px; font-size: 0.75em; font-weight: 600; cursor: pointer; background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: inherit; font-family: inherit; opacity: 0.75; }",
     ".chart-tab.active { background: var(--pellet-amber); color: #1c1c1c; opacity: 1; }",
     ".history { margin-top: 12px; font-size: 0.85em; }",
-    ".history-title { font-weight: 700; opacity: 0.85; margin-bottom: 6px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; }",
+    ".history-title { font-weight: 700; opacity: 0.85; margin-bottom: 6px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.03em; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }",
+    ".history-toggle { --mdc-icon-size: 18px; opacity: 0.7; transition: transform 0.15s ease; }",
+    ".history.collapsed .history-list { display: none; }",
     ".history-list { max-height: 260px; overflow-y: auto; }",
     ".history-row { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.15)); }",
     ".history-row:last-child { border-bottom: none; }",
@@ -916,9 +918,18 @@
         history.className = "history";
         var historyTitle = document.createElement("div");
         historyTitle.className = "history-title";
-        historyTitle.textContent = "Dernières saisies";
+        var historyTitleText = document.createElement("span");
+        historyTitleText.textContent = "Dernières saisies";
+        var historyToggle = icon("mdi:chevron-up");
+        historyToggle.className = "history-toggle";
+        historyTitle.appendChild(historyTitleText);
+        historyTitle.appendChild(historyToggle);
         var historyList = document.createElement("div");
         historyList.className = "history-list";
+        historyTitle.addEventListener("click", function () {
+          var collapsed = history.classList.toggle("collapsed");
+          historyToggle.setAttribute("icon", collapsed ? "mdi:chevron-down" : "mdi:chevron-up");
+        });
         history.appendChild(historyTitle);
         history.appendChild(historyList);
         card.appendChild(history);
