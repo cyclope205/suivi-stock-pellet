@@ -185,7 +185,7 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | Option | Description |
 |---|---|
 | `show_stats` | Tuiles consommé / énergie / dépensé / jours |
-| `show_cost_stats` | Tuiles coût / jour, coût / mois, coût du sac, coût saison |
+| `show_cost_stats` | Tuiles coût / jour CONSO, coût / mois CONSO, coût du sac, coût total saison, coût/mois total saison |
 | `show_actions` | Boutons et formulaires de saisie |
 | `show_csv_import` | Bouton "Importer CSV achats/conso" (réservé aux administrateurs Home Assistant) |
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
@@ -197,6 +197,10 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_history` | Liste des dernières saisies |
 | `show_calendar` | Calendrier des ajouts, navigable mois par mois |
 | `show_comparison` | Comparaison avec la saison précédente à date égale |
+
+Les tuiles de coût existent en deux versions, à ne pas confondre : "Coût / jour CONSO" et "Coût / mois CONSO" reflètent uniquement la valeur des granulés réellement consommés (prix moyen × quantité consommée), tandis que "Coût total saison" et "Coût/mois total saison" couvrent toute la dépense de la saison (achats + maintenance + entretien), y compris du stock pas encore brûlé. Le second peut donc paraître élevé par rapport au premier, notamment en début de saison ou après un gros achat ou un entretien ponctuel.
+
+![Coût total saison et coût/mois total saison](docs/screenshots/screenshot-1791387722124-522e05d1.png)
 
 Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
 
