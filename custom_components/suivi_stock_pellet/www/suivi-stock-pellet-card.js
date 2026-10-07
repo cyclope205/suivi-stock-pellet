@@ -793,6 +793,12 @@
 
       var bottomWrap = document.createElement("div");
       bottomWrap.className = "card-bottom-collapsible";
+      var BOTTOM_COLLAPSE_KEY = "suivi_stock_pellet_bottom_collapsed";
+      var bottomInitiallyCollapsed = false;
+      try {
+        bottomInitiallyCollapsed = localStorage.getItem(BOTTOM_COLLAPSE_KEY) === "1";
+      } catch (e) {}
+      if (bottomInitiallyCollapsed) bottomWrap.classList.add("collapsed");
 
       if (cfg.show_monthly_chart) {
         var chartSection = document.createElement("div");
@@ -826,12 +832,15 @@
         chartLegend.appendChild(costBtn);
 
         chartTitle.classList.add("collapsible");
-        var bottomToggleIcon = icon("mdi:chevron-up");
+        var bottomToggleIcon = icon(bottomInitiallyCollapsed ? "mdi:chevron-down" : "mdi:chevron-up");
         bottomToggleIcon.classList.add("chart-title-toggle");
         chartTitle.appendChild(bottomToggleIcon);
         chartTitle.addEventListener("click", function () {
           var collapsed = bottomWrap.classList.toggle("collapsed");
           bottomToggleIcon.setAttribute("icon", collapsed ? "mdi:chevron-down" : "mdi:chevron-up");
+          try {
+            localStorage.setItem(BOTTOM_COLLAPSE_KEY, collapsed ? "1" : "0");
+          } catch (e) {}
         });
 
         chartSection.appendChild(chartTitle);
