@@ -793,7 +793,6 @@
 
       var bottomWrap = document.createElement("div");
       bottomWrap.className = "card-bottom-collapsible";
-      card.appendChild(bottomWrap);
 
       if (cfg.show_monthly_chart) {
         var chartSection = document.createElement("div");
@@ -867,6 +866,8 @@
           toggleSeries("cost", costBtn);
         });
       }
+
+      card.appendChild(bottomWrap);
 
       var costTabDefs = [];
       if (cfg.show_price_chart) costTabDefs.push({ key: "price", label: "Prix moyen", icon: "mdi:cash-multiple" });
