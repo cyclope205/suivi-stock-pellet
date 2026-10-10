@@ -76,7 +76,7 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
             "season": season,
             "seasons": journal.seasons(),
             "entries": journal.entries(season),
-            "totals": journal.totals(season, as_of_date=as_of_date),
+            "totals": journal.totals(season, as_of_date=as_of_date, season_start_month=start_month),
             "start_month": start_month,
         },
     )
@@ -117,7 +117,7 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
         else "bag"
     )
     for season in journal.seasons():
-        totals = journal.totals(season)
+        totals = journal.totals(season, season_start_month=start_month)
         # Use the weighted-average price (blends carried-over stock
         # value with this seasons own purchases) instead of a plain
         # spent/purchased ratio, so this chart matches the rest of the
@@ -180,7 +180,7 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
             else season_start_date(season, start_month)
         )
 
-    current_totals = journal.totals(season, as_of_date=as_of_current.isoformat())
+    current_totals = journal.totals(season, as_of_date=as_of_current.isoformat(), season_start_month=start_month)
     result = {
         "current_season": season,
         "current_consumed_bags": current_totals["consumed_bags"],
@@ -202,7 +202,7 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
             days=days_elapsed
         )
         previous_totals = journal.totals(
-            previous_season, as_of_date=as_of_previous.isoformat()
+            previous_season, as_of_date=as_of_previous.isoformat(), season_start_month=start_month
         )
         previous_consumed = previous_totals["consumed_bags"]
         previous_consumed_kg = previous_totals["consumed_kg"]
