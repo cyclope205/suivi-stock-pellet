@@ -205,7 +205,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise ServiceValidationError("Quantité manquante pour l'unité choisie")
         entry_date = call.data.get(ATTR_DATE, date_cls.today())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
-        current = journal.totals(season, as_of_date=entry_date.isoformat(), default_bag_weight_kg=_bag_weight())
+        current = journal.totals(season, as_of_date=entry_date.isoformat(), default_bag_weight_kg=_bag_weight(), season_start_month=_start_month())
         requested_kg = qty if unit == "kg" else qty * _bag_weight()
         if requested_kg > current["stock_kg"] + 1e-9:
             raise ServiceValidationError(
