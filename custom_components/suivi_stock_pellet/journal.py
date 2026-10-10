@@ -941,6 +941,7 @@ class PelletJournal:
         as_of_date: str | None = None,
         default_bag_weight_kg: float = DEFAULT_BAG_WEIGHT_KG,
         default_calorific_value: float = DEFAULT_CALORIFIC_VALUE,
+        season_start_month: int = DEFAULT_SEASON_START_MONTH,
     ) -> dict[str, float]:
         season_data = self._data.get("seasons", {}).get(season, {})
         entries = season_data.get("entries", [])
@@ -959,7 +960,7 @@ class PelletJournal:
             date.fromisoformat(as_of_date) if as_of_date is not None else None
         )
         days = _heating_days(
-            entries, season, DEFAULT_SEASON_START_MONTH, today=real_days_reference
+            entries, season, season_start_month, today=real_days_reference
         )
         real_days = _real_days(entries, today=real_days_reference)
         stock_initial_value = self._effective_stock_initial_value(season)
