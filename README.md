@@ -1,10 +1,15 @@
 # Suivi Stock Pellet
 
+[![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/releases)
 [![Build](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
 [![Tests](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml)
+[![Issues](https://img.shields.io/github/issues/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/issues)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![Downloads](https://img.shields.io/github/downloads/cyclope205/suivi-stock-pellet/total)](https://github.com/cyclope205/suivi-stock-pellet/releases)
+[![Downloads latest](https://img.shields.io/github/downloads/cyclope205/suivi-stock-pellet/latest/total)](https://github.com/cyclope205/suivi-stock-pellet/releases/latest)
+[![Stars](https://img.shields.io/github/stars/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/stargazers)
+[![Forks](https://img.shields.io/github/forks/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/network/members)
 
 ---
 
