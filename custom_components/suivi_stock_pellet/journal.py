@@ -6,6 +6,7 @@ journal on read, so there is nothing that can drift out of sync.
 """
 from __future__ import annotations
 
+import math
 from datetime import date
 import logging
 from typing import Any
@@ -347,7 +348,7 @@ class PelletJournal:
             # note, not a pellet quantity - they never participate in the
             # stock/bag math (purchase/consumption only), only in
             # totals()'s maintenance_eur/entretien_eur sums.
-            if price_eur is None or price_eur < 0:
+            if price_eur is None or not math.isfinite(price_eur) or price_eur < 0:
                 raise ValueError("Le cout doit etre positif ou nul")
             stored = {
                 "type": entry_type,
@@ -359,7 +360,7 @@ class PelletJournal:
             await self._async_save()
             return
         if unit == "kg":
-            if qty_kg is None or qty_kg <= 0:
+            if qty_kg is None or not math.isfinite(qty_kg) or qty_kg <= 0:
                 raise ValueError("La quantité en kg doit être strictement positive")
             stored = {
                 "type": entry_type,
@@ -370,7 +371,7 @@ class PelletJournal:
                 "calorific_value": calorific_value,
             }
         else:
-            if qty_bags is None or qty_bags <= 0:
+            if qty_bags is None or not math.isfinite(qty_bags) or qty_bags <= 0:
                 raise ValueError("La quantité en sacs doit être strictement positive")
             stored = {
                 "type": entry_type,
@@ -517,7 +518,7 @@ class PelletJournal:
                 entries = self._data["seasons"][season]["entries"]
                 if unit == "kg":
                     qty = float(item["qty_kg"])
-                    if qty <= 0:
+                    if not math.isfinite(qty) or qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
                     entries.append({
                         "type": entry_type,
@@ -529,7 +530,7 @@ class PelletJournal:
                     })
                 else:
                     qty = float(item["qty_bags"])
-                    if qty <= 0:
+                    if not math.isfinite(qty) or qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
                     entries.append({
                         "type": entry_type,
@@ -630,7 +631,7 @@ class PelletJournal:
                 if unit == "kg":
                     raise ValueError("La quantité en kg est requise")
                 effective_qty_kg = _entry_qty_kg(entry, DEFAULT_BAG_WEIGHT_KG)
-            if effective_qty_kg <= 0:
+            if not math.isfinite(effective_qty_kg) or effective_qty_kg <= 0:
                 raise ValueError("La quantité en kg doit être strictement positive")
             updated["unit"] = "kg"
             updated["qty_kg"] = float(effective_qty_kg)
@@ -647,7 +648,7 @@ class PelletJournal:
                     )
                 else:
                     effective_qty_bags = entry.get("qty_bags")
-            if effective_qty_bags is None or effective_qty_bags <= 0:
+            if effective_qty_bags is None or not math.isfinite(effective_qty_bags) or effective_qty_bags <= 0:
                 raise ValueError("La quantité en sacs doit être strictement positive")
             updated["unit"] = "bag"
             updated["qty_bags"] = float(effective_qty_bags)
