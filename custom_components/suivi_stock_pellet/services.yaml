@@ -209,7 +209,7 @@ delete_entry:
 
 set_stock_initial:
   name: Definir le stock initial
-  description: Definit ou corrige le stock de depart (en sacs) d'une saison, par exemple pour reprendre un stock existant lors du passage a une nouvelle saison ou apres un comptage physique.
+  description: Definit ou corrige le stock de depart d'une saison, en sacs ou en kg, par exemple pour reprendre un stock existant lors du passage a une nouvelle saison ou apres un comptage physique.
   fields:
     season:
       name: Saison
@@ -218,14 +218,33 @@ set_stock_initial:
       example: "2024-2025"
       selector:
         text: {}
+    unit:
+      name: Unite
+      description: bag pour sacs ou kg pour vrac.
+      required: false
+      default: bag
+      selector:
+        select:
+          options:
+            - bag
+            - kg
     stock_initial_bags:
       name: Stock initial (sacs)
       description: Nombre de sacs presents au debut de la saison, avant tout achat ou consommation enregistre dans cette saison.
-      required: true
+      required: false
       selector:
         number:
           min: 0
           max: 10000
+          mode: box
+    stock_initial_kg:
+      name: Stock initial (kg)
+      description: Quantite en kg presente au debut de la saison, lorsque unit=kg.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
           mode: box
 
 delete_season:
