@@ -241,13 +241,23 @@ Pour corriger manuellement le stock de depart d'une saison (comptage physique, s
 | Parametre | Description |
 |---|---|
 | `season` | Saison a corriger, au format AAAA-AAAA (ex. 2024-2025). |
-| `stock_initial_bags` | Nombre de sacs presents au debut de la saison, avant tout achat ou consommation enregistre dans cette saison. |
+| `unit` | `bag` (sacs, par defaut) ou `kg` (vrac). |
+| `stock_initial_bags` | Nombre de sacs presents au debut de la saison (si `unit: bag`). |
+| `stock_initial_kg` | Quantite en kg presente au debut de la saison (si `unit: kg`). |
 
 ```yaml
 action: suivi_stock_pellet.set_stock_initial
 data:
   season: "2024-2025"
   stock_initial_bags: 12
+```
+
+```yaml
+action: suivi_stock_pellet.set_stock_initial
+data:
+  season: "2024-2025"
+  unit: kg
+  stock_initial_kg: 180
 ```
 
 ## Licence
