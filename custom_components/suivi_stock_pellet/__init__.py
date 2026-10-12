@@ -47,6 +47,7 @@ from .const import (
     ENTRY_TYPE_MAINTENANCE,
     ENTRY_TYPE_PURCHASE,
     ATTR_STOCK_INITIAL_BAGS,
+    ATTR_STOCK_INITIAL_KG,
     SERVICE_DELETE_ENTRY,
     SERVICE_DELETE_SEASON,
     SERVICE_EDIT_ENTRY,
@@ -144,9 +145,13 @@ DELETE_ENTRY_SCHEMA = vol.Schema(
 SET_STOCK_INITIAL_SCHEMA = vol.Schema(
     {
         vol.Required("season"): _valid_season,
-        vol.Required(ATTR_STOCK_INITIAL_BAGS): vol.All(
+        vol.Optional(ATTR_STOCK_INITIAL_BAGS): vol.All(
             vol.Coerce(float), vol.Range(min=0)
         ),
+        vol.Optional(ATTR_STOCK_INITIAL_KG): vol.All(
+            vol.Coerce(float), vol.Range(min=0)
+        ),
+        vol.Optional(ATTR_UNIT, default="bag"): vol.In(["bag", "kg"]),
     }
 )
 
@@ -320,7 +325,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def _handle_set_stock_initial(call: ServiceCall) -> None:
         season = call.data["season"]
-        value = call.data[ATTR_STOCK_INITIAL_BAGS]
+        unit = call.data.get(ATTR_UNIT, "bag")
+        if unit == "kg":
+            qty = call.data.get(ATTR_STOCK_INITIAL_KG)
+            value = qty / _bag_weight() if qty is not None else None
+        else:
+            value = call.data.get(ATTR_STOCK_INITIAL_BAGS)
+        if value is None:
+            raise ServiceValidationError("Quantité manquante pour l'unité choisie")
         await journal.async_set_stock_initial(season, value)
         _notify()
 
