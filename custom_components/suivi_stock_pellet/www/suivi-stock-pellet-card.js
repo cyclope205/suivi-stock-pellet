@@ -29,7 +29,7 @@
   "use strict";
 
   var STYLE = [
-    "ha-card { padding: 18px 18px 14px; border-radius: 18px; overflow: hidden; position: relative; }",
+    "ha-card { padding: 18px 18px 14px; border-radius: 18px; overflow: hidden; overflow-anchor: none; position: relative; }",
     ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; flex-wrap: wrap; row-gap: 8px; justify-content: space-between; align-items: center; }",
     ".header-title { display: flex; align-items: center; gap: 8px; }",
     ".header-title ha-icon { color: var(--pellet-amber); }",
@@ -2057,15 +2057,17 @@
         var m = parseInt(parts[1], 10);
         var d = parseInt(parts[2], 10);
         if (y !== year || m !== month) return;
-        if (!byDay[d]) byDay[d] = { purchase: 0, consumption: 0, maintenance: 0, entretien: 0 };
+        if (!byDay[d]) byDay[d] = { purchase: 0, consumption: 0, maintenance: 0, entretien: 0, maintenance_count: 0, entretien_count: 0 };
         if (entry.type === "purchase") {
           byDay[d].purchase += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
         } else if (entry.type === "consumption") {
           byDay[d].consumption += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
         } else if (entry.type === "maintenance") {
           byDay[d].maintenance += Number(entry.price_eur) || 0;
+          byDay[d].maintenance_count++;
         } else if (entry.type === "entretien") {
           byDay[d].entretien += Number(entry.price_eur) || 0;
+          byDay[d].entretien_count++;
         }
       });
 
@@ -2097,10 +2099,10 @@
         if (info && info.consumption > 0) {
           cell.classList.add("consumption");
         }
-        if (info && info.maintenance > 0) {
+        if (info && info.maintenance_count > 0) {
           cell.classList.add("maintenance");
         }
-        if (info && info.entretien > 0) {
+        if (info && info.entretien_count > 0) {
           cell.classList.add("entretien");
         }
         cell.textContent = String(day);
@@ -2108,8 +2110,8 @@
           var parts2 = [];
           if (info.purchase > 0) parts2.push("Achat : " + fmt(info.purchase, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
           if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
-          if (info.maintenance > 0) parts2.push("Maintenance : " + fmt(info.maintenance, 2) + " €");
-          if (info.entretien > 0) parts2.push("Entretien : " + fmt(info.entretien, 2) + " €");
+          if (info.maintenance_count > 0) parts2.push("Maintenance : " + fmt(info.maintenance, 2) + " €");
+          if (info.entretien_count > 0) parts2.push("Entretien : " + fmt(info.entretien, 2) + " €");
           cell.title = parts2.join(" \u00b7 ");
           cell.addEventListener("touchstart", function (e) {
                   cell.__tsX = e.touches[0].clientX;
