@@ -38,6 +38,7 @@ ATTR_PRICE_EUR = "price_eur"
 ATTR_DATE = "date"
 ATTR_INDEX = "index"
 ATTR_STOCK_INITIAL_BAGS = "stock_initial_bags"
+ATTR_STOCK_INITIAL_KG = "stock_initial_kg"
 ATTR_NOTE = "note"
 
 ENTRY_TYPE_CONSUMPTION = "consumption"
