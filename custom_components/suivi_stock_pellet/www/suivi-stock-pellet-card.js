@@ -1043,17 +1043,16 @@
       container.__pelletResizeObserved = true;
       if (typeof ResizeObserver === "undefined") return;
       var lastW = 0;
-      var pending = false;
+      var debounceTimer = null;
       var ro = new ResizeObserver(function (entries) {
         var w = Math.round(entries[0].contentRect.width);
         if (w <= 0 || Math.abs(w - lastW) < 2) return;
         lastW = w;
-        if (pending) return;
-        pending = true;
-        requestAnimationFrame(function () {
-          pending = false;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+          debounceTimer = null;
           onResize();
-        });
+        }, 250);
       });
       ro.observe(container);
     }
