@@ -619,9 +619,13 @@
         var qtyS = qty > 1 ? "s" : "";
         btnQuick.title = "Enregistrer " + qty + " sac" + qtyS + " consommé" + qtyS + " aujourd'hui";
         btnQuick.appendChild(icon("mdi:fire-alert"));
-        btnQuick.appendChild(document.createTextNode("+" + qty + " sac" + qtyS + " aujourd'hui"));
+        var btnQuickLabel = document.createTextNode("+" + qty + " sac" + qtyS + " aujourd'hui");
+        btnQuick.appendChild(btnQuickLabel);
+        btnQuick._qtyLabelNode = btnQuickLabel;
           btnQuick.addEventListener("click", function () {
             if (!self._hass) return;
+            var qty = self._defaultBagQty || 1;
+            var qtyS = qty > 1 ? "s" : "";
             btnQuick.classList.remove("flash");
             void btnQuick.offsetWidth;
             btnQuick.classList.add("flash");
@@ -629,7 +633,7 @@
             btnQuick.disabled = true;
             var todayIsoStr = todayIso();
             var season = self._seasonForDate(todayIsoStr);
-            self._applyOptimisticConsumption(1, season, self._entryUnit);
+            self._applyOptimisticConsumption(qty, season, self._entryUnit);
             self._hass
               .callService("suivi_stock_pellet", "log_consumption", {
                 qty_bags: qty,
@@ -1348,6 +1352,12 @@
       this._currentSeason = stockAttrs.saison || "";
       this._bagWeight = stockAttrs.poids_sac_kg || 15;
       this._defaultBagQty = stockAttrs.default_bag_qty || 1;
+      if (els.btnQuick && els.btnQuick._qtyLabelNode) {
+        var qtyNow = this._defaultBagQty;
+        var qtyNowS = qtyNow > 1 ? "s" : "";
+        els.btnQuick._qtyLabelNode.textContent = "+" + qtyNow + " sac" + qtyNowS + " aujourd'hui";
+        els.btnQuick.title = "Enregistrer " + qtyNow + " sac" + qtyNowS + " consommé" + qtyNowS + " aujourd'hui";
+      }
       this._calorificValue =
         (energieId &&
           hass.states[energieId].attributes &&
