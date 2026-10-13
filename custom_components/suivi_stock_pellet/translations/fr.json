@@ -15,7 +15,8 @@
           "bag_price": "Prix moyen d'un sac (€)",
           "price_per_kg": "Prix moyen au kg (€)",
           "calorific_value_kwh_per_kg": "Pouvoir calorifique (kWh/kg)",
-          "season_start_month": "Mois de début de saison"
+          "season_start_month": "Mois de début de saison",
+"default_bag_qty": "Quantité de sacs par défaut (bouton rapide)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "bag_price": "Prix moyen d'un sac (€)",
           "price_per_kg": "Prix moyen au kg (€)",
           "calorific_value_kwh_per_kg": "Pouvoir calorifique (kWh/kg)",
-          "season_start_month": "Mois de début de saison"
+          "season_start_month": "Mois de début de saison",
+"default_bag_qty": "Quantité de sacs par défaut (bouton rapide)"
         }
       }
     },
