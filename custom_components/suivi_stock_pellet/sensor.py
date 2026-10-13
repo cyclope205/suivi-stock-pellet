@@ -18,10 +18,12 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_BAG_WEIGHT_KG,
+    CONF_DEFAULT_BAG_QTY,
     CONF_CALORIFIC_VALUE,
     CONF_DISPLAY_UNIT,
     CONF_SEASON_START_MONTH,
     DEFAULT_BAG_WEIGHT_KG,
+    DEFAULT_BAG_QTY,
     DEFAULT_CALORIFIC_VALUE,
     DEFAULT_DISPLAY_UNIT,
     DEFAULT_SEASON_START_MONTH,
@@ -154,6 +156,9 @@ class PelletStockSensor(_BasePelletSensor):
                 "stock_sacs": totals["stock_bags"],
                 "saison": self._season,
                 "poids_sac_kg": self._bag_weight,
+                "default_bag_qty": self._entry.options.get(
+                    CONF_DEFAULT_BAG_QTY, DEFAULT_BAG_QTY
+                ),
                 "derniere_saisie": _summarize_entry(last),
                 "mois_debut_saison": self._entry.options.get(
                     CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH
