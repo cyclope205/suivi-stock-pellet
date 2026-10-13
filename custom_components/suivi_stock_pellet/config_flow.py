@@ -12,12 +12,14 @@ from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig
 from .const import (
     CONF_BAG_PRICE,
     CONF_BAG_WEIGHT_KG,
+    CONF_DEFAULT_BAG_QTY,
     CONF_CALORIFIC_VALUE,
     CONF_DISPLAY_UNIT,
     CONF_PRICE_PER_KG,
     CONF_SEASON_START_MONTH,
     DEFAULT_BAG_PRICE,
     DEFAULT_BAG_WEIGHT_KG,
+    DEFAULT_BAG_QTY,
     DEFAULT_CALORIFIC_VALUE,
     DEFAULT_DISPLAY_UNIT,
     DEFAULT_PRICE_PER_KG,
@@ -52,6 +54,7 @@ def _details_schema(
     price_per_kg: float,
     calorific_value: float,
     season_start_month: int,
+    default_bag_qty: int,
 ) -> vol.Schema:
     price_key = CONF_BAG_PRICE if display_unit == "bag" else CONF_PRICE_PER_KG
     price_default = bag_price if display_unit == "bag" else price_per_kg
@@ -66,6 +69,9 @@ def _details_schema(
             vol.Required(
                 CONF_SEASON_START_MONTH, default=season_start_month
             ): vol.All(vol.Coerce(int), vol.Range(min=1, max=12)),
+            vol.Required(
+                CONF_DEFAULT_BAG_QTY, default=default_bag_qty
+            ): vol.All(vol.Coerce(int), vol.Range(min=1)),
         }
     )
 
@@ -120,6 +126,7 @@ class SuiviStockPelletConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 price_per_kg=DEFAULT_PRICE_PER_KG,
                 calorific_value=DEFAULT_CALORIFIC_VALUE,
                 season_start_month=DEFAULT_SEASON_START_MONTH,
+                default_bag_qty=DEFAULT_BAG_QTY,
             ),
             description_placeholders={
                 "start_month": _month_name(DEFAULT_SEASON_START_MONTH),
@@ -196,6 +203,9 @@ class SuiviStockPelletOptionsFlow(config_entries.OptionsFlow):
                 ),
                 season_start_month=current.get(
                     CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH
+                ),
+                default_bag_qty=current.get(
+                    CONF_DEFAULT_BAG_QTY, DEFAULT_BAG_QTY
                 ),
             ),
             description_placeholders={
