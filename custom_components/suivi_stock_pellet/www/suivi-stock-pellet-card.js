@@ -30,6 +30,7 @@
 
   var STYLE = [
     "ha-card { padding: 18px 18px 14px; border-radius: 18px; overflow: hidden; overflow-anchor: none; position: relative; }",
+    "ha-card * { overflow-anchor: none; }",
     ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; flex-wrap: wrap; row-gap: 8px; justify-content: space-between; align-items: center; }",
     ".header-title { display: flex; align-items: center; gap: 8px; }",
     ".header-title ha-icon { color: var(--pellet-amber); }",
