@@ -1638,7 +1638,18 @@
           this._calendarMonth = today2.getMonth() + 1;
         }
 
-        this._renderCalendar();
+        // Ne reconstruit le DOM du calendrier que si ses données ont
+        // réellement changé. Avant ce garde-fou, _renderCalendar()
+        // vidait/reconstruisait le calendrier à CHAQUE mise à jour de
+        // hass (donc à chaque changement d'état de n'importe quelle
+        // entité utilisée par la carte, même sans rapport avec le
+        // calendrier), ce qui déclenchait en continu le scroll anchoring
+        // de Safari/iOS et faisait "sauter" la carte pendant le scroll.
+        var calendarSignature = this._season + "|" + this._calendarYear + "|" + this._calendarMonth + "|" + JSON.stringify(entries);
+        if (calendarSignature !== this._calendarRenderSignature) {
+          this._calendarRenderSignature = calendarSignature;
+          this._renderCalendar();
+        }
       }
 
       var isCurrent = this._season === this._currentSeason;
