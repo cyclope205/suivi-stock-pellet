@@ -3,6 +3,7 @@
 DOMAIN = "suivi_stock_pellet"
 
 CONF_BAG_WEIGHT_KG = "bag_weight_kg"
+CONF_DEFAULT_BAG_QTY = "default_bag_qty"
 CONF_BAG_PRICE = "bag_price"
 CONF_PRICE_PER_KG = "price_per_kg"
 CONF_CALORIFIC_VALUE = "calorific_value_kwh_per_kg"
@@ -10,6 +11,7 @@ CONF_SEASON_START_MONTH = "season_start_month"
 CONF_DISPLAY_UNIT = "display_unit"
 
 DEFAULT_BAG_WEIGHT_KG = 15.0
+DEFAULT_BAG_QTY = 1
 DEFAULT_BAG_PRICE = 6.5
 DEFAULT_PRICE_PER_KG = DEFAULT_BAG_PRICE / DEFAULT_BAG_WEIGHT_KG
 DEFAULT_CALORIFIC_VALUE = 4.8
