@@ -435,23 +435,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _setup_frontend)
 
-    entry.async_on_unload(
-        lambda: [
-            hass.services.async_remove(DOMAIN, service)
-            for service in (
-                SERVICE_LOG_CONSUMPTION,
-                SERVICE_LOG_PURCHASE,
-                SERVICE_UNDO_LAST_ENTRY,
-                SERVICE_EDIT_ENTRY,
-                SERVICE_DELETE_ENTRY,
-                SERVICE_SET_STOCK_INITIAL,
-                SERVICE_DELETE_SEASON,
-                SERVICE_LOG_MAINTENANCE,
-                SERVICE_LOG_ENTRETIEN,
-            )
-            if hass.services.has_service(DOMAIN, service)
-        ]
-    )
+    def _remove_services() -> None:
+        for service in (
+            SERVICE_LOG_CONSUMPTION,
+            SERVICE_LOG_PURCHASE,
+            SERVICE_UNDO_LAST_ENTRY,
+            SERVICE_EDIT_ENTRY,
+            SERVICE_DELETE_ENTRY,
+            SERVICE_SET_STOCK_INITIAL,
+            SERVICE_DELETE_SEASON,
+            SERVICE_LOG_MAINTENANCE,
+            SERVICE_LOG_ENTRETIEN,
+        ):
+            if hass.services.has_service(DOMAIN, service):
+                hass.services.async_remove(DOMAIN, service)
+
+    entry.async_on_unload(_remove_services)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
