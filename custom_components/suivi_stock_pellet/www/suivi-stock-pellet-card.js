@@ -615,9 +615,11 @@
           btnQuick = document.createElement("button");
           btnQuick.type = "button";
           btnQuick.className = "type-conso";
-          btnQuick.title = "Enregistrer 1 sac consommé aujourd'hui";
-          btnQuick.appendChild(icon("mdi:fire-alert"));
-          btnQuick.appendChild(document.createTextNode("+1 sac aujourd'hui"));
+                  var qty = self._defaultBagQty || 1;
+        var qtyS = qty > 1 ? "s" : "";
+        btnQuick.title = "Enregistrer " + qty + " sac" + qtyS + " consommé" + qtyS + " aujourd'hui";
+        btnQuick.appendChild(icon("mdi:fire-alert"));
+        btnQuick.appendChild(document.createTextNode("+" + qty + " sac" + qtyS + " aujourd'hui"));
           btnQuick.addEventListener("click", function () {
             if (!self._hass) return;
             btnQuick.classList.remove("flash");
@@ -630,7 +632,7 @@
             self._applyOptimisticConsumption(1, season, self._entryUnit);
             self._hass
               .callService("suivi_stock_pellet", "log_consumption", {
-                qty_bags: 1,
+                qty_bags: qty,
                 unit: "bag",
                 season: season,
               })
@@ -1345,6 +1347,7 @@
       var stockAttrs = hass.states[stockId].attributes || {};
       this._currentSeason = stockAttrs.saison || "";
       this._bagWeight = stockAttrs.poids_sac_kg || 15;
+      this._defaultBagQty = stockAttrs.default_bag_qty || 1;
       this._calorificValue =
         (energieId &&
           hass.states[energieId].attributes &&
