@@ -1603,11 +1603,28 @@
         }
       }
 
+      // Signature partagée : évite de reconstruire l'historique, le
+      // graphique mensuel et le calendrier à CHAQUE mise à jour de hass
+      // (donc à chaque changement d'état de n'importe quelle entité
+      // utilisée par la carte, même sans rapport avec ces sections) si
+      // les saisies n'ont pas réellement changé. Avant ce garde-fou, ces
+      // trois sections vidaient/reconstruisaient leur DOM en continu, ce
+      // qui déclenchait le scroll anchoring de Safari/iOS et faisait
+      // "sauter" la carte pendant le scroll.
+      var entriesSignature = JSON.stringify(entries);
+
       if (els.historyList && !this._openEditRow) {
-        this._renderHistory(entries);
+        if (entriesSignature !== this._historyRenderSignature) {
+          this._historyRenderSignature = entriesSignature;
+          this._renderHistory(entries);
+        }
       }
       if (els.chart) {
-        this._renderChart(entries, startMonth, avgPricePerBag);
+        var chartSignature = entriesSignature + "|" + startMonth + "|" + avgPricePerBag;
+        if (chartSignature !== this._chartRenderSignature) {
+          this._chartRenderSignature = chartSignature;
+          this._renderChart(entries, startMonth, avgPricePerBag);
+        }
       }
       if (els.calGrid) {
         this._calendarEntries = entries;
@@ -1638,14 +1655,7 @@
           this._calendarMonth = today2.getMonth() + 1;
         }
 
-        // Ne reconstruit le DOM du calendrier que si ses données ont
-        // réellement changé. Avant ce garde-fou, _renderCalendar()
-        // vidait/reconstruisait le calendrier à CHAQUE mise à jour de
-        // hass (donc à chaque changement d'état de n'importe quelle
-        // entité utilisée par la carte, même sans rapport avec le
-        // calendrier), ce qui déclenchait en continu le scroll anchoring
-        // de Safari/iOS et faisait "sauter" la carte pendant le scroll.
-        var calendarSignature = this._season + "|" + this._calendarYear + "|" + this._calendarMonth + "|" + JSON.stringify(entries);
+        var calendarSignature = this._season + "|" + this._calendarYear + "|" + this._calendarMonth + "|" + entriesSignature;
         if (calendarSignature !== this._calendarRenderSignature) {
           this._calendarRenderSignature = calendarSignature;
           this._renderCalendar();
