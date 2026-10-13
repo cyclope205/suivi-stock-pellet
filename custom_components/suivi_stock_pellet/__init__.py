@@ -195,7 +195,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return entry.options.get(CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH)
 
     def _bag_weight() -> float:
-        return DEFAULT_BAG_WEIGHT_KG
+        return entry.options.get(CONF_BAG_WEIGHT_KG, DEFAULT_BAG_WEIGHT_KG)
 
     def _calorific_value() -> float:
         return entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE)
