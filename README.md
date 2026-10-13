@@ -129,6 +129,15 @@ Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
 - Sélecteur de saison dans l'en-tête de la carte : consulte les tuiles, l'historique et le graphique mensuel de n'importe quelle saison passée (les saisies restent verrouillées sur la saison en cours).
 - Les dates des saisies (Achat/Consommation) ne sont pas limitées à aujourd'hui : on peut saisir une date passée (ou future) librement, l'entrée est alors rattachée à la saison correspondant à cette date. Ça permet de reconstruire une saison passée entièrement (achats et consommations historiques) même après coup, sans dépendre du sélecteur de saison (qui ne sert qu'à consulter, pas à saisir).
 - Les anciennes saisons peuvent aussi être **reconstituées par import CSV** : le bouton **« Importer un CSV »** réservé aux administrateurs analyse d'abord le fichier et affiche un aperçu avant confirmation. La saison `AAAA-AAAA`, les colonnes mensuelles de consommation et les achats (date, quantité, prix) sont détectés automatiquement ; les nombres français et les montants en euros sont pris en charge. La saison explicitement indiquée dans le fichier est conservée pour les données importées. Plusieurs anciennes saisons peuvent être importées séparément. Les données restent stockées en sacs et peuvent ensuite être affichées en Sacs ou en kg selon la configuration, avec la référence interne fixe de 15 kg par sac. Les CSV vides ou invalides sont refusés avec une erreur explicite.
+- **Format simple accepté** : en plus des anciens tableaux Excel (mois en colonnes), un CSV avec une ligne par entrée est aussi reconnu automatiquement si l’en-tête contient une colonne `date`, une colonne contenant `type` et une colonne contenant `quantite` (une colonne `prix total` est optionnelle) :
+
+  ```csv
+  date,type,quantite,prix total
+  2025-10-03,achat,3,19.5
+  2025-10-15,consommation,1.8,
+  ```
+
+  La date accepte le format AAAA-MM-JJ ou un texte en français. La colonne `type` doit contenir « achat » ou « consommation » pour être prise en compte.
 - Comparaison à date égale avec la saison précédente : affiche la consommation de la saison sélectionnée (via le sélecteur de saison, saison en cours par défaut) face à celle de la saison précédente au même nombre de jours écoulés depuis le début de saison, avec un badge en pourcentage, ainsi que le coût en € des deux saisons et leur différence en € (masquable via `show_comparison`).
 - Les saisons sans aucune saisie sont automatiquement supprimées de la liste (au démarrage et dès qu'une saison redevient vide) : pas besoin de nettoyer manuellement une saison créée par erreur ou vidée par une correction.
 - Le sélecteur de saison reste toujours cohérent avec la saison consultée, même pour une saison qui n'a encore aucune saisie (saison passée pas encore renseignée, ou saisie qui vient d'échouer) : il n'affiche plus par erreur la saison en cours à sa place.
