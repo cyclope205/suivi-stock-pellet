@@ -576,7 +576,7 @@
         els.statConsomme = addStat(stats, "Consommé", "mdi:fire", COLORS.red);
         els.statEnergie = addStat(stats, "Énergie", "mdi:lightning-bolt", COLORS.purple);
         els.statDepense = addStat(stats, "Dépense pellet", "mdi:currency-eur", COLORS.green);
-        els.statJours = addStat(stats, "Jours chauffés", "mdi:calendar-range", COLORS.blue);
+        els.statJours = addStat(stats, "Jours de saison", "mdi:calendar-range", COLORS.blue);
         card.appendChild(stats);
       }
 
