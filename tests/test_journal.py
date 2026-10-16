@@ -1129,3 +1129,54 @@ def test_delete_season_does_not_retroactively_fix_successor_stock_initial():
     # As documented: the successor keeps its already-frozen carried
     # stock_initial, since this method never revisits it.
     assert journal.totals("2026-2027")["stock_initial_bags"] == 10
+
+
+# --- async_edit_entry: price_eur must be finite/non-negative too (round 3) --
+#
+# async_add_entry already rejects NaN/infinite prices (see
+# test_add_maintenance_entry_requires_nonnegative_price and the general
+# purchase-price check it mirrors). async_edit_entry assigned price_eur
+# straight into the entry with no equivalent check, so a NaN/infinite
+# price could be introduced via an edit even though it could never be
+# introduced via an add - contaminating spent_eur/avg price totals.
+
+
+def test_edit_purchase_entry_rejects_nan_price():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    with pytest.raises(ValueError):
+        run(journal.async_edit_entry("2025-2026", 0, price_eur=float("nan")))
+    # A rejected edit must leave the journal exactly as it was.
+    assert journal.entries("2025-2026")[0]["price_eur"] == 65.0
+
+
+def test_edit_purchase_entry_rejects_infinite_price():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    with pytest.raises(ValueError):
+        run(journal.async_edit_entry("2025-2026", 0, price_eur=float("inf")))
+    assert journal.entries("2025-2026")[0]["price_eur"] == 65.0
+
+
+def test_edit_purchase_entry_rejects_negative_price():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "purchase", 10, "2025-09-05", price_eur=65.0))
+    with pytest.raises(ValueError):
+        run(journal.async_edit_entry("2025-2026", 0, price_eur=-1.0))
+    assert journal.entries("2025-2026")[0]["price_eur"] == 65.0
+
+
+def test_edit_maintenance_entry_rejects_nan_price():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "maintenance", None, "2025-10-01", price_eur=80.0))
+    with pytest.raises(ValueError):
+        run(journal.async_edit_entry("2025-2026", 0, price_eur=float("nan")))
+    assert journal.entries("2025-2026")[0]["price_eur"] == 80.0
+
+
+def test_edit_entretien_entry_rejects_infinite_price():
+    journal = _make_journal()
+    run(journal.async_add_entry("2025-2026", "entretien", None, "2025-10-01", price_eur=45.0))
+    with pytest.raises(ValueError):
+        run(journal.async_edit_entry("2025-2026", 0, price_eur=float("inf")))
+    assert journal.entries("2025-2026")[0]["price_eur"] == 45.0
