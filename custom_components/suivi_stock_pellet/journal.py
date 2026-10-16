@@ -612,6 +612,16 @@ class PelletJournal:
                 date.fromisoformat(entry_date)
                 updated["date"] = entry_date
             if price_eur is not None:
+                if not math.isfinite(price_eur) or price_eur < 0:
+                    # Même lacune que celle corrigée dans async_add_entry :
+                    # un prix NaN/infini n'était validé que par
+                    # vol.Range(min=0) au niveau du schéma du service, qui
+                    # laisse passer NaN (NaN < 0 est toujours faux). La
+                    # modification d'une saisie entretien/maintenance
+                    # n'appliquait pas ce contrôle contrairement à l'ajout.
+                    raise ValueError(
+                        "Le coût doit être un nombre fini, positif ou nul"
+                    )
                 updated["price_eur"] = price_eur
             if note is not None:
                 updated["note"] = note
@@ -668,6 +678,15 @@ class PelletJournal:
             date.fromisoformat(entry_date)
             updated["date"] = entry_date
         if updated["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
+            if not math.isfinite(price_eur) or price_eur < 0:
+                # Même lacune que celle corrigée dans async_add_entry : la
+                # modification d'un achat n'appliquait pas le contrôle
+                # isfinite/non-négatif appliqué à l'ajout, laissant passer
+                # un prix NaN/infini qui contamine les totaux de dépenses
+                # et le coût moyen affiché.
+                raise ValueError(
+                    "Le prix doit être un nombre fini, positif ou nul"
+                )
             updated["price_eur"] = price_eur
         target_season = (
             new_season
