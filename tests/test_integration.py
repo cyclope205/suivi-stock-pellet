@@ -9,6 +9,7 @@ from homeassistant.core import CoreState
 from custom_components.suivi_stock_pellet import (
     DOMAIN,
     SERVICE_DELETE_ENTRY,
+    SERVICE_EXPORT_CSV,
     SERVICE_DELETE_SEASON,
     SERVICE_EDIT_ENTRY,
     SERVICE_LOG_CONSUMPTION,
@@ -78,6 +79,7 @@ async def test_setup_registers_all_services_and_unload_removes_them():
         SERVICE_UNDO_LAST_ENTRY,
         SERVICE_EDIT_ENTRY,
         SERVICE_DELETE_ENTRY,
+        SERVICE_EXPORT_CSV,
         SERVICE_SET_STOCK_INITIAL,
         SERVICE_DELETE_SEASON,
         SERVICE_LOG_MAINTENANCE,
@@ -92,6 +94,6 @@ async def test_setup_registers_all_services_and_unload_removes_them():
     assert services.registered == {}
 
     assert await async_unload_entry(hass, entry) is True
-    assert len(services.removed) == 9
+    assert len(services.removed) == 10
     assert hass.data[DOMAIN] == {}
     assert unload_callbacks
