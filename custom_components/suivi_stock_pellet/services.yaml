@@ -326,3 +326,43 @@ log_entretien:
       required: false
       selector:
         text: {}
+
+export_csv:
+  name: Exporter en CSV
+  description: Génère un export CSV du journal (Saison, Date, Type, Quantité, Prix par sac, Prix total, Note) à partir des données déjà enregistrées, avec filtres optionnels. Le contenu CSV est renvoyé dans la réponse de l'action (response_variable en YAML, ou visible directement dans Outils de développement > Actions).
+  fields:
+    season:
+      name: Saison
+      description: Limite l'export à une seule saison, au format AAAA-AAAA (facultatif, toutes les saisons sinon).
+      required: false
+      example: "2024-2025"
+      selector:
+        text: {}
+    date_from:
+      name: Date de début
+      description: Exclut toute saisie antérieure à cette date (facultatif).
+      required: false
+      selector:
+        date: {}
+    date_to:
+      name: Date de fin
+      description: Exclut toute saisie postérieure à cette date (facultatif).
+      required: false
+      selector:
+        date: {}
+    types:
+      name: Types
+      description: Limite l'export à un ou plusieurs types de saisie (facultatif, tous les types sinon).
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Achat
+              value: purchase
+            - label: Consommation
+              value: consumption
+            - label: Maintenance
+              value: maintenance
+            - label: Entretien
+              value: entretien

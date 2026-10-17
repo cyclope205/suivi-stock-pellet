@@ -1,6 +1,8 @@
 """The Suivi Stock Pellet integration."""
 from __future__ import annotations
 
+import csv
+import io
 from datetime import date as date_cls
 import json
 import logging
@@ -17,6 +19,7 @@ from homeassistant.core import (
     EVENT_HOMEASSISTANT_STARTED,
     HomeAssistant,
     ServiceCall,
+    SupportsResponse,
 )
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -25,10 +28,13 @@ from homeassistant.helpers.event import async_call_later
 
 from .const import (
     ATTR_DATE,
+    ATTR_DATE_FROM,
+    ATTR_DATE_TO,
     ATTR_INDEX,
     ATTR_PRICE_EUR,
     ATTR_QTY_BAGS,
     ATTR_QTY_KG,
+    ATTR_TYPES,
     ATTR_UNIT,
     CONF_BAG_PRICE,
     CONF_PRICE_PER_KG,
@@ -51,6 +57,7 @@ from .const import (
     SERVICE_DELETE_ENTRY,
     SERVICE_DELETE_SEASON,
     SERVICE_EDIT_ENTRY,
+    SERVICE_EXPORT_CSV,
     SERVICE_LOG_CONSUMPTION,
     SERVICE_LOG_ENTRETIEN,
     SERVICE_LOG_MAINTENANCE,
@@ -68,6 +75,15 @@ PLATFORMS = ["sensor"]
 CARD_URL_PATH = "/suivi_stock_pellet/suivi-stock-pellet-card.js"
 _MANIFEST_PATH = Path(__file__).parent / "manifest.json"
 CARD_VERSION = json.loads(_MANIFEST_PATH.read_text())["version"]
+
+# Labels used only for the CSV export - the journal itself keeps storing the
+# English type keys (consumption/purchase/maintenance/entretien) unchanged.
+_EXPORT_TYPE_LABELS = {
+    ENTRY_TYPE_PURCHASE: "Achat",
+    ENTRY_TYPE_CONSUMPTION: "Consommation",
+    ENTRY_TYPE_MAINTENANCE: "Maintenance",
+    ENTRY_TYPE_ENTRETIEN: "Entretien",
+}
 
 
 def _valid_season(value: str) -> str:
@@ -176,6 +192,27 @@ LOG_ENTRETIEN_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
         vol.Optional(ATTR_NOTE): cv.string,
+    }
+)
+
+EXPORT_CSV_SCHEMA = vol.Schema(
+    {
+        vol.Optional("season"): _valid_season,
+        vol.Optional(ATTR_DATE_FROM): cv.date,
+        vol.Optional(ATTR_DATE_TO): cv.date,
+        vol.Optional(ATTR_TYPES): vol.All(
+            cv.ensure_list,
+            [
+                vol.In(
+                    [
+                        ENTRY_TYPE_PURCHASE,
+                        ENTRY_TYPE_CONSUMPTION,
+                        ENTRY_TYPE_MAINTENANCE,
+                        ENTRY_TYPE_ENTRETIEN,
+                    ]
+                )
+            ],
+        ),
     }
 )
 
@@ -373,6 +410,79 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         _notify()
 
+    async def _handle_export_csv(call: ServiceCall) -> dict[str, str | int]:
+        """Export the journal to CSV, filtered by season/date range/type.
+
+        Reads only data the journal already stores - no new field is
+        introduced. "Note" is therefore populated for maintenance/entretien
+        rows (the only types that have ever carried a note) and left empty
+        for achat/consommation rows, by design.
+        """
+        season_filter = call.data.get("season")
+        date_from = call.data.get(ATTR_DATE_FROM)
+        date_to = call.data.get(ATTR_DATE_TO)
+        types_filter = set(call.data.get(ATTR_TYPES) or [])
+
+        seasons = [season_filter] if season_filter else journal.seasons()
+
+        rows: list[tuple[str, str, str, float | None, float | None, float | None, str]] = []
+        for season in seasons:
+            for item in journal.entries(season):
+                entry_date = date_cls.fromisoformat(item["date"])
+                if date_from is not None and entry_date < date_from:
+                    continue
+                if date_to is not None and entry_date > date_to:
+                    continue
+                if types_filter and item["type"] not in types_filter:
+                    continue
+                qty = (
+                    item.get("qty_bags")
+                    if item.get("unit", "bag") == "bag"
+                    else item.get("qty_kg")
+                )
+                price = item.get("price_eur")
+                price_per_bag = None
+                if (
+                    item["type"] == ENTRY_TYPE_PURCHASE
+                    and item.get("unit", "bag") == "bag"
+                    and qty
+                    and price is not None
+                ):
+                    price_per_bag = round(price / qty, 2)
+                rows.append(
+                    (
+                        season,
+                        item["date"],
+                        _EXPORT_TYPE_LABELS.get(item["type"], item["type"]),
+                        qty,
+                        price_per_bag,
+                        price,
+                        item.get("note") or "",
+                    )
+                )
+
+        rows.sort(key=lambda r: (r[0], r[1]))
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, delimiter=";")
+        writer.writerow(
+            ["Saison", "Date", "Type", "Quantite", "Prix par sac", "Prix total", "Note"]
+        )
+        for season, entry_date, label, qty, price_per_bag, price, note in rows:
+            writer.writerow(
+                [
+                    season,
+                    entry_date,
+                    label,
+                    "" if qty is None else qty,
+                    "" if price_per_bag is None else price_per_bag,
+                    "" if price is None else price,
+                    note,
+                ]
+            )
+
+        return {"csv": buffer.getvalue(), "row_count": len(rows)}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_LOG_CONSUMPTION,
@@ -424,6 +534,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _handle_log_entretien,
         schema=LOG_ENTRETIEN_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_EXPORT_CSV,
+        _handle_export_csv,
+        schema=EXPORT_CSV_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
 
     async_register_ws_api(hass)
 
@@ -446,6 +563,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             SERVICE_DELETE_SEASON,
             SERVICE_LOG_MAINTENANCE,
             SERVICE_LOG_ENTRETIEN,
+            SERVICE_EXPORT_CSV,
         ):
             if hass.services.has_service(DOMAIN, service):
                 hass.services.async_remove(DOMAIN, service)
