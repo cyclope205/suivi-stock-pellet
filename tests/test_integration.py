@@ -27,7 +27,7 @@ class FakeServices:
         self.registered = {}
         self.removed = []
 
-    def async_register(self, domain, service, handler, schema=None):
+    def async_register(self, domain, service, handler, schema=None, supports_response=None):
         self.registered[(domain, service)] = (handler, schema)
 
     def has_service(self, domain, service):
