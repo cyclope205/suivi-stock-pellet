@@ -42,7 +42,7 @@ class FakeServices:
     def __init__(self):
         self.registered = {}
 
-    def async_register(self, domain, service, handler, schema=None):
+    def async_register(self, domain, service, handler, schema=None, supports_response=None):
         self.registered[(domain, service)] = handler
 
     def has_service(self, domain, service):
