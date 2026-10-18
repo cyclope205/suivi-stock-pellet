@@ -158,3 +158,28 @@ def test_consumption_grid_continues_after_purchase_label_on_same_day_row():
     assert result["consumption_bags"] == 10
     assert result["purchase_bags"] == 155
     assert result["purchase_count"] == 2
+
+
+def test_event_log_uses_explicit_season_for_spring_purchase():
+    csv_text = """Date;Type d'événement;Quantité;Prix total;Saison
+23/03/2024;Achat;33;152,72 €;2024-2025
+13/05/2024;Achat;122;620,00 €;2024-2025
+"""
+    result = parse_csv_history(csv_text)
+
+    assert result["season"] == "2024-2025"
+    assert result["purchase_bags"] == 155
+    assert all(entry["season"] == "2024-2025" for entry in result["entries"])
+
+
+def test_event_log_prefers_season_metadata_over_spring_purchase_date():
+    csv_text = """Saison 2024-2025
+Date;Type d'événement;Quantité;Prix total
+23/03/2024;Achat;33;152,72 €
+13/05/2024;Achat;122;620,00 €
+"""
+    result = parse_csv_history(csv_text, default_season="2023-2024")
+
+    assert result["season"] == "2024-2025"
+    assert result["purchase_bags"] == 155
+    assert all(entry["season"] == "2024-2025" for entry in result["entries"])
