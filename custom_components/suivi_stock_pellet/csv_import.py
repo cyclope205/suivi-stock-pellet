@@ -113,11 +113,23 @@ def _find_event_log_header(rows):
             return i, keys
     return None
 
-def _parse_event_log(rows, header_idx, keys, season_start_month):
+def _explicit_season(rows, header_idx):
+    """Find a season explicitly written in CSV metadata near the table header."""
+    for row in rows[:header_idx + 2]:
+        for value in row:
+            match = re.search(r"(?<!\d)(\d{4}-\d{4})(?!\d)", str(value or ""))
+            if match:
+                return _season(match.group(1))
+    return None
+
+def _parse_event_log(rows, header_idx, keys, season_start_month, default_season=None):
     date_col = keys["date"]
     type_col = next(col for key, col in keys.items() if "type" in key)
     qty_col = next(col for key, col in keys.items() if "quantite" in key)
     price_col = next((col for key, col in keys.items() if "prix total" in key or key in {"prix","cout","coût"}), None)
+    season_col = next((col for key, col in keys.items() if key == "saison" or key.startswith("saison ")), None)
+    metadata_season = _explicit_season(rows, header_idx)
+    fallback_season = metadata_season or (_season(default_season) if default_season else None)
     entries = []
     for row in rows[header_idx + 1:]:
         if len(row) <= max(date_col, type_col, qty_col): continue
@@ -131,7 +143,19 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
         if qty is None or qty <= 0: continue
         entry_date = _date(raw_date)
         parsed_date = date.fromisoformat(entry_date)
-        season = f"{parsed_date.year}-{parsed_date.year + 1}" if parsed_date.month >= season_start_month else f"{parsed_date.year - 1}-{parsed_date.year}"
+        # Explicit season metadata/column wins over transaction-date inference:
+        # spring purchases commonly stock the *next* heating season.
+        row_season = None
+        if season_col is not None and season_col < len(row):
+            raw_season = str(row[season_col] or "").strip()
+            if raw_season:
+                match = re.search(r"(?<!\d)(\d{4}-\d{4})(?!\d)", raw_season)
+                if not match:
+                    raise CsvImportError(f"Saison invalide : {raw_season!r}")
+                row_season = _season(match.group(1))
+        season = row_season or fallback_season
+        if season is None:
+            season = f"{parsed_date.year}-{parsed_date.year + 1}" if parsed_date.month >= season_start_month else f"{parsed_date.year - 1}-{parsed_date.year}"
         price = None
         if kind == "purchase":
             if price_col is not None and price_col < len(row): price = _number(row[price_col])
@@ -156,10 +180,12 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
     event_header = _find_event_log_header(rows)
     if event_header is not None:
         header_idx, keys = event_header
-        entries = _parse_event_log(rows, header_idx, keys, int(season_start_month))
+        entries = _parse_event_log(rows, header_idx, keys, int(season_start_month), default_season)
         return {"season": entries[0]["season"],"seasons": sorted({entry["season"] for entry in entries}),"entries": entries,"consumption_count": sum(e["type"] == "consumption" for e in entries),"purchase_count": sum(e["type"] == "purchase" for e in entries),"consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),"purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase")}
     header_idx,months=_find_header(rows)
-    season=_season(default_season) if default_season else _find_season(rows,header_idx)
+    season=_explicit_season(rows, header_idx) or (_season(default_season) if default_season else None)
+    if season is None:
+        raise CsvImportError("Saison AAAA-AAAA introuvable.")
     start_year=int(season[:4])
     marker=None
     for i,row in enumerate(rows):
