@@ -137,3 +137,24 @@ def test_event_log_accepts_french_text_dates_mixed_with_iso():
     assert len(result["entries"]) == 4
     dates = {e["date"] for e in result["entries"]}
     assert dates == {"2024-10-15", "2024-09-18", "2024-09-20", "2024-12-05"}
+
+
+def test_consumption_grid_continues_after_purchase_label_on_same_day_row():
+    # The workbook places "Achats granules" in a right-hand cell on day 13.
+    # Later daily rows must still be imported, not cut off at that label.
+    csv_text = (
+        "\tseptembre\t octobre\tSaison 2024-2025\n"
+        "1\t1\t0\t\n"
+        "13\t2\t0\t\t\t\t\t\t\t\tAchats granules\n"
+        "14\t0\t3\t\n"
+        "31\t0\t4\t\n"
+        "\n"
+        "Qté\tDate\tPrix\tCoût du sac\n"
+        "33\t23/03/2024\t152,72 €\t4,627878788\n"
+        "122\t13/05/2024\t620,00 €\t5,081967213\n"
+    )
+    result = parse_csv_history(csv_text)
+
+    assert result["consumption_bags"] == 10
+    assert result["purchase_bags"] == 155
+    assert result["purchase_count"] == 2
