@@ -165,18 +165,42 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
     for i,row in enumerate(rows):
         if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
     entries=[]
-    for row in rows[header_idx+1:(marker if marker is not None else len(rows))]:
-        first=str(row[0] if row else "").strip()
-        if not re.fullmatch(r"\d{1,2}",first): continue
-        day=int(first)
-        if not 1<=day<=31: continue
-        for col,month in months.items():
-            if col>=len(row): continue
-            qty=_number(row[col])
-            if qty is None or qty<=0: continue
-            year=start_year if month>=int(season_start_month) else start_year+1
-            try: d=date(year,month,day).isoformat()
-            except ValueError as err: raise CsvImportError(f"Date impossible : {day:02d}/{month:02d}") from err
+    for row_index, row in enumerate(rows[header_idx + 1:], start=header_idx + 1):
+        first = str(row[0] if row else "").strip()
+        if not re.fullmatch(r"\d{1,2}", first):
+            continue
+        day = int(first)
+        if not 1 <= day <= 31:
+            continue
+
+        # In the Excel sheet, "Achats granules" can sit in a right-hand cell
+        # on a valid day row. Do not stop the consumption grid at that label.
+        # After the marker, accept only rows whose populated month cells are
+        # numeric, so purchase-table rows cannot be mistaken for daily rows.
+        if marker is not None and row_index > marker:
+            valid_grid_row = True
+            for col in months:
+                if col >= len(row) or not str(row[col] or "").strip():
+                    continue
+                try:
+                    _number(row[col])
+                except CsvImportError:
+                    valid_grid_row = False
+                    break
+            if not valid_grid_row:
+                continue
+
+        for col, month in months.items():
+            if col >= len(row):
+                continue
+            qty = _number(row[col])
+            if qty is None or qty <= 0:
+                continue
+            year = start_year if month >= int(season_start_month) else start_year + 1
+            try:
+                d = date(year, month, day).isoformat()
+            except ValueError as err:
+                raise CsvImportError(f"Date impossible : {day:02d}/{month:02d}") from err
             entries.append({"type":"consumption","qty_bags":qty,"date":d,"price_eur":None,"bag_weight_kg":None,"calorific_value":None,"season":season})
     if marker is not None:
         header=None
