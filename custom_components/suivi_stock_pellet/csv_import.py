@@ -115,7 +115,7 @@ def _find_event_log_header(rows):
 
 def _explicit_season(rows, header_idx):
     """Find a season explicitly written in CSV metadata near the table header."""
-    for row in rows[:header_idx + 2]:
+    for row in rows[:header_idx + 1]:
         for value in row:
             match = re.search(r"(?<!\d)(\d{4}-\d{4})(?!\d)", str(value or ""))
             if match:
@@ -134,14 +134,17 @@ def _parse_event_log(rows, header_idx, keys, season_start_month, default_season=
     for row in rows[header_idx + 1:]:
         if len(row) <= max(date_col, type_col, qty_col): continue
         raw_date = str(row[date_col] or "").strip()
-        if not raw_date or not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date) or _FRENCH_TEXT_DATE_RE.match(raw_date)): continue
+        if not raw_date: continue
+        try:
+            entry_date = _date(raw_date)
+        except CsvImportError:
+            continue
         event_type = _norm(row[type_col])
         if "consommation" in event_type: kind = "consumption"
         elif "achat" in event_type: kind = "purchase"
         else: continue
         qty = _number(row[qty_col])
         if qty is None or qty <= 0: continue
-        entry_date = _date(raw_date)
         parsed_date = date.fromisoformat(entry_date)
         # Explicit season metadata/column wins over transaction-date inference:
         # spring purchases commonly stock the *next* heating season.
