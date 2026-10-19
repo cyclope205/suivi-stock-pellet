@@ -32,7 +32,7 @@
 ---
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://bmc-eight-red.vercel.app/api/donate?repo=suivi-stock-pellet) [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://bmc-eight-red.vercel.app/api/paypal?repo=suivi-stock-pellet&amount=5)
-<img src="custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
+<img src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
@@ -94,7 +94,7 @@ Calendrier des ajouts:
 
 Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance/entretien :
 
-<img width="600" alt="Vue d'ensemble v1.10.0" src="docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
+<img width="600" alt="Vue d'ensemble v1.10.0" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
 
 ---
 
