@@ -26,6 +26,21 @@ def _repair_mojibake(value: Any) -> str:
             pass
     return text
 
+def _repair_text_mojibake(value: Any) -> str:
+    """Like _repair_mojibake, but preserves spaces - safe for free-text
+    fields (e.g. the import note) where _repair_mojibake's internal
+    space-stripping (needed only for keyword matching in _norm) would
+    otherwise mangle the text."""
+    text = str(value or "")
+    if any(marker in text for marker in ("Ã", "Â", "â")):
+        try:
+            repaired = text.encode("latin1").decode("utf-8")
+            if repaired != text:
+                text = repaired
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return text
+
 def _norm(value: Any) -> str:
     text=unicodedata.normalize("NFKD",_repair_mojibake(value).strip())
     return "".join(c for c in text if not unicodedata.combining(c)).lower()
@@ -135,7 +150,7 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
         season = f"{parsed_date.year}-{parsed_date.year + 1}" if parsed_date.month >= season_start_month else f"{parsed_date.year - 1}-{parsed_date.year}"
         note = None
         if note_col is not None and note_col < len(row):
-            note_value = str(row[note_col] or "").strip()
+            note_value = _repair_text_mojibake(row[note_col]).strip()
             note = note_value or None
         if kind in ("maintenance", "entretien"):
             qty = None
@@ -192,7 +207,7 @@ def _parse_cost_section(rows, header_idx, keys, season, entry_type, stop_idx):
         if price < 0: raise CsvImportError(f"Coût invalide pour {raw_date}.")
         note = None
         if note_col is not None and note_col < len(row):
-            note_value = str(row[note_col] or "").strip()
+            note_value = _repair_text_mojibake(row[note_col]).strip()
             note = note_value or None
         entries.append({"type": entry_type,"qty_bags": None,"date": _date(raw_date),"price_eur": price,"note": note,"bag_weight_kg": None,"calorific_value": None,"season": season})
     return entries
