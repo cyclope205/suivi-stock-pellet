@@ -4,11 +4,11 @@ from __future__ import annotations
 import csv
 import io
 from datetime import date as date_cls
+from homeassistant.util import dt as dt_util
 import json
 import logging
 import re
 from pathlib import Path
-
 import voluptuous as vol
 
 from homeassistant.components.frontend import add_extra_js_url
@@ -245,7 +245,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         qty = call.data.get(ATTR_QTY_BAGS) if unit == "bag" else call.data.get(ATTR_QTY_KG)
         if qty is None:
             raise ServiceValidationError("Quantité manquante pour l'unité choisie")
-        entry_date = call.data.get(ATTR_DATE, date_cls.today())
+        entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
         current = journal.totals(season, as_of_date=entry_date.isoformat(), default_bag_weight_kg=_bag_weight(), season_start_month=_start_month())
         requested_kg = qty if unit == "kg" else qty * _bag_weight()
@@ -281,7 +281,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 price = (
                     entry.options.get(CONF_PRICE_PER_KG, DEFAULT_PRICE_PER_KG) * qty
                 )
-        entry_date = call.data.get(ATTR_DATE, date_cls.today())
+        entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
         await journal.async_add_entry(
             season,
@@ -297,7 +297,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def _handle_undo_last_entry(call: ServiceCall) -> None:
         season = call.data.get("season") or season_for_date(
-            date_cls.today(), _start_month()
+            dt_util.now().date(), _start_month()
         )
         removed = await journal.async_undo_last(season)
         if removed is None:
@@ -383,7 +383,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _handle_log_maintenance(call: ServiceCall) -> None:
         price = call.data[ATTR_PRICE_EUR]
         note = call.data.get(ATTR_NOTE)
-        entry_date = call.data.get(ATTR_DATE, date_cls.today())
+        entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
         await journal.async_add_entry(
             season,
@@ -398,7 +398,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _handle_log_entretien(call: ServiceCall) -> None:
         price = call.data[ATTR_PRICE_EUR]
         note = call.data.get(ATTR_NOTE)
-        entry_date = call.data.get(ATTR_DATE, date_cls.today())
+        entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
         await journal.async_add_entry(
             season,
