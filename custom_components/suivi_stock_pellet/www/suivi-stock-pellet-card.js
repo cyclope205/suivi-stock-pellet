@@ -702,7 +702,10 @@
         els.maintenanceSeasonSelect = formMaintenance.seasonSelect;
         els.entretienSeasonSelect = formEntretien.seasonSelect;
 
-        if (cfg.show_csv_import) {
+        var csvRow = document.createElement("div");
+csvRow.className = "actions-row";
+actionsWrap.appendChild(csvRow);
+if (cfg.show_csv_import) {
         // Historical CSV import: visible only to admins, with backend admin enforcement.
         var importBtn = document.createElement("button");
         importBtn.type = "button";
@@ -715,7 +718,7 @@
         importInput.accept = ".csv,text/csv";
         importInput.style.display = "none";
         actionsWrap.appendChild(importInput);
-        actionsRow2.appendChild(importBtn);
+        csvRow.appendChild(importBtn);
         els.importBtn = importBtn;
         els.importInput = importInput;
 
@@ -778,7 +781,7 @@
         exportBtn.title = "Exporte le journal de la saison affichee en CSV";
         exportBtn.appendChild(icon("mdi:file-export"));
         exportBtn.appendChild(document.createTextNode("Exporter CSV"));
-        actionsRow2.appendChild(exportBtn);
+        csvRow.appendChild(exportBtn);
         els.exportBtn = exportBtn;
         exportBtn.addEventListener("click", function () {
           self._hass.connection.sendMessagePromise({ type: "call_service", domain: "suivi_stock_pellet", service: "export_csv", service_data: { season: self._season }, return_response: true }).then(function (result) {
