@@ -26,21 +26,6 @@ def _repair_mojibake(value: Any) -> str:
             pass
     return text
 
-def _repair_text_mojibake(value: Any) -> str:
-    """Like _repair_mojibake, but preserves spaces - safe for free-text
-    fields (e.g. the import note) where _repair_mojibake's internal
-    space-stripping (needed only for keyword matching in _norm) would
-    otherwise mangle the text."""
-    text = str(value or "")
-    if any(marker in text for marker in ("Ã", "Â", "â")):
-        try:
-            repaired = text.encode("latin1").decode("utf-8")
-            if repaired != text:
-                text = repaired
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            pass
-    return text
-
 def _norm(value: Any) -> str:
     text=unicodedata.normalize("NFKD",_repair_mojibake(value).strip())
     return "".join(c for c in text if not unicodedata.combining(c)).lower()
@@ -133,7 +118,6 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
     type_col = next(col for key, col in keys.items() if "type" in key)
     qty_col = next(col for key, col in keys.items() if "quantite" in key)
     price_col = next((col for key, col in keys.items() if "prix total" in key or key in {"prix","cout","coût"}), None)
-    note_col = next((col for key, col in keys.items() if "note" in key), None)
     entries = []
     for row in rows[header_idx + 1:]:
         if len(row) <= max(date_col, type_col, qty_col): continue
@@ -142,31 +126,19 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
         event_type = _norm(row[type_col])
         if "consommation" in event_type: kind = "consumption"
         elif "achat" in event_type: kind = "purchase"
-        elif "entretien" in event_type: kind = "entretien"
-        elif "maintenance" in event_type: kind = "maintenance"
         else: continue
+        qty = _number(row[qty_col])
+        if qty is None or qty <= 0: continue
         entry_date = _date(raw_date)
         parsed_date = date.fromisoformat(entry_date)
         season = f"{parsed_date.year}-{parsed_date.year + 1}" if parsed_date.month >= season_start_month else f"{parsed_date.year - 1}-{parsed_date.year}"
-        note = None
-        if note_col is not None and note_col < len(row):
-            note_value = _repair_text_mojibake(row[note_col]).strip()
-            note = note_value or None
-        if kind in ("maintenance", "entretien"):
-            qty = None
-            price = _number(row[price_col]) if price_col is not None and price_col < len(row) else None
-            if price is None: raise CsvImportError(f"Coût manquant pour {raw_date}.")
-            if price < 0: raise CsvImportError(f"Coût invalide pour {raw_date}.")
-        else:
-            qty = _number(row[qty_col])
-            if qty is None or qty <= 0: continue
-            price = None
-            if kind == "purchase":
-                if price_col is not None and price_col < len(row): price = _number(row[price_col])
-                if price is None: raise CsvImportError(f"Prix d'achat manquant pour {raw_date}.")
-                if price < 0: raise CsvImportError(f"Prix d'achat invalide pour {raw_date}.")
-        entries.append({"type": kind,"qty_bags": qty,"date": entry_date,"price_eur": price,"note": note,"bag_weight_kg": None,"calorific_value": None,"season": season})
-    if not entries: raise CsvImportError("Aucune saisie exploitable.")
+        price = None
+        if kind == "purchase":
+            if price_col is not None and price_col < len(row): price = _number(row[price_col])
+            if price is None: raise CsvImportError(f"Prix d'achat manquant pour {raw_date}.")
+            if price < 0: raise CsvImportError(f"Prix d'achat invalide pour {raw_date}.")
+        entries.append({"type": kind,"qty_bags": qty,"date": entry_date,"price_eur": price,"bag_weight_kg": None,"calorific_value": None,"season": season})
+    if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
     entries.sort(key=lambda e: (e["date"], 0 if e["type"] == "purchase" else 1))
     return entries
 
@@ -177,39 +149,57 @@ def _find_season(rows,header_idx):
             if m: return _season(m.group(1))
     raise CsvImportError("Saison AAAA-AAAA introuvable.")
 
-def _find_marker(rows, keyword, start=0):
-    for i in range(start, len(rows)):
-        if any(_norm(v) == keyword for v in rows[i]):
+def _find_section_marker(rows, label):
+    """Return the row index of a standalone section title cell (e.g. a
+    row whose only populated cell reads exactly "Maintenance" or
+    "Entretien"), or None if not present. Matched on the normalized
+    (accent/case-insensitive) cell value to tolerate mojibake and casing
+    differences, same as the existing "Achats granules" marker lookup.
+    """
+    for i, row in enumerate(rows):
+        if any(_norm(v) == label for v in row):
             return i
     return None
 
-def _find_cost_header(rows, after_idx, limit=6):
-    for i in range(after_idx + 1, min(after_idx + 1 + limit, len(rows))):
+def _find_cost_block_header(rows, marker, limit=6):
+    """Find the "Type / Description | Date | Coût | Note" header row that
+    follows a Maintenance/Entretien section marker."""
+    for i in range(marker + 1, min(marker + 1 + limit, len(rows))):
         keys = {_norm(v): c for c, v in enumerate(rows[i])}
         if "date" in keys and any(k in keys for k in ("cout", "coût")):
             return i, keys
     return None
 
-def _parse_cost_section(rows, header_idx, keys, season, entry_type, stop_idx):
-    """Parse a 'Maintenance' or 'Entretien' section of the legacy Excel
-    sheet: a Date/Coût/Note block, bounded so it never bleeds into the
-    next section (which reuses the exact same column layout)."""
+def _parse_cost_block(rows, header_idx, keys, end, entry_type, season):
+    """Parse the rows of a Maintenance/Entretien block: date, cost and an
+    optional free-text note, no pellet quantity involved."""
     date_col = keys["date"]
     cost_col = next(keys[k] for k in ("cout", "coût") if k in keys)
     note_col = next((keys[k] for k in ("note",) if k in keys), None)
     entries = []
-    for row in rows[header_idx + 1:stop_idx]:
-        if len(row) <= max(date_col, cost_col): continue
+    for row in rows[header_idx + 1:end]:
+        if len(row) <= max(date_col, cost_col):
+            continue
         raw_date = str(row[date_col] or "").strip()
-        if not raw_date: continue
-        price = _number(row[cost_col])
-        if price is None: continue
-        if price < 0: raise CsvImportError(f"Coût invalide pour {raw_date}.")
+        raw_cost = str(row[cost_col] or "").strip()
+        if not raw_date or not raw_cost:
+            continue
+        cost = _number(raw_cost)
+        if cost is None or cost < 0:
+            raise CsvImportError(f"Coût invalide pour {raw_date}.")
         note = None
         if note_col is not None and note_col < len(row):
-            note_value = _repair_text_mojibake(row[note_col]).strip()
-            note = note_value or None
-        entries.append({"type": entry_type,"qty_bags": None,"date": _date(raw_date),"price_eur": price,"note": note,"bag_weight_kg": None,"calorific_value": None,"season": season})
+            note_text = str(row[note_col] or "").strip()
+            note = note_text or None
+        entries.append(
+            {
+                "type": entry_type,
+                "date": _date(raw_date),
+                "price_eur": cost,
+                "note": note,
+                "season": season,
+            }
+        )
     return entries
 
 def parse_csv_history(text: str, *, default_season: str | None = None, season_start_month: int = 9) -> dict[str,Any]:
@@ -220,35 +210,64 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
     if event_header is not None:
         header_idx, keys = event_header
         entries = _parse_event_log(rows, header_idx, keys, int(season_start_month))
-        return {"season": entries[0]["season"],"seasons": sorted({entry["season"] for entry in entries}),"entries": entries,"consumption_count": sum(e["type"] == "consumption" for e in entries),"purchase_count": sum(e["type"] == "purchase" for e in entries),"maintenance_count": sum(e["type"] == "maintenance" for e in entries),"entretien_count": sum(e["type"] == "entretien" for e in entries),"consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),"purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase"),"maintenance_eur": sum(e["price_eur"] or 0 for e in entries if e["type"] == "maintenance"),"entretien_eur": sum(e["price_eur"] or 0 for e in entries if e["type"] == "entretien")}
+        return {"season": entries[0]["season"],"seasons": sorted({entry["season"] for entry in entries}),"entries": entries,"consumption_count": sum(e["type"] == "consumption" for e in entries),"purchase_count": sum(e["type"] == "purchase" for e in entries),"consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),"purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase")}
     header_idx,months=_find_header(rows)
     season=_season(default_season) if default_season else _find_season(rows,header_idx)
     start_year=int(season[:4])
     marker=None
     for i,row in enumerate(rows):
         if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
-    def _row_is_valid_day(row):
-        first = str(row[0] if row else "").strip()
-        return bool(re.fullmatch(r"\d{1,2}", first)) and 1 <= int(first) <= 31
+    maintenance_marker = _find_section_marker(rows, "maintenance")
+    entretien_marker = _find_section_marker(rows, "entretien")
+    # Bound each cost block's data range at the next known section marker
+    # (whichever comes first after its own header), so a block with no
+    # rows of its own (e.g. an empty "Maintenance" section) never spills
+    # into reading the following section's header/title rows as data.
+    all_markers = sorted(m for m in (marker, maintenance_marker, entretien_marker) if m is not None)
 
-    if marker is not None and not _row_is_valid_day(rows[marker]):
-        day_grid_stop = marker
-    else:
-        day_grid_stop = len(rows)
+    def _end_bound(start_row: int) -> int:
+        for m in all_markers:
+            if m > start_row:
+                return m
+        return len(rows)
 
     entries=[]
-    for row in rows[header_idx+1:day_grid_stop]:
-        first=str(row[0] if row else "").strip()
-        if not re.fullmatch(r"\d{1,2}",first): continue
-        day=int(first)
-        if not 1<=day<=31: continue
-        for col,month in months.items():
-            if col>=len(row): continue
-            qty=_number(row[col])
-            if qty is None or qty<=0: continue
-            year=start_year if month>=int(season_start_month) else start_year+1
-            try: d=date(year,month,day).isoformat()
-            except ValueError as err: raise CsvImportError(f"Date impossible : {day:02d}/{month:02d}") from err
+    for row_index, row in enumerate(rows[header_idx + 1:], start=header_idx + 1):
+        first = str(row[0] if row else "").strip()
+        if not re.fullmatch(r"\d{1,2}", first):
+            continue
+        day = int(first)
+        if not 1 <= day <= 31:
+            continue
+
+        # In the Excel sheet, "Achats granules" can sit in a right-hand cell
+        # on a valid day row. Do not stop the consumption grid at that label.
+        # After the marker, accept only rows whose populated month cells are
+        # numeric, so purchase-table rows cannot be mistaken for daily rows.
+        if marker is not None and row_index > marker:
+            valid_grid_row = True
+            for col in months:
+                if col >= len(row) or not str(row[col] or "").strip():
+                    continue
+                try:
+                    _number(row[col])
+                except CsvImportError:
+                    valid_grid_row = False
+                    break
+            if not valid_grid_row:
+                continue
+
+        for col, month in months.items():
+            if col >= len(row):
+                continue
+            qty = _number(row[col])
+            if qty is None or qty <= 0:
+                continue
+            year = start_year if month >= int(season_start_month) else start_year + 1
+            try:
+                d = date(year, month, day).isoformat()
+            except ValueError as err:
+                raise CsvImportError(f"Date impossible : {day:02d}/{month:02d}") from err
             entries.append({"type":"consumption","qty_bags":qty,"date":d,"price_eur":None,"note":None,"bag_weight_kg":None,"calorific_value":None,"season":season})
     if marker is not None:
         header=None
@@ -259,11 +278,8 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
             i,keys=header
             qc=next(keys[k] for k in ("qte","qté","quantite","quantité") if k in keys)
             pc=next((keys[k] for k in ("prix","cout","coût") if k in keys),None)
-            _maint_b = _find_marker(rows, "maintenance", i + 1)
-        _entr_b = _find_marker(rows, "entretien", i + 1)
-        _achat_bounds = [b for b in (_maint_b, _entr_b) if b is not None]
-        _achat_stop = min(_achat_bounds) if _achat_bounds else len(rows)
-        for row in rows[i+1:_achat_stop]:
+            end = _end_bound(i)
+            for row in rows[i+1:end]:
                 if len(row)<=max(qc,keys["date"],pc or 0): continue
                 qty=_number(row[qc])
                 if qty is None or qty<=0 or not str(row[keys["date"]]).strip(): continue
@@ -271,32 +287,15 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
                 if price is None: raise CsvImportError(f"Prix d'achat manquant pour {row[keys['date']]}." )
                 if price<0: raise CsvImportError(f"Prix d'achat invalide pour {row[keys['date']]}." )
                 entries.append({"type":"purchase","qty_bags":qty,"date":_date(row[keys["date"]]),"price_eur":price,"note":None,"bag_weight_kg":None,"calorific_value":None,"season":season})
-
-    # Maintenance / Entretien sections: same Date/Coût/Note layout as the
-    # achats section above, each introduced by its own standalone marker
-    # row (just the word "Maintenance" or "Entretien" in a cell). Bounded
-    # to stop at whichever section marker comes next, so a section with
-    # no real rows (common - the template ships both even when unused)
-    # never swallows the next section's actual entries.
-    maintenance_marker = _find_marker(rows, "maintenance")
-    entretien_marker = _find_marker(rows, "entretien")
-    section_markers = sorted(m for m in (maintenance_marker, entretien_marker) if m is not None)
-
-    def _next_boundary(idx):
-        later = [m for m in section_markers if m > idx]
-        return min(later) if later else len(rows)
-
-    if maintenance_marker is not None:
-        header = _find_cost_header(rows, maintenance_marker)
-        if header:
-            h_idx, keys = header
-            entries.extend(_parse_cost_section(rows, h_idx, keys, season, "maintenance", _next_boundary(h_idx)))
-    if entretien_marker is not None:
-        header = _find_cost_header(rows, entretien_marker)
-        if header:
-            h_idx, keys = header
-            entries.extend(_parse_cost_section(rows, h_idx, keys, season, "entretien", _next_boundary(h_idx)))
-
-    if not entries: raise CsvImportError("Aucune saisie exploitable.")
+    for section_marker, entry_type in ((maintenance_marker, "maintenance"), (entretien_marker, "entretien")):
+        if section_marker is None:
+            continue
+        header = _find_cost_block_header(rows, section_marker)
+        if header is None:
+            continue
+        hi, keys = header
+        end = _end_bound(hi)
+        entries.extend(_parse_cost_block(rows, hi, keys, end, entry_type, season))
+    if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
     entries.sort(key=lambda e:(e["date"],0 if e["type"]=="purchase" else 1))
-    return {"season":season,"entries":entries,"consumption_count":sum(e["type"]=="consumption" for e in entries),"purchase_count":sum(e["type"]=="purchase" for e in entries),"maintenance_count":sum(e["type"]=="maintenance" for e in entries),"entretien_count":sum(e["type"]=="entretien" for e in entries),"consumption_bags":sum(e["qty_bags"] for e in entries if e["type"]=="consumption"),"purchase_bags":sum(e["qty_bags"] for e in entries if e["type"]=="purchase"),"maintenance_eur":sum(e["price_eur"] or 0 for e in entries if e["type"]=="maintenance"),"entretien_eur":sum(e["price_eur"] or 0 for e in entries if e["type"]=="entretien")}
+    return {"season":season,"entries":entries,"consumption_count":sum(e["type"]=="consumption" for e in entries),"purchase_count":sum(e["type"]=="purchase" for e in entries),"consumption_bags":sum(e["qty_bags"] for e in entries if e["type"]=="consumption"),"purchase_bags":sum(e["qty_bags"] for e in entries if e["type"]=="purchase")}

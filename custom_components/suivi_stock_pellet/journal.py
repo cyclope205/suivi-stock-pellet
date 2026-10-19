@@ -504,13 +504,6 @@ class PelletJournal:
                 season = item["season"]
                 entry_type = item["type"]
                 entry_date = str(item["date"])
-                if entry_type not in (
-                    ENTRY_TYPE_PURCHASE,
-                    ENTRY_TYPE_CONSUMPTION,
-                    ENTRY_TYPE_MAINTENANCE,
-                    ENTRY_TYPE_ENTRETIEN,
-                ):
-                    raise ValueError(f"Type de saisie invalide: {entry_type}")
                 date.fromisoformat(entry_date)
                 if season not in self._data["seasons"]:
                     # First time this import touches this season: decide
@@ -529,11 +522,10 @@ class PelletJournal:
                     }
                 entries = self._data["seasons"][season]["entries"]
                 if entry_type in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
-                    # No qty/unit concept for these - only cost, date and
-                    # an optional note, mirroring async_add_entry's
-                    # special case. Never part of the stock/bag math
-                    # below (_entry_qty_kg is only ever summed over
-                    # PURCHASE/CONSUMPTION entries).
+                    # Maintenance/entretien rows track a cost and an
+                    # optional note, never a pellet quantity - same
+                    # shape as async_add_entry's equivalent branch, and
+                    # they never participate in the stock/bag math below.
                     price = item.get("price_eur")
                     if price is None or not math.isfinite(price) or price < 0:
                         raise ValueError("Le cout doit etre positif ou nul")
@@ -544,6 +536,8 @@ class PelletJournal:
                         "note": item.get("note"),
                     })
                     continue
+                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
+                    raise ValueError(f"Type de saisie invalide: {entry_type}")
                 unit = item.get("unit", "bag")
                 if unit == "kg":
                     qty = float(item["qty_kg"])
