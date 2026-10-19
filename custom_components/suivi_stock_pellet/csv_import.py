@@ -229,14 +229,14 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
         if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
     def _row_is_valid_day(row):
         first = str(row[0] if row else "").strip()
-    return bool(re.fullmatch(r"\d{1,2}", first)) and 1 <= int(first) <= 31
+        return bool(re.fullmatch(r"\d{1,2}", first)) and 1 <= int(first) <= 31
 
-if marker is not None and not _row_is_valid_day(rows[marker]):
-    day_grid_stop = marker
-else:
-    day_grid_stop = len(rows)
+    if marker is not None and not _row_is_valid_day(rows[marker]):
+        day_grid_stop = marker
+    else:
+        day_grid_stop = len(rows)
 
-entries=[]
+    entries=[]
     for row in rows[header_idx+1:day_grid_stop]:
         first=str(row[0] if row else "").strip()
         if not re.fullmatch(r"\d{1,2}",first): continue
