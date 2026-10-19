@@ -547,10 +547,7 @@ class PelletJournal:
             for item in imported:
                 season = item["season"]
                 entry_type = item["type"]
-                unit = item.get("unit", "bag")
                 entry_date = str(item["date"])
-                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
-                    raise ValueError(f"Type de saisie invalide: {entry_type}")
                 date.fromisoformat(entry_date)
                 if season not in self._data["seasons"]:
                     # First time this import touches this season: decide
@@ -568,6 +565,24 @@ class PelletJournal:
                         "stock_initial_value_eur": stock_initial_value,
                     }
                 entries = self._data["seasons"][season]["entries"]
+                if entry_type in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
+                    # Maintenance/entretien rows track a cost and an
+                    # optional note, never a pellet quantity - same
+                    # shape as async_add_entry's equivalent branch, and
+                    # they never participate in the stock/bag math below.
+                    price = item.get("price_eur")
+                    if price is None or not math.isfinite(price) or price < 0:
+                        raise ValueError("Le cout doit etre positif ou nul")
+                    entries.append({
+                        "type": entry_type,
+                        "date": entry_date,
+                        "price_eur": float(price),
+                        "note": item.get("note"),
+                    })
+                    continue
+                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
+                    raise ValueError(f"Type de saisie invalide: {entry_type}")
+                unit = item.get("unit", "bag")
                 if unit == "kg":
                     qty = float(item["qty_kg"])
                     if not math.isfinite(qty) or qty <= 0:
@@ -657,6 +672,16 @@ class PelletJournal:
                 date.fromisoformat(entry_date)
                 updated["date"] = entry_date
             if price_eur is not None:
+                if not math.isfinite(price_eur) or price_eur < 0:
+                    # Même lacune que celle corrigée dans async_add_entry :
+                    # un prix NaN/infini n'était validé que par
+                    # vol.Range(min=0) au niveau du schéma du service, qui
+                    # laisse passer NaN (NaN < 0 est toujours faux). La
+                    # modification d'une saisie entretien/maintenance
+                    # n'appliquait pas ce contrôle contrairement à l'ajout.
+                    raise ValueError(
+                        "Le coût doit être un nombre fini, positif ou nul"
+                    )
                 updated["price_eur"] = price_eur
             if note is not None:
                 updated["note"] = note
@@ -713,6 +738,15 @@ class PelletJournal:
             date.fromisoformat(entry_date)
             updated["date"] = entry_date
         if updated["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
+            if not math.isfinite(price_eur) or price_eur < 0:
+                # Même lacune que celle corrigée dans async_add_entry : la
+                # modification d'un achat n'appliquait pas le contrôle
+                # isfinite/non-négatif appliqué à l'ajout, laissant passer
+                # un prix NaN/infini qui contamine les totaux de dépenses
+                # et le coût moyen affiché.
+                raise ValueError(
+                    "Le prix doit être un nombre fini, positif ou nul"
+                )
             updated["price_eur"] = price_eur
         target_season = (
             new_season
