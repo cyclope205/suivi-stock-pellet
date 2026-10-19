@@ -118,6 +118,8 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
     type_col = next(col for key, col in keys.items() if "type" in key)
     qty_col = next(col for key, col in keys.items() if "quantite" in key)
     price_col = next((col for key, col in keys.items() if "prix total" in key or key in {"prix","cout","coût"}), None)
+    note_col = next((col for key, col in keys.items() if key == "note"), None)
+    season_col = keys.get("saison")
     entries = []
     for row in rows[header_idx + 1:]:
         if len(row) <= max(date_col, type_col, qty_col): continue
@@ -126,18 +128,39 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
         event_type = _norm(row[type_col])
         if "consommation" in event_type: kind = "consumption"
         elif "achat" in event_type: kind = "purchase"
+        elif "entretien" in event_type: kind = "entretien"
+        elif "maintenance" in event_type: kind = "maintenance"
         else: continue
-        qty = _number(row[qty_col])
-        if qty is None or qty <= 0: continue
         entry_date = _date(raw_date)
         parsed_date = date.fromisoformat(entry_date)
-        season = f"{parsed_date.year}-{parsed_date.year + 1}" if parsed_date.month >= season_start_month else f"{parsed_date.year - 1}-{parsed_date.year}"
+        raw_season = str(row[season_col]).strip() if season_col is not None and season_col < len(row) else ""
+        if re.fullmatch(r"\d{4}-\d{4}", raw_season):
+            # Trust the file's own Saison column when present and well
+            # formed: an advance purchase is routinely dated outside the
+            # season it is meant for (e.g. bought in Feb for next
+            # winter's heating season), so recomputing purely from the
+            # date would silently misfile it.
+            season = raw_season
+        else:
+            season = f"{parsed_date.year}-{parsed_date.year + 1}" if parsed_date.month >= season_start_month else f"{parsed_date.year - 1}-{parsed_date.year}"
+        if kind in ("entretien", "maintenance"):
+            cost = _number(row[price_col]) if price_col is not None and price_col < len(row) else None
+            if cost is None: raise CsvImportError(f"Coût manquant pour {raw_date}.")
+            if cost < 0: raise CsvImportError(f"Coût invalide pour {raw_date}.")
+            note = None
+            if note_col is not None and note_col < len(row):
+                note_text = str(row[note_col] or "").strip()
+                note = note_text or None
+            entries.append({"type": kind, "date": entry_date, "price_eur": cost, "note": note, "season": season})
+            continue
+        qty = _number(row[qty_col])
+        if qty is None or qty <= 0: continue
         price = None
         if kind == "purchase":
             if price_col is not None and price_col < len(row): price = _number(row[price_col])
             if price is None: raise CsvImportError(f"Prix d'achat manquant pour {raw_date}.")
             if price < 0: raise CsvImportError(f"Prix d'achat invalide pour {raw_date}.")
-        entries.append({"type": kind,"qty_bags": qty,"date": entry_date,"price_eur": price,"bag_weight_kg": None,"calorific_value": None,"season": season})
+        entries.append({"type": kind,"qty_bags": qty,"date": entry_date,"price_eur": price,"note": None,"bag_weight_kg": None,"calorific_value": None,"season": season})
     if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
     entries.sort(key=lambda e: (e["date"], 0 if e["type"] == "purchase" else 1))
     return entries
