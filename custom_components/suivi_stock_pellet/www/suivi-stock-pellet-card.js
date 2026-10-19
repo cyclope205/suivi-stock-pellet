@@ -249,7 +249,7 @@
     { key: "group_cost_chart", title: "Graphique de coût par saison", fields: ["show_price_chart", "show_maintenance_chart", "show_entretien_chart", "show_achat_chart", "show_cost_total_chart"] },
     { key: "group_consumption_chart", title: "Graphique de consommation", fields: ["show_monthly_chart"] },
     { key: "group_history_calendar", title: "Historique & calendrier", fields: ["show_history", "show_calendar"] },
-    { key: "group_actions", title: "Saisie & actions", fields: ["show_actions", "show_csv_import"] }
+    { key: "group_actions", title: "Saisie & actions", fields: ["show_actions", "show_csv_import", "show_csv_export"] }
   ];
 
   function findEntity(hass, key) {
