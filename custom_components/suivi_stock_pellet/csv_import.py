@@ -16,7 +16,7 @@ class CsvImportError(ValueError):
 
 def _repair_mojibake(value: Any) -> str:
     """Repair common UTF-8/Windows-1252 mojibake without altering normal text."""
-    text = str(value or "").replace("\ufeff", "")
+    text = str(value or "").replace("﻿", "")
     if any(marker in text for marker in ("Ã", "Â", "â")):
         try:
             repaired = text.encode("latin1").decode("utf-8")
@@ -149,6 +149,59 @@ def _find_season(rows,header_idx):
             if m: return _season(m.group(1))
     raise CsvImportError("Saison AAAA-AAAA introuvable.")
 
+def _find_section_marker(rows, label):
+    """Return the row index of a standalone section title cell (e.g. a
+    row whose only populated cell reads exactly "Maintenance" or
+    "Entretien"), or None if not present. Matched on the normalized
+    (accent/case-insensitive) cell value to tolerate mojibake and casing
+    differences, same as the existing "Achats granules" marker lookup.
+    """
+    for i, row in enumerate(rows):
+        if any(_norm(v) == label for v in row):
+            return i
+    return None
+
+def _find_cost_block_header(rows, marker, limit=6):
+    """Find the "Type / Description | Date | Coût | Note" header row that
+    follows a Maintenance/Entretien section marker."""
+    for i in range(marker + 1, min(marker + 1 + limit, len(rows))):
+        keys = {_norm(v): c for c, v in enumerate(rows[i])}
+        if "date" in keys and any(k in keys for k in ("cout", "coût")):
+            return i, keys
+    return None
+
+def _parse_cost_block(rows, header_idx, keys, end, entry_type, season):
+    """Parse the rows of a Maintenance/Entretien block: date, cost and an
+    optional free-text note, no pellet quantity involved."""
+    date_col = keys["date"]
+    cost_col = next(keys[k] for k in ("cout", "coût") if k in keys)
+    note_col = next((keys[k] for k in ("note",) if k in keys), None)
+    entries = []
+    for row in rows[header_idx + 1:end]:
+        if len(row) <= max(date_col, cost_col):
+            continue
+        raw_date = str(row[date_col] or "").strip()
+        raw_cost = str(row[cost_col] or "").strip()
+        if not raw_date or not raw_cost:
+            continue
+        cost = _number(raw_cost)
+        if cost is None or cost < 0:
+            raise CsvImportError(f"Coût invalide pour {raw_date}.")
+        note = None
+        if note_col is not None and note_col < len(row):
+            note_text = str(row[note_col] or "").strip()
+            note = note_text or None
+        entries.append(
+            {
+                "type": entry_type,
+                "date": _date(raw_date),
+                "price_eur": cost,
+                "note": note,
+                "season": season,
+            }
+        )
+    return entries
+
 def parse_csv_history(text: str, *, default_season: str | None = None, season_start_month: int = 9) -> dict[str,Any]:
     if not text.strip(): raise CsvImportError("Le fichier CSV est vide.")
     if not 1 <= int(season_start_month) <= 12: raise CsvImportError("Mois de début de saison invalide.")
@@ -164,6 +217,20 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
     marker=None
     for i,row in enumerate(rows):
         if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
+    maintenance_marker = _find_section_marker(rows, "maintenance")
+    entretien_marker = _find_section_marker(rows, "entretien")
+    # Bound each cost block's data range at the next known section marker
+    # (whichever comes first after its own header), so a block with no
+    # rows of its own (e.g. an empty "Maintenance" section) never spills
+    # into reading the following section's header/title rows as data.
+    all_markers = sorted(m for m in (marker, maintenance_marker, entretien_marker) if m is not None)
+
+    def _end_bound(start_row: int) -> int:
+        for m in all_markers:
+            if m > start_row:
+                return m
+        return len(rows)
+
     entries=[]
     for row_index, row in enumerate(rows[header_idx + 1:], start=header_idx + 1):
         first = str(row[0] if row else "").strip()
@@ -211,7 +278,8 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
             i,keys=header
             qc=next(keys[k] for k in ("qte","qté","quantite","quantité") if k in keys)
             pc=next((keys[k] for k in ("prix","cout","coût") if k in keys),None)
-            for row in rows[i+1:]:
+            end = _end_bound(i)
+            for row in rows[i+1:end]:
                 if len(row)<=max(qc,keys["date"],pc or 0): continue
                 qty=_number(row[qc])
                 if qty is None or qty<=0 or not str(row[keys["date"]]).strip(): continue
@@ -219,6 +287,15 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
                 if price is None: raise CsvImportError(f"Prix d'achat manquant pour {row[keys['date']]}." )
                 if price<0: raise CsvImportError(f"Prix d'achat invalide pour {row[keys['date']]}." )
                 entries.append({"type":"purchase","qty_bags":qty,"date":_date(row[keys["date"]]),"price_eur":price,"bag_weight_kg":None,"calorific_value":None,"season":season})
+    for section_marker, entry_type in ((maintenance_marker, "maintenance"), (entretien_marker, "entretien")):
+        if section_marker is None:
+            continue
+        header = _find_cost_block_header(rows, section_marker)
+        if header is None:
+            continue
+        hi, keys = header
+        end = _end_bound(hi)
+        entries.extend(_parse_cost_block(rows, hi, keys, end, entry_type, season))
     if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
     entries.sort(key=lambda e:(e["date"],0 if e["type"]=="purchase" else 1))
     return {"season":season,"entries":entries,"consumption_count":sum(e["type"]=="consumption" for e in entries),"purchase_count":sum(e["type"]=="purchase" for e in entries),"consumption_bags":sum(e["qty_bags"] for e in entries if e["type"]=="consumption"),"purchase_bags":sum(e["qty_bags"] for e in entries if e["type"]=="purchase")}

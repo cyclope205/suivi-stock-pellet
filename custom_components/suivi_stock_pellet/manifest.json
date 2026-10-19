@@ -11,6 +11,7 @@
     "websocket_api"
   ],
   "documentation": "https://github.com/cyclope205/suivi-stock-pellet",
+  "homeassistant": "2024.7.0",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/cyclope205/suivi-stock-pellet/issues",
   "requirements": [],

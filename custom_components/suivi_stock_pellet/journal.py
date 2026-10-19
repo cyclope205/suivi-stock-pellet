@@ -503,10 +503,7 @@ class PelletJournal:
             for item in imported:
                 season = item["season"]
                 entry_type = item["type"]
-                unit = item.get("unit", "bag")
                 entry_date = str(item["date"])
-                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
-                    raise ValueError(f"Type de saisie invalide: {entry_type}")
                 date.fromisoformat(entry_date)
                 if season not in self._data["seasons"]:
                     # First time this import touches this season: decide
@@ -524,6 +521,24 @@ class PelletJournal:
                         "stock_initial_value_eur": stock_initial_value,
                     }
                 entries = self._data["seasons"][season]["entries"]
+                if entry_type in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
+                    # Maintenance/entretien rows track a cost and an
+                    # optional note, never a pellet quantity - same
+                    # shape as async_add_entry's equivalent branch, and
+                    # they never participate in the stock/bag math below.
+                    price = item.get("price_eur")
+                    if price is None or not math.isfinite(price) or price < 0:
+                        raise ValueError("Le cout doit etre positif ou nul")
+                    entries.append({
+                        "type": entry_type,
+                        "date": entry_date,
+                        "price_eur": float(price),
+                        "note": item.get("note"),
+                    })
+                    continue
+                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
+                    raise ValueError(f"Type de saisie invalide: {entry_type}")
+                unit = item.get("unit", "bag")
                 if unit == "kg":
                     qty = float(item["qty_kg"])
                     if not math.isfinite(qty) or qty <= 0:
