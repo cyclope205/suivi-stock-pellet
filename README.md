@@ -1,6 +1,6 @@
 # Suivi Stock Pellet
 
-[![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![HACS: Default](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
 [![Release](https://img.shields.io/github/v/release/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/releases)
 [![Build](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
 [![Tests](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml)
@@ -32,7 +32,7 @@
 ---
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://bmc-eight-red.vercel.app/api/donate?repo=suivi-stock-pellet) [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://bmc-eight-red.vercel.app/api/paypal?repo=suivi-stock-pellet&amount=5)
-<img src="custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
+<img src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
@@ -109,7 +109,7 @@ Calendrier des ajouts:
 
 Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance/entretien :
 
-<img width="600" alt="Vue d'ensemble v1.10.0" src="docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
+<img width="600" alt="Vue d'ensemble v1.10.0" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
 
 ---
 
@@ -205,14 +205,15 @@ Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer 
 
 ## Installation
 
-### Via HACS (dépôt personnalisé)
+### Via HACS
 
-1. Ajouter ce dépôt à HACS :
-
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
-
-2. Installer **Suivi Stock Pellet**, puis redémarrer Home Assistant.
-3. **Paramètres → Appareils et services → Ajouter une intégration** → rechercher "Suivi Stock Pellet".
+1. Ouvrir le dépôt dans HACS et l'installer :
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
+   ou rechercher "Suivi Stock Pellet" dans HACS.
+2. Redémarrer Home Assistant.
+3. Ajouter l'intégration :
+   [![Open your Home Assistant instance and show the add integration dialog with a specific integration pre-selected.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=suivi_stock_pellet)
+   ou Paramètres → Appareils et services → Ajouter une intégration → rechercher "Suivi Stock Pellet".
 
 **⚠️ La carte affiche « Erreur de configuration : Custom element doesn't exist: suivi-stock-pellet-card » juste après l'installation ?** C'est normal, le temps que le navigateur recharge le cache : faites **Ctrl+F5** sur navigateur (rechargement forcé), ou **fermez complètement puis relancez l'application Home Assistant Companion** sur mobile. La carte s'affiche ensuite normalement.
 
