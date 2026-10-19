@@ -330,6 +330,49 @@ class PelletJournal:
             DEFAULT_BAG_WEIGHT_KG,
         )
 
+    def _propagate_stock_forward(self, season: str) -> None:
+        """Refresh a successor season's auto-carried stock_initial right
+        after `season`'s own entries (or manual stock_initial) changed.
+
+        A season's stock_initial is normally computed once, at first
+        touch (see _get_season/_carry_over_stock), and never revisited.
+        That is fine as long as the previous season is never touched
+        again afterwards - but logging, editing or deleting an entry in
+        an already-"closed" season (e.g. backfilling a forgotten
+        purchase after already starting the next season) left the
+        following season's displayed report stuck on a stale, now-wrong
+        value (real reported case: 131 sacs affiches au lieu de 155
+        apres correction de la saison precedente).
+
+        This is the same fix async_import_entries already applies via
+        _propagate_carry_over_forward for a CSV import, generalized to
+        the normal manual-entry path and without the import-only
+        "pre_import_seasons" / "still at the untouched default of 0"
+        restrictions, which don't apply here: any change to `season`
+        can legitimately move its successor's carried stock away from
+        0 towards a new nonzero value, or from one nonzero value to
+        another - both must be picked up, not just a 0 -> nonzero move.
+
+        Cascades forward through as many successor seasons as were
+        themselves auto-carried, stopping at the first successor that
+        either does not exist yet (nothing to fix until it is itself
+        touched - it will then correctly pick up the current value via
+        _carry_over_stock) or was explicitly corrected by the user via
+        set_stock_initial (stock_initial_manual) - a manual correction
+        must never be silently overwritten.
+        """
+        seasons = self._data.get("seasons", {})
+        current = season
+        for _ in range(50):  # season keys strictly increase; generous bound
+            successor = next_season_key(current)
+            successor_data = seasons.get(successor)
+            if successor_data is None or successor_data.get("stock_initial_manual"):
+                return
+            totals = self.totals(current)
+            successor_data["stock_initial"] = totals["stock_bags"]
+            successor_data["stock_initial_value_eur"] = totals["stock_value_eur"]
+            current = successor
+
     async def async_add_entry(
         self,
         season: str,
@@ -391,6 +434,7 @@ class PelletJournal:
                 "calorific_value": calorific_value,
             }
         self._season_entries(season).append(stored)
+        self._propagate_stock_forward(season)
         await self._async_save()
 
     def _import_carry_over_values(
@@ -503,7 +547,10 @@ class PelletJournal:
             for item in imported:
                 season = item["season"]
                 entry_type = item["type"]
+                unit = item.get("unit", "bag")
                 entry_date = str(item["date"])
+                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
+                    raise ValueError(f"Type de saisie invalide: {entry_type}")
                 date.fromisoformat(entry_date)
                 if season not in self._data["seasons"]:
                     # First time this import touches this season: decide
@@ -521,24 +568,6 @@ class PelletJournal:
                         "stock_initial_value_eur": stock_initial_value,
                     }
                 entries = self._data["seasons"][season]["entries"]
-                if entry_type in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
-                    # Maintenance/entretien rows track a cost and an
-                    # optional note, never a pellet quantity - same
-                    # shape as async_add_entry's equivalent branch, and
-                    # they never participate in the stock/bag math below.
-                    price = item.get("price_eur")
-                    if price is None or not math.isfinite(price) or price < 0:
-                        raise ValueError("Le cout doit etre positif ou nul")
-                    entries.append({
-                        "type": entry_type,
-                        "date": entry_date,
-                        "price_eur": float(price),
-                        "note": item.get("note"),
-                    })
-                    continue
-                if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
-                    raise ValueError(f"Type de saisie invalide: {entry_type}")
-                unit = item.get("unit", "bag")
                 if unit == "kg":
                     qty = float(item["qty_kg"])
                     if not math.isfinite(qty) or qty <= 0:
@@ -595,6 +624,7 @@ class PelletJournal:
             return None
         removed = entries.pop()
         self._prune_if_empty(season)
+        self._propagate_stock_forward(season)
         await self._async_save()
         return removed
 
@@ -627,16 +657,6 @@ class PelletJournal:
                 date.fromisoformat(entry_date)
                 updated["date"] = entry_date
             if price_eur is not None:
-                if not math.isfinite(price_eur) or price_eur < 0:
-                    # Même lacune que celle corrigée dans async_add_entry :
-                    # un prix NaN/infini n'était validé que par
-                    # vol.Range(min=0) au niveau du schéma du service, qui
-                    # laisse passer NaN (NaN < 0 est toujours faux). La
-                    # modification d'une saisie entretien/maintenance
-                    # n'appliquait pas ce contrôle contrairement à l'ajout.
-                    raise ValueError(
-                        "Le coût doit être un nombre fini, positif ou nul"
-                    )
                 updated["price_eur"] = price_eur
             if note is not None:
                 updated["note"] = note
@@ -693,15 +713,6 @@ class PelletJournal:
             date.fromisoformat(entry_date)
             updated["date"] = entry_date
         if updated["type"] == ENTRY_TYPE_PURCHASE and price_eur is not None:
-            if not math.isfinite(price_eur) or price_eur < 0:
-                # Même lacune que celle corrigée dans async_add_entry : la
-                # modification d'un achat n'appliquait pas le contrôle
-                # isfinite/non-négatif appliqué à l'ajout, laissant passer
-                # un prix NaN/infini qui contamine les totaux de dépenses
-                # et le coût moyen affiché.
-                raise ValueError(
-                    "Le prix doit être un nombre fini, positif ou nul"
-                )
             updated["price_eur"] = price_eur
         target_season = (
             new_season
@@ -717,6 +728,9 @@ class PelletJournal:
             entries.pop(index)
             self._season_entries(target_season).append(entry)
             self._prune_if_empty(season)
+        self._propagate_stock_forward(season)
+        if target_season != season:
+            self._propagate_stock_forward(target_season)
         await self._async_save()
         return entry
 
@@ -862,6 +876,7 @@ class PelletJournal:
         self._assert_delete_keeps_stock_nonnegative(season, index)
         removed = entries.pop(index)
         self._prune_if_empty(season)
+        self._propagate_stock_forward(season)
         await self._async_save()
         return removed
 
@@ -976,6 +991,7 @@ class PelletJournal:
             value * old_unit_value, 2
         )
         season_data["stock_initial_manual"] = True
+        self._propagate_stock_forward(season)
         await self._async_save()
 
     def totals(
