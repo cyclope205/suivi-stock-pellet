@@ -235,7 +235,11 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
             i,keys=header
             qc=next(keys[k] for k in ("qte","qté","quantite","quantité") if k in keys)
             pc=next((keys[k] for k in ("prix","cout","coût") if k in keys),None)
-            for row in rows[i+1:]:
+            _maint_b = _find_marker(rows, "maintenance", i + 1)
+        _entr_b = _find_marker(rows, "entretien", i + 1)
+        _achat_bounds = [b for b in (_maint_b, _entr_b) if b is not None]
+        _achat_stop = min(_achat_bounds) if _achat_bounds else len(rows)
+        for row in rows[i+1:_achat_stop]:
                 if len(row)<=max(qc,keys["date"],pc or 0): continue
                 qty=_number(row[qc])
                 if qty is None or qty<=0 or not str(row[keys["date"]]).strip(): continue
