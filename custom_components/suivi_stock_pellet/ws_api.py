@@ -10,6 +10,7 @@ normally expects to be able to see.
 from __future__ import annotations
 
 from datetime import date as date_cls, timedelta
+from homeassistant.util import dt as dt_util
 
 import voluptuous as vol
 
@@ -54,7 +55,7 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
         if config_entry
         else DEFAULT_SEASON_START_MONTH
     )
-    season = msg.get("season") or season_for_date(date_cls.today(), start_month)
+    season = msg.get("season") or season_for_date(dt_util.now().date(), start_month)
 
     # Bound the "Jours de suivi" count (real_days_logged) to this season's
     # own end when it is a CLOSED season being browsed via the card's season
@@ -63,9 +64,9 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
     # calendar today(), making a long-finished season's day count keep
     # climbing forever instead of staying frozen at its real length. The
     # live current season keeps using today, unchanged.
-    real_current_season = season_for_date(date_cls.today(), start_month)
+    real_current_season = season_for_date(dt_util.now().date(), start_month)
     if season == real_current_season:
-        as_of_date = date_cls.today().isoformat()
+        as_of_date = dt_util.now().date().isoformat()
     else:
         entry_dates = [e["date"] for e in journal.entries(season)]
         as_of_date = max(entry_dates) if entry_dates else None
@@ -108,7 +109,7 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
         if config_entry
         else DEFAULT_SEASON_START_MONTH
     )
-    current_season = season_for_date(date_cls.today(), start_month)
+    current_season = season_for_date(dt_util.now().date(), start_month)
 
     summary = []
     display_unit = (
@@ -165,7 +166,7 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
         if config_entry
         else DEFAULT_SEASON_START_MONTH
     )
-    today = date_cls.today()
+    today = dt_util.now().date()
     real_current_season = season_for_date(today, start_month)
     season = msg.get("season") or real_current_season
     previous_season = previous_season_key(season)
