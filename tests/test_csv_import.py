@@ -42,7 +42,7 @@ def test_legacy_monthly_history_uses_configured_season_start_month():
 
 def test_parse_accepts_utf8_bom():
     result = parse_csv_history(
-        "\ufeff;septembre;octobre;Saison 2024-2025\n"
+        "﻿;septembre;octobre;Saison 2024-2025\n"
         "1;1;2;0\n"
     )
     assert result["season"] == "2024-2025"
@@ -158,3 +158,74 @@ def test_consumption_grid_continues_after_purchase_label_on_same_day_row():
     assert result["consumption_bags"] == 10
     assert result["purchase_bags"] == 155
     assert result["purchase_count"] == 2
+
+
+def test_parses_maintenance_and_entretien_blocks():
+    # Mirrors the real workbook layout: two standalone sections below the
+    # monthly grid, each with its own "Type / Description | Date | Coût |
+    # Note" header, holding cost entries that carry no pellet quantity.
+    csv_text = (
+        "\tseptembre\toctobre\tSaison 2024-2025\n"
+        "1\t1\t0\t\n"
+        "\n"
+        "Maintenance\n"
+        "Type / Description\tDate\tCoût\tNote\n"
+        "Pieces\t10/01/2025\t45,00€\tRemplacement joint\n"
+        "\n"
+        "Entretien\n"
+        "Type / Description\tDate\tCoût\tNote\n"
+        "Entretien\t19/03/2024\t276,00€\tRamonage n°38934\n"
+    )
+    result = parse_csv_history(csv_text)
+
+    maintenance = [e for e in result["entries"] if e["type"] == "maintenance"]
+    entretien = [e for e in result["entries"] if e["type"] == "entretien"]
+
+    assert len(maintenance) == 1
+    assert maintenance[0]["date"] == "2025-01-10"
+    assert maintenance[0]["price_eur"] == pytest.approx(45.0)
+    assert maintenance[0]["note"] == "Remplacement joint"
+    assert maintenance[0]["season"] == "2024-2025"
+
+    assert len(entretien) == 1
+    assert entretien[0]["date"] == "2024-03-19"
+    assert entretien[0]["price_eur"] == pytest.approx(276.0)
+    assert entretien[0]["note"] == "Ramonage n°38934"
+
+
+def test_empty_maintenance_block_does_not_leak_into_entretien():
+    # A "Maintenance" section with just its header and no data rows,
+    # immediately followed by a populated "Entretien" section, must not
+    # swallow the next section's header/title rows as bogus data (which
+    # would otherwise crash trying to parse the literal word "Date" as a
+    # date).
+    csv_text = (
+        "\tseptembre\toctobre\tSaison 2024-2025\n"
+        "1\t1\t0\t\n"
+        "\n"
+        "Maintenance\n"
+        "Type / Description\tDate\tCoût\tNote\n"
+        "\n"
+        "Entretien\n"
+        "Type / Description\tDate\tCoût\tNote\n"
+        "Entretien\t19/03/2024\t276,00€\tRamonage n°38934\n"
+    )
+    result = parse_csv_history(csv_text)
+
+    assert not [e for e in result["entries"] if e["type"] == "maintenance"]
+    entretien = [e for e in result["entries"] if e["type"] == "entretien"]
+    assert len(entretien) == 1
+    assert entretien[0]["note"] == "Ramonage n°38934"
+
+
+def test_maintenance_block_rejects_negative_cost():
+    csv_text = (
+        "\tseptembre\toctobre\tSaison 2024-2025\n"
+        "1\t1\t0\t\n"
+        "\n"
+        "Maintenance\n"
+        "Type / Description\tDate\tCoût\tNote\n"
+        "Pieces\t10/01/2025\t-45,00€\t\n"
+    )
+    with pytest.raises(CsvImportError):
+        parse_csv_history(csv_text)
