@@ -240,7 +240,7 @@
     { key: "show_entretien_chart", label: "Graphique coût entretien par saison" },
     { key: "show_achat_chart", label: "Graphique coût achat par saison" },
     { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" },
-    { key: "show_csv_import", label: "Bouton Importer CSV achats/conso" },
+    { key: "show_csv_import", label: "Bouton Importer CSV" },
     { key: "show_csv_export", label: "Bouton Exporter CSV" }
   ];
 
@@ -712,7 +712,7 @@ if (cfg.show_csv_import) {
         importBtn.className = "secondary";
         importBtn.title = "Importe un historique d'achats et de consommations depuis un fichier CSV";
         importBtn.appendChild(icon("mdi:file-import"));
-        importBtn.appendChild(document.createTextNode("Importer CSV achats/conso"));
+        importBtn.appendChild(document.createTextNode("Importer CSV"));
         var importInput = document.createElement("input");
         importInput.type = "file";
         importInput.accept = ".csv,text/csv";
