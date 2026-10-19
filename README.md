@@ -36,6 +36,21 @@
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
+## Sommaire
+
+- [Captures d'écran](#captures-décran)
+- [Fonctionnalités](#fonctionnalités)
+- [Unités et prix (sacs / kg)](#unités-et-prix-sacs--kg)
+- [Saisons de chauffe](#saisons-de-chauffe)
+- [Import et export CSV](#import-et-export-csv)
+- [Maintenance et entretien](#maintenance-et-entretien)
+- [Carte Lovelace](#carte-lovelace)
+- [Installation](#installation)
+- [Utilisation](#utilisation)
+- [Entités créées](#entités-créées)
+- [Service `set_stock_initial`](#service-set_stock_initial)
+- [Licence](#licence)
+
 ## Captures d'écran
 
 ---
