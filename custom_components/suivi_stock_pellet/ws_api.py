@@ -255,8 +255,12 @@ async def _ws_csv_import_preview(hass: HomeAssistant, connection, msg) -> None:
         "season": parsed["season"],
         "consumption_count": parsed["consumption_count"],
         "purchase_count": parsed["purchase_count"],
+        "maintenance_count": parsed.get("maintenance_count", 0),
+        "entretien_count": parsed.get("entretien_count", 0),
         "consumption_bags": parsed["consumption_bags"],
         "purchase_bags": parsed["purchase_bags"],
+        "maintenance_eur": parsed.get("maintenance_eur", 0),
+        "entretien_eur": parsed.get("entretien_eur", 0),
         "entries_preview": parsed["entries"][:20],
     })
 
@@ -293,7 +297,7 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
             if any(
                 current.get("type") == item["type"]
                 and current.get("date") == item["date"]
-                and float(current.get("qty_bags", 0)) == float(item["qty_bags"])
+                and float(current.get("qty_bags", 0) or 0) == float(item.get("qty_bags", 0) or 0)
                 and current.get("price_eur") == item.get("price_eur")
                 for current in journal.entries(item["season"])
             ):
@@ -303,9 +307,10 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
             return
         entries = [item for item in parsed["entries"] if item not in duplicates]
         for item in entries:
-            item["bag_weight_kg"] = bag_weight
-            if item["type"] == "consumption":
-                item["calorific_value"] = calorific
+            if item["type"] in ("purchase", "consumption"):
+                item["bag_weight_kg"] = bag_weight
+                if item["type"] == "consumption":
+                    item["calorific_value"] = calorific
         await journal.async_import_entries(entries)
         async_dispatcher_send(hass, f"suivi_stock_pellet_update_{entry_id}")
     except (CsvImportError, ValueError) as err:
@@ -317,6 +322,8 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
         "skipped_duplicates": len(duplicates),
         "consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),
         "purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase"),
+        "maintenance_count": sum(1 for e in entries if e["type"] == "maintenance"),
+        "entretien_count": sum(1 for e in entries if e["type"] == "entretien"),
     })
 
 def async_register_ws_api(hass: HomeAssistant) -> None:

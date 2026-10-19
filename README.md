@@ -36,6 +36,21 @@
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
+## Sommaire
+
+- [Captures d'écran](#captures-décran)
+- [Fonctionnalités](#fonctionnalités)
+- [Unités et prix (sacs / kg)](#unités-et-prix-sacs--kg)
+- [Saisons de chauffe](#saisons-de-chauffe)
+- [Import et export CSV](#import-et-export-csv)
+- [Maintenance et entretien](#maintenance-et-entretien)
+- [Carte Lovelace](#carte-lovelace)
+- [Installation](#installation)
+- [Utilisation](#utilisation)
+- [Entités créées](#entités-créées)
+- [Service `set_stock_initial`](#service-set_stock_initial)
+- [Licence](#licence)
+
 ## Captures d'écran
 
 ---
@@ -98,7 +113,7 @@ Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance
 
 ---
 
-Graphique de coût par saison (maintenance, entretien, achat, total) — désormais un seul graphique à onglets :
+Graphique de coût par saison (maintenance, entretien, achat, total) — un seul graphique à onglets :
 
 | Prix moyen | Maintenance | Entretien |
 |---|---|---|
@@ -119,17 +134,38 @@ Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
 ## Fonctionnalités
 
 - Suivi du stock en temps réel (kg et sacs), calculé à partir d'un journal d'achats/consommations — jamais de compteur qui dérive.
-- L'unité d'affichage est choisie dans la **configuration de l'intégration** : **Sacs** (quantités et prix en sacs et €/sac) ou **Kilogrammes (kg)** (quantités et prix en kg et €/kg). Le choix est propre à chaque intégration et n'impacte pas une autre intégration existante. Le poids de référence de **15 kg par sac reste fixe en interne** et n'est pas demandé à l'utilisateur.
-- Le prix demandé dans la configuration dépend de l'unité choisie : **Prix moyen d'un sac (€)** en mode Sacs ou **Prix moyen au kg (€)** en mode kg. Le graphique de prix moyen par saison utilise la même unité, avec titre, valeurs et symbole €/sac ou €/kg synchronisés.
-- Capteur d'énergie consommée en kWh (`device_class: energy`, `state_class: total` avec réinitialisation au début de chaque saison) compatible avec le tableau de bord Énergie de Home Assistant, comme source "Gaz/Autre".
-- Suivi des dépenses (€) et du nombre de jours d'utilisation, par saison de chauffe, avec tuiles de coût dérivées (coût / jour, coût / mois, coût du sac).
-- Saisons calculées automatiquement à partir d'un mois de départ configurable (pas d'années codées en dur à ajouter chaque année).
-- Le **mois de début de saison** est configuré dans l'intégration ; la fin de saison est automatiquement le mois précédent. Par exemple, avec septembre comme début, **septembre 2025 → août 2026 = saison 2025-2026**, et un achat de juillet 2026 appartient à cette saison.
-- Historique conservé indéfiniment : aucune saison n'est jamais supprimée ou écrasée au changement de saison, chaque saison passée reste consultable (tuiles, historique, graphiques) via le sélecteur de saison.
-- Sélecteur de saison dans l'en-tête de la carte : consulte les tuiles, l'historique et le graphique mensuel de n'importe quelle saison passée (les saisies restent verrouillées sur la saison en cours).
-- Les dates des saisies (Achat/Consommation) ne sont pas limitées à aujourd'hui : on peut saisir une date passée (ou future) librement, l'entrée est alors rattachée à la saison correspondant à cette date. Ça permet de reconstruire une saison passée entièrement (achats et consommations historiques) même après coup, sans dépendre du sélecteur de saison (qui ne sert qu'à consulter, pas à saisir).
-- Les anciennes saisons peuvent aussi être **reconstituées par import CSV** : le bouton **« Importer un CSV »** réservé aux administrateurs analyse d'abord le fichier et affiche un aperçu avant confirmation. La saison `AAAA-AAAA`, les colonnes mensuelles de consommation et les achats (date, quantité, prix) sont détectés automatiquement ; les nombres français et les montants en euros sont pris en charge. La saison explicitement indiquée dans le fichier est conservée pour les données importées. Plusieurs anciennes saisons peuvent être importées séparément. Les données restent stockées en sacs et peuvent ensuite être affichées en Sacs ou en kg selon la configuration, avec la référence interne fixe de 15 kg par sac. Les CSV vides ou invalides sont refusés avec une erreur explicite.
-- **Format simple accepté** : en plus des anciens tableaux Excel (mois en colonnes), un CSV avec une ligne par entrée est aussi reconnu automatiquement si l’en-tête contient une colonne `date`, une colonne contenant `type` et une colonne contenant `quantite` (une colonne `prix total` est optionnelle) :
+- Unité d'affichage au choix (**Sacs** ou **Kilogrammes**), propre à chaque intégration ; le poids de référence de 15 kg par sac reste fixe en interne.
+- Capteur d'énergie consommée en kWh (`device_class: energy`), compatible avec le tableau de bord Énergie de Home Assistant.
+- Suivi des dépenses (€) et du nombre de jours d'utilisation par saison de chauffe, avec tuiles de coût dérivées.
+- Saisons de chauffe calculées automatiquement, historique conservé indéfiniment, consultable via le sélecteur de saison.
+- Import d'anciennes saisons par CSV, et export CSV par saison/catégorie.
+- Suivi des frais de maintenance et d'entretien du poêle, indépendamment du stock de granulés.
+- Carte Lovelace intégrée, clé en main : tuiles, boutons d'ajout rapide, historique modifiable, calendrier, graphiques, comparaison à la saison précédente.
+- Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
+
+## Unités et prix (sacs / kg)
+
+L'unité d'affichage est choisie dans la **configuration de l'intégration** : **Sacs** (quantités et prix en sacs et €/sac) ou **Kilogrammes (kg)** (quantités et prix en kg et €/kg). Le choix est propre à chaque intégration et n'impacte pas une autre intégration existante. Le poids de référence de **15 kg par sac reste fixe en interne** et n'est pas demandé à l'utilisateur.
+
+Le prix demandé dans la configuration dépend de l'unité choisie : **Prix moyen d'un sac (€)** en mode Sacs ou **Prix moyen au kg (€)** en mode kg. Le graphique de prix moyen par saison utilise la même unité, avec titre, valeurs et symbole €/sac ou €/kg synchronisés.
+
+La tuile "Dépensé" s'appelle "Dépense pellet", pour la distinguer des coûts de maintenance et d'entretien, qui ne sont pas comptés dans le prix moyen du sac.
+
+## Saisons de chauffe
+
+- Les saisons sont calculées automatiquement à partir d'un **mois de début de saison** configurable (pas d'années codées en dur à ajouter chaque année). La fin de saison est automatiquement le mois précédent. Par exemple, avec septembre comme début, **septembre 2025 → août 2026 = saison 2025-2026**, et un achat de juillet 2026 appartient à cette saison. Ce mois ne peut plus être changé une fois que le journal contient des saisies, pour ne pas désynchroniser les saisons déjà enregistrées.
+- Historique conservé indéfiniment : aucune saison n'est jamais supprimée ou écrasée au changement de saison. Un **sélecteur de saison** dans l'en-tête de la carte permet de consulter les tuiles, l'historique et les graphiques de n'importe quelle saison passée (les saisies restent verrouillées sur la saison en cours, sauf champ "Saison" explicite dans les formulaires).
+- Les saisons sans aucune saisie sont automatiquement supprimées de la liste (au démarrage et dès qu'une saison redevient vide).
+- Une saison entière peut être supprimée via le bouton poubelle à côté du sélecteur de saison, avec confirmation. Un avertissement s'affiche si une saison suivante existe déjà, car son stock initial (reporté de la saison supprimée) n'est pas recalculé automatiquement.
+- Stock initial d'une saison repris automatiquement du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service [`set_stock_initial`](#service-set_stock_initial).
+- Comparaison à date égale avec la saison précédente : consommation, coût en € et différence en € des deux saisons, avec badge en pourcentage (masquable via `show_comparison`).
+- Modifier ou supprimer une saisie ne peut jamais faire passer le stock réel d'une saison sous 0 : ce cas est refusé avec un message d'erreur explicite.
+
+## Import et export CSV
+
+Le bouton **« Importer CSV »** (réservé aux administrateurs Home Assistant) permet de reconstituer une ancienne saison à partir d'un fichier CSV : le fichier est d'abord analysé et un aperçu s'affiche avant confirmation. Deux formats sont reconnus automatiquement :
+
+- **Format "journal"** (recommandé, et celui généré par le bouton **« Exporter CSV »** de cette même intégration) : une ligne par saisie, avec un en-tête contenant au minimum une colonne `date`, une colonne contenant `type` et une colonne contenant `quantite` (une colonne prix et une colonne note sont optionnelles). Ce format est universel : il fonctionne quel que soit l'historique d'origine, dès lors que le fichier respecte cet en-tête.
 
   ```csv
   date,type,quantite,prix total
@@ -137,25 +173,35 @@ Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
   2025-10-15,consommation,1.8,
   ```
 
-  La date accepte le format AAAA-MM-JJ ou un texte en français. La colonne `type` doit contenir « achat » ou « consommation » pour être prise en compte.
-- Comparaison à date égale avec la saison précédente : affiche la consommation de la saison sélectionnée (via le sélecteur de saison, saison en cours par défaut) face à celle de la saison précédente au même nombre de jours écoulés depuis le début de saison, avec un badge en pourcentage, ainsi que le coût en € des deux saisons et leur différence en € (masquable via `show_comparison`).
-- Les saisons sans aucune saisie sont automatiquement supprimées de la liste (au démarrage et dès qu'une saison redevient vide) : pas besoin de nettoyer manuellement une saison créée par erreur ou vidée par une correction.
-- Le sélecteur de saison reste toujours cohérent avec la saison consultée, même pour une saison qui n'a encore aucune saisie (saison passée pas encore renseignée, ou saisie qui vient d'échouer) : il n'affiche plus par erreur la saison en cours à sa place.
-- Modifier ou supprimer une saisie ne peut jamais faire passer le stock réel d'une saison sous 0 (plus consommé qu'acheté) : ce cas est refusé avec un message d'erreur explicite plutôt que d'être accepté silencieusement.
-- Les tuiles `sensor.*` (stock, consommé, dépensé...) ignorent les saisies dont la date est dans le futur tant que cette date n'est pas atteinte, pour rester un vrai instantané du stock disponible aujourd'hui.
-- Le mois de début de saison ne peut plus être changé une fois que le journal contient des saisies (pour éviter de désynchroniser les saisons déjà enregistrées de la nouvelle règle).
-- Les tuiles/l'historique/le graphique de la carte restent visibles pour tous les utilisateurs du tableau de bord, pas seulement les administrateurs (seules les actions d'écriture - saisie, modification, suppression - restent réservées à un accès normal).
-- Un échec d'enregistrement (stock insuffisant, saison invalide...) affiche maintenant un message d'erreur au lieu de fermer silencieusement le formulaire comme si tout s'était bien passé.
-- Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et des boutons pour n'afficher que l'une des deux. Quand une seule des deux courbes est affichée, sa valeur mensuelle (sacs ou €) apparaît directement sur le graphique en plus du survol/tap habituel.
-- Graphique "Prix moyen du sac par saison" pour suivre l'évolution du coût des granulés d'une saison à l'autre.
-- Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
-- Stock initial d'une saison automatiquement repris du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service `set_stock_initial` (comptage physique, saison déjà entamée avant l'ajout de cette fonctionnalité...).
-- Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`) : stock en un coup d'œil, boutons "+ Consommation" / "+ Achat" et bouton rapide d'ajout (quantité configurable dans les options de l'intégration, "+1 sac aujourd'hui" par défaut ; visible uniquement sur la saison en cours), annulation de la dernière saisie, historique des dernières entrées avec modification (crayon) et suppression (corbeille, avec confirmation) de chaque saisie. Aucune ressource à ajouter manuellement, la carte est servie par l'intégration.
-- Section calendrier en bas de la carte (navigable mois par mois), activable via l'option show_calendar. Chaque jour affiche les achats et consommations enregistrés ce jour-la, avec une couleur differente selon le type. Le calendrier se met a jour immédiatement apres un ajout, une suppression ou une modification de date d'une saisie, sans attendre un rafraichissement differe - y compris pour le bouton rapide "+1 sac aujourd'hui".
-- Suppression d'une saison entière via le bouton poubelle à côté du sélecteur de saison dans l'en-tête de la carte, avec confirmation. Un avertissement s'affiche si une saison suivante existe déjà, car son report de stock (stock initial repris de la saison supprimée) n'est pas recalculé automatiquement.
-- Suivi des frais de maintenance et d'entretien du poêle, indépendamment du stock de granulés : deux boutons dédiés ("Maintenance" / "Entretien") ouvrent chacun un formulaire (coût, date, note libre) utilisable même sur une saison passée via le champ saison. Ces saisies apparaissent dans l'historique avec leur note, dans le calendrier avec une couleur dédiée par type, et alimentent deux tuiles ("Coût maintenance", "Coût entretien") ainsi que deux courbes "par saison" masquables.
-- Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer par la carte : il suffit d'appeler le service `suivi_stock_pellet.log_consumption` (ex. `qty_bags: 1`, `unit: bag` — n'importe quelle quantité fonctionne) depuis n'importe quelle automatisation (utile pour l'associer à un poêle, un détecteur, etc.). La date et la saison sont déduites automatiquement si elles ne sont pas précisées.
-- La tuile "Dépensé" a été renommée "Dépense pellet" pour la distinguer des nouveaux coûts de maintenance et d'entretien, qui ne sont pas comptés dans le prix moyen du sac.
+  La date accepte le format AAAA-MM-JJ ou un texte en français. La colonne `type` doit contenir « achat », « consommation », « maintenance » ou « entretien » pour être prise en compte.
+
+- **Format "grille Excel historique"** : reconnaît un ancien tableau de suivi au format jour/mois en colonnes, avec un panneau latéral "Achats granules" / "Maintenance" / "Entretien". Ce format a été construit par rétro-ingénierie sur un tableur Excel personnel précis ; il repose sur des heuristiques (libellés exacts des marqueurs, disposition en grille) qui ne reconnaîtront pas forcément un historique Excel structuré différemment.
+
+Dans les deux cas : la saison `AAAA-AAAA` est détectée automatiquement (ou déduite des dates pour le format journal), les nombres français et les montants en euros sont pris en charge, et les données restent stockées en sacs (affichables ensuite en sacs ou en kg). Les CSV vides ou invalides sont refusés avec une erreur explicite. Plusieurs anciennes saisons peuvent être importées séparément.
+
+Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une ou plusieurs saisons et une ou plusieurs catégories (Achat / Consommation / Maintenance / Entretien), puis télécharger un CSV fusionné au format "journal" ci-dessus (`Saison;Date;Type;Quantite;Prix par sac;Prix total;Note`). C'est le même fichier qui peut ensuite être réimporté tel quel.
+
+> **En cas d'échec de l'import** (fichier refusé, erreur inattendue...), merci d'ouvrir une issue sur le dépôt avec le détail de l'erreur et, si possible, un extrait du fichier CSV concerné : [ouvrir une issue](https://github.com/cyclope205/suivi-stock-pellet/issues/new).
+
+## Maintenance et entretien
+
+Suivi des frais de maintenance et d'entretien du poêle, indépendamment du stock de granulés : deux boutons dédiés ("Maintenance" / "Entretien") ouvrent chacun un formulaire (coût, date, note libre) utilisable même sur une saison passée via le champ saison. Ces saisies apparaissent dans l'historique avec leur note, dans le calendrier avec une couleur dédiée par type, et alimentent deux tuiles ("Coût maintenance", "Coût entretien") ainsi que deux courbes "par saison" masquables.
+
+## Carte Lovelace
+
+Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`), servie automatiquement par l'intégration (aucune ressource à ajouter manuellement) :
+
+- Stock en un coup d'œil, boutons "+ Consommation" / "+ Achat", bouton rapide d'ajout (quantité configurable, "+1 sac aujourd'hui" par défaut, visible uniquement sur la saison en cours), annulation de la dernière saisie.
+- Historique des dernières entrées, modifiable (crayon) et supprimable (corbeille, avec confirmation).
+- Les formulaires Achat/Consommation acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent un champ "Saison" optionnel pour rattacher la saisie à une saison différente de celle déduite de la date, et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
+- Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et boutons pour n'afficher que l'une des deux ; sa valeur mensuelle s'affiche directement sur le graphique quand une seule courbe est visible.
+- Graphique de coût par saison à onglets (Prix moyen / Maintenance / Entretien / Achat / Total).
+- Section calendrier (navigable mois par mois) : chaque jour affiche les achats et consommations enregistrés, avec une couleur différente selon le type ; mise à jour immédiate après ajout, suppression ou modification.
+- Titre "Évolution de la consommation" cliquable : replie ou déplie tout le bas de la carte (graphique mensuel, coût par saison, historique, calendrier) ; pratique sur un tableau de bord en vue portrait. L'état plié/déplié est mémorisé dans le navigateur.
+- Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section sans toucher au YAML.
+- Tuiles, historique, calendrier et graphiques visibles pour tous les utilisateurs du tableau de bord ; seules les actions d'écriture (saisie, modification, suppression) sont réservées à un accès normal.
+
+Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer par la carte, via le service `suivi_stock_pellet.log_consumption` (ex. `qty_bags: 1`) depuis n'importe quelle automatisation.
 
 ## Installation
 
@@ -203,7 +249,7 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 | `show_stats` | Tuiles consommé / énergie / dépensé / jours |
 | `show_cost_stats` | Tuiles coût / jour CONSO, coût / mois CONSO, coût du sac, coût total saison, coût/mois total saison |
 | `show_actions` | Boutons et formulaires de saisie |
-| `show_csv_import` | Bouton "Importer CSV achats/conso" (réservé aux administrateurs Home Assistant) |
+| `show_csv_import` | Boutons "Importer CSV" et "Exporter CSV" (import réservé aux administrateurs Home Assistant) |
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
 | `show_price_chart` | Onglet "Prix moyen" du graphique de coût par saison |
 | `show_maintenance_chart` | Onglet "Maintenance" du graphique de coût par saison |
@@ -220,21 +266,18 @@ Les tuiles de coût existent en deux versions, à ne pas confondre : "Coût / jo
 
 Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
 
-Le titre "Évolution de la consommation" est cliquable : il replie ou déplie en un seul geste tout le bas de la carte (graphique mensuel, graphique de coût par saison, historique des dernières saisies et calendrier des ajouts). Pratique pour réduire la hauteur de la carte sur un tableau de bord en vue portrait (tablette, par exemple) sans perdre l'accès aux informations, disponibles en un clic. L'état plié/déplié est mémorisé dans le navigateur et survit aux rechargements de page et aux redémarrages de Home Assistant.
-
-Les formulaires Achat/Consommation de la carte acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent aussi un champ "Saison" optionnel (AAAA-AAAA) pour rattacher la saisie à une saison différente de celle déduite de la date (ex. un achat fait en avance pour la saison suivante), et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
-
-Ou utilise directement les services :
+### Services
 
 - `suivi_stock_pellet.log_consumption` (`qty_bags`, `season` facultative, `date` facultative)
 - `suivi_stock_pellet.log_purchase` (`qty_bags`, `season` facultative, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative)
 - `suivi_stock_pellet.undo_last_entry`
 - `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier)
 - `suivi_stock_pellet.delete_entry` (`season`, `index`)
-- `suivi_stock_pellet.set_stock_initial` (`season`, `stock_initial_bags`) — définit ou corrige le stock de départ d'une saison
+- `suivi_stock_pellet.set_stock_initial` (`season`, `stock_initial_bags`) — définit ou corrige le stock de départ d'une saison, voir [chapitre dédié](#service-set_stock_initial)
 - `suivi_stock_pellet.delete_season` (`season`) — supprime entièrement une saison (toutes ses saisies)
 - `suivi_stock_pellet.log_maintenance` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût de maintenance
 - `suivi_stock_pellet.log_entretien` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût d'entretien
+- `suivi_stock_pellet.export_csv` (`season` facultative — toutes les saisons si absente, `date_from`/`date_to` facultatives, `types` facultatif) — génère un CSV au format "journal" (utilisé en interne par le bouton "Exporter CSV")
 
 ## Entités créées
 
@@ -247,14 +290,14 @@ Ou utilise directement les services :
 
 ## Service `set_stock_initial`
 
-Pour corriger manuellement le stock de depart d'une saison (comptage physique, saison deja entamee avant l'ajout du report automatique...), en plus du report automatique decrit ci-dessus :
+Pour corriger manuellement le stock de départ d'une saison (comptage physique, saison déjà entamée avant l'ajout du report automatique...), en plus du report automatique décrit plus haut :
 
-| Parametre | Description |
+| Paramètre | Description |
 |---|---|
-| `season` | Saison a corriger, au format AAAA-AAAA (ex. 2024-2025). |
-| `unit` | `bag` (sacs, par defaut) ou `kg` (vrac). |
-| `stock_initial_bags` | Nombre de sacs presents au debut de la saison (si `unit: bag`). |
-| `stock_initial_kg` | Quantite en kg presente au debut de la saison (si `unit: kg`). |
+| `season` | Saison à corriger, au format AAAA-AAAA (ex. 2024-2025). |
+| `unit` | `bag` (sacs, par défaut) ou `kg` (vrac). |
+| `stock_initial_bags` | Nombre de sacs présents au début de la saison (si `unit: bag`). |
+| `stock_initial_kg` | Quantité en kg présente au début de la saison (si `unit: kg`). |
 
 ```yaml
 action: suivi_stock_pellet.set_stock_initial

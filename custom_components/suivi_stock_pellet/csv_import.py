@@ -268,7 +268,7 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
                 d = date(year, month, day).isoformat()
             except ValueError as err:
                 raise CsvImportError(f"Date impossible : {day:02d}/{month:02d}") from err
-            entries.append({"type":"consumption","qty_bags":qty,"date":d,"price_eur":None,"bag_weight_kg":None,"calorific_value":None,"season":season})
+            entries.append({"type":"consumption","qty_bags":qty,"date":d,"price_eur":None,"note":None,"bag_weight_kg":None,"calorific_value":None,"season":season})
     if marker is not None:
         header=None
         for i in range(marker+1,min(marker+6,len(rows))):
@@ -286,7 +286,7 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
                 price=_number(row[pc]) if pc is not None else None
                 if price is None: raise CsvImportError(f"Prix d'achat manquant pour {row[keys['date']]}." )
                 if price<0: raise CsvImportError(f"Prix d'achat invalide pour {row[keys['date']]}." )
-                entries.append({"type":"purchase","qty_bags":qty,"date":_date(row[keys["date"]]),"price_eur":price,"bag_weight_kg":None,"calorific_value":None,"season":season})
+                entries.append({"type":"purchase","qty_bags":qty,"date":_date(row[keys["date"]]),"price_eur":price,"note":None,"bag_weight_kg":None,"calorific_value":None,"season":season})
     for section_marker, entry_type in ((maintenance_marker, "maintenance"), (entretien_marker, "entretien")):
         if section_marker is None:
             continue
