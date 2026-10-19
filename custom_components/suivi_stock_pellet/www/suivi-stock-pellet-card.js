@@ -5,7 +5,7 @@
  * Utilisation minimale dans un tableau de bord :
  *   type: custom:suivi-stock-pellet-card
  *
- * Options de configuration (toutes optionnelles, tout est affiché par défaut) :
+ * Options de configuration (toutes optionnehlles, tout est affiché par défaut) :
  *   show_stats: true|false          Tuiles consommé / énergie / dépensé / jours
  *   show_cost_stats: true|false     Tuiles coût/jour, coût/mois, coût du sac
  *   show_actions: true|false        Boutons + formulaires de saisie
@@ -224,6 +224,7 @@
     show_achat_chart: true,
     show_cost_total_chart: true,
     show_csv_import: true,
+    show_csv_export: true,
   };
 
   var TOGGLE_FIELDS = [
@@ -239,7 +240,8 @@
     { key: "show_entretien_chart", label: "Graphique coût entretien par saison" },
     { key: "show_achat_chart", label: "Graphique coût achat par saison" },
     { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" },
-    { key: "show_csv_import", label: "Bouton Importer CSV achats/conso" }
+    { key: "show_csv_import", label: "Bouton Importer CSV achats/conso" },
+    { key: "show_csv_export", label: "Bouton Exporter CSV" }
   ];
 
   var TOGGLE_GROUPS = [
@@ -767,6 +769,34 @@
           reader.readAsArrayBuffer(file);
         });
 
+        }
+
+        if (cfg.show_csv_export) {
+        var exportBtn = document.createElement("button");
+        exportBtn.type = "button";
+        exportBtn.className = "secondary";
+        exportBtn.title = "Exporte le journal de la saison affichee en CSV";
+        exportBtn.appendChild(icon("mdi:file-export"));
+        exportBtn.appendChild(document.createTextNode("Exporter CSV"));
+        actionsRow2.appendChild(exportBtn);
+        els.exportBtn = exportBtn;
+        exportBtn.addEventListener("click", function () {
+          self._hass.connection.sendMessagePromise({ type: "call_service", domain: "suivi_stock_pellet", service: "export_csv", service_data: { season: self._season }, return_response: true }).then(function (result) {
+            var csv = result && result.response && result.response.csv;
+            if (!csv) { alert("Aucune donnee a exporter."); return; }
+            var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "suivi_stock_pellet_" + (self._season || "export") + ".csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }).catch(function (err) {
+            alert("Export CSV echoue : " + ((err && err.message) || String(err)));
+          });
+        });
         }
 
         var actionPairs = [
