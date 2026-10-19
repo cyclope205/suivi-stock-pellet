@@ -165,8 +165,12 @@ Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
 
+Une fois le dépôt ajouté et l'intégration installée, vous pouvez aussi l'ajouter directement :
+
+[![Open your Home Assistant instance and show the add integration dialog with a specific integration pre-selected.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=suivi_stock_pellet)
+
 2. Installer **Suivi Stock Pellet**, puis redémarrer Home Assistant.
-3. **Paramètres → Appareils et services → Ajouter une intégration** → rechercher "Suivi Stock Pellet".
+3. **Paramètres → Appareils et services → Ajouter une intégration** → rechercher "Suivi Stock Pellet" (ou cliquez sur le bouton ci-dessus une fois l'intégration installée).
 
 **⚠️ La carte affiche « Erreur de configuration : Custom element doesn't exist: suivi-stock-pellet-card » juste après l'installation ?** C'est normal, le temps que le navigateur recharge le cache : faites **Ctrl+F5** sur navigateur (rechargement forcé), ou **fermez complètement puis relancez l'application Home Assistant Companion** sur mobile. La carte s'affiche ensuite normalement.
 
