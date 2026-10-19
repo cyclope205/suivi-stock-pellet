@@ -29,6 +29,18 @@
   "use strict";
 
   var STYLE = [
+".pellet-dialog-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; }",
+".pellet-dialog-backdrop.hidden { display: none; }",
+".pellet-dialog { background: var(--card-background-color, #1c1c1c); color: var(--primary-text-color, inherit); border-radius: 14px; padding: 18px; width: min(360px, 90vw); max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }",
+".pellet-dialog h3 { margin: 0 0 12px; font-size: 1.05em; }",
+".pellet-dialog-group-title { font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.65; margin: 14px 0 6px; }",
+".pellet-dialog-group-title:first-of-type { margin-top: 0; }",
+".pellet-dialog-check-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.92em; }",
+".pellet-dialog-check-row input { width: auto; margin: 0; }",
+".pellet-dialog-actions { display: flex; gap: 8px; margin-top: 16px; }",
+".pellet-dialog-actions button { flex: 1; border: none; border-radius: 10px; padding: 10px; font-weight: 600; cursor: pointer; }",
+".pellet-dialog-actions button.primary { background: linear-gradient(135deg, var(--pellet-amber), #ff8f00); color: #1c1c1c; }",
+".pellet-dialog-actions button.secondary { background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: inherit; }",
     "ha-card { padding: 18px 18px 14px; border-radius: 18px; overflow: hidden; overflow-anchor: none; position: relative; }",
     "ha-card * { overflow-anchor: none; }",
     ".header { font-size: 1.15em; font-weight: 700; margin-bottom: 14px; display: flex; flex-wrap: wrap; row-gap: 8px; justify-content: space-between; align-items: center; }",
@@ -784,21 +796,7 @@ if (cfg.show_csv_import) {
         csvRow.appendChild(exportBtn);
         els.exportBtn = exportBtn;
         exportBtn.addEventListener("click", function () {
-          self._hass.connection.sendMessagePromise({ type: "call_service", domain: "suivi_stock_pellet", service: "export_csv", service_data: { season: self._season }, return_response: true }).then(function (result) {
-            var csv = result && result.response && result.response.csv;
-            if (!csv) { alert("Aucune donnee a exporter."); return; }
-            var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement("a");
-            a.href = url;
-            a.download = "suivi_stock_pellet_" + (self._season || "export") + ".csv";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }).catch(function (err) {
-            alert("Export CSV echoue : " + ((err && err.message) || String(err)));
-          });
+          self._openExportDialog();
         });
         }
 
@@ -1365,9 +1363,148 @@ if (cfg.show_csv_import) {
       });
 
       return { el: el, seasonSelect: seasonInput };
-    }
+      }
 
-    _render() {
+      _openExportDialog() {
+        var self = this;
+        if (!this._exportDialogEl || !this.contains(this._exportDialogEl)) {
+          var backdrop = document.createElement("div");
+          backdrop.className = "pellet-dialog-backdrop hidden";
+          var dialog = document.createElement("div");
+          dialog.className = "pellet-dialog";
+          backdrop.appendChild(dialog);
+          backdrop.addEventListener("click", function (ev) {
+            if (ev.target === backdrop) backdrop.classList.add("hidden");
+          });
+
+          var title = document.createElement("h3");
+          title.textContent = "Exporter en CSV";
+          dialog.appendChild(title);
+
+          var seasonsTitle = document.createElement("div");
+          seasonsTitle.className = "pellet-dialog-group-title";
+          seasonsTitle.textContent = "Saisons";
+          dialog.appendChild(seasonsTitle);
+          var seasonsWrap = document.createElement("div");
+          dialog.appendChild(seasonsWrap);
+
+          var typesTitle = document.createElement("div");
+          typesTitle.className = "pellet-dialog-group-title";
+          typesTitle.textContent = "Categories";
+          dialog.appendChild(typesTitle);
+          var typesWrap = document.createElement("div");
+          var TYPE_DEFS = [
+            { value: "purchase", label: "Achat" },
+            { value: "consumption", label: "Consommation" },
+            { value: "maintenance", label: "Maintenance" },
+            { value: "entretien", label: "Entretien" }
+          ];
+          var typeChecks = {};
+          TYPE_DEFS.forEach(function (def) {
+            var row = document.createElement("label");
+            row.className = "pellet-dialog-check-row";
+            var cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = true;
+            cb.value = def.value;
+            row.appendChild(cb);
+            row.appendChild(document.createTextNode(def.label));
+            typesWrap.appendChild(row);
+            typeChecks[def.value] = cb;
+          });
+          dialog.appendChild(typesWrap);
+
+          var actions = document.createElement("div");
+          actions.className = "pellet-dialog-actions";
+          var cancelBtn = document.createElement("button");
+          cancelBtn.type = "button";
+          cancelBtn.className = "secondary";
+          cancelBtn.textContent = "Annuler";
+          cancelBtn.addEventListener("click", function () { backdrop.classList.add("hidden"); });
+          var confirmBtn = document.createElement("button");
+          confirmBtn.type = "button";
+          confirmBtn.className = "primary";
+          confirmBtn.textContent = "Exporter";
+          actions.appendChild(cancelBtn);
+          actions.appendChild(confirmBtn);
+          dialog.appendChild(actions);
+
+          this.appendChild(backdrop);
+          this._exportDialogEl = backdrop;
+          this._exportDialogSeasonsWrap = seasonsWrap;
+          this._exportDialogTypeChecks = typeChecks;
+          this._exportDialogConfirmBtn = confirmBtn;
+        }
+
+        var seasonsWrap = this._exportDialogSeasonsWrap;
+        seasonsWrap.innerHTML = "";
+        var seasonChecks = {};
+        var known = (this._knownSeasons || []).slice();
+        if (this._season && known.indexOf(this._season) === -1) known.push(this._season);
+        known.sort();
+        if (!known.length) known = [this._season || this._currentSeason].filter(Boolean);
+        known.forEach(function (s) {
+          var row = document.createElement("label");
+          row.className = "pellet-dialog-check-row";
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = true;
+          cb.value = s;
+          row.appendChild(cb);
+          row.appendChild(document.createTextNode(s));
+          seasonsWrap.appendChild(row);
+          seasonChecks[s] = cb;
+        });
+        this._exportDialogSeasonChecks = seasonChecks;
+
+        this._exportDialogConfirmBtn.onclick = function () {
+          var seasons = Object.keys(seasonChecks).filter(function (s) { return seasonChecks[s].checked; });
+          var types = Object.keys(self._exportDialogTypeChecks).filter(function (t) { return self._exportDialogTypeChecks[t].checked; });
+          if (!seasons.length) { alert("Selectionne au moins une saison."); return; }
+          if (!types.length) { alert("Selectionne au moins une categorie."); return; }
+          self._exportDialogConfirmBtn.disabled = true;
+          var calls = seasons.map(function (season) {
+            return self._hass.connection.sendMessagePromise({
+              type: "call_service", domain: "suivi_stock_pellet", service: "export_csv",
+              service_data: { season: season, types: types }, return_response: true
+            }).then(function (result) {
+              var csv = result && result.response && result.response.csv;
+              return csv || "";
+            }).catch(function () { return ""; });
+          });
+          Promise.all(calls).then(function (csvParts) {
+            self._exportDialogConfirmBtn.disabled = false;
+            var header = null;
+            var lines = [];
+            csvParts.forEach(function (csv) {
+              if (!csv) return;
+              var rows = csv.split(/\r?\n/).filter(function (l) { return l.length; });
+              if (!rows.length) return;
+              if (header === null) { header = rows[0]; }
+              lines = lines.concat(rows.slice(1));
+            });
+            if (header === null || !lines.length) {
+              alert("Aucune donnee a exporter.");
+              return;
+            }
+            var csv = [header].concat(lines).join("\r\n");
+            var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "suivi_stock_pellet_" + (seasons.length === 1 ? seasons[0] : "export") + ".csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            self._exportDialogEl.classList.add("hidden");
+          });
+        };
+
+        this._exportDialogEl.classList.remove("hidden");
+      }
+
+      _render() {
       if (!this._els) return;
       var hass = this._hass;
       var els = this._els;
