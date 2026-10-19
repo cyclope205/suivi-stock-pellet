@@ -213,7 +213,7 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
     for i,row in enumerate(rows):
         if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
     entries=[]
-    for row in rows[header_idx+1:(marker if marker is not None else len(rows))]:
+    for row in rows[header_idx+1:]:
         first=str(row[0] if row else "").strip()
         if not re.fullmatch(r"\d{1,2}",first): continue
         day=int(first)
