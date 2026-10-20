@@ -25,7 +25,6 @@ from .const import (
     STORAGE_VERSION,
 )
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -124,6 +123,7 @@ def _entry_qty_kg(entry: dict[str, Any], default_bag_weight_kg: float) -> float:
     return float(entry.get("qty_bags", 0.0)) * (
         entry.get("bag_weight_kg") or default_bag_weight_kg
     )
+
 
 class PelletJournal:
     """Owns the persisted journal and exposes computed season totals."""
@@ -397,101 +397,41 @@ class PelletJournal:
         self, season: str, pre_import_seasons: set[str]
     ) -> tuple[float, float]:
         """Return the (stock_bags, stock_value_eur) a season newly
-        created during a multi-season historical import should start
-        with.
+        created during a CSV import should start with.
 
-        The "journal d'événements" CSV import format represents a
-        continuous multi-season history, where one season's stock
-        naturally continues from the previous one - unlike the
-        single-season "grille mensuelle" format, where a season being
-        imported has no sibling seasons in the same import and must
-        never silently inherit a carry-over (see _get_season's
-        carry_over=False branch).
-
-        Walks back through previous_season_key() looking for the
-        closest season that was itself created by this same import and
-        already has entries logged, skipping over any season that this
-        same import left entirely empty in between (a "hole" in the
-        imported history - e.g. a season with zero consumption or
-        purchase logged at all). If the chain instead reaches a season
-        that already existed before this import started, or runs out
-        without finding one, no carry-over applies: the season starts
-        at 0, preserving the existing protection against silently
-        inheriting stock from an unrelated pre-existing season.
-
-        Relies on the caller having already added, in chronological
-        order, every entry of every season that comes before `season`
-        in this same import - true for the event-log CSV format, whose
-        parser sorts all entries by date before returning them.
+        Always (0.0, 0.0): a season created by an import must behave
+        identically whether that import contains just this one season's
+        file or several seasons combined in one "journal d'événements"
+        export - otherwise the same season's file produces a different
+        final stock depending on what else happened to be imported
+        alongside it, which is neither predictable nor something the
+        user can reason about from the CSV alone (a real reported
+        confusion: importing all 4 seasons at once landed on 216 sacs
+        for the current season, while importing only that season's own
+        file landed on 106 - same file, same season, two different
+        answers). A season's stock always starts at 0 on import; any
+        real leftover stock belongs in the file itself (as that season's
+        own opening purchase/consumption entries) or set manually via
+        async_set_stock_initial, never inferred from an adjacent
+        season's end-of-season totals.
         """
-        season_key = season
-        for _ in range(200):  # season keys strictly decrease; generous bound
-            try:
-                season_key = previous_season_key(season_key)
-            except ValueError:
-                return 0.0, 0.0
-            if season_key in pre_import_seasons:
-                # Existed before this import started - never inherit
-                # across that boundary, even as the immediate previous
-                # season (this is the protection the "grille mensuelle"
-                # single-season format relies on).
-                return 0.0, 0.0
-            data = self._data.get("seasons", {}).get(season_key)
-            if data is None or not data.get("entries"):
-                # Not populated by this import (yet): either a complete
-                # hole in the imported history, or a season this import
-                # never touches at all. Either way, keep walking back.
-                continue
-            totals = self.totals(season_key)
-            return totals["stock_bags"], totals["stock_value_eur"]
         return 0.0, 0.0
 
     def _propagate_carry_over_forward(
         self, affected: list[str], pre_import_seasons: set[str]
     ) -> None:
-        """Fix a successor season's stale stock_initial after a historical
-        import fills in (or extends) its predecessor.
+        """No-op: kept only as a call site for async_import_entries so a
+        future, explicitly-requested carry-over feature has an obvious
+        place to live.
 
-        A season created outside of an import (a regular purchase or
-        consumption) computes its stock_initial once, at creation time -
-        see _get_season/_carry_over_stock. If its predecessor season did
-        not exist yet at that moment, the successor is permanently stuck
-        with stock_initial 0, even once a later import backfills the
-        predecessor's history (a real reported bug: logging a purchase in
-        the current season, then importing its two previous seasons, left
-        the current season's average price ignoring the newly imported
-        stock - importing the same two seasons BEFORE logging the
-        purchase gave the correct, carried-over price).
-
-        Walks forward from each season this import touched, correcting
-        any immediately-following season that already existed before this
-        import, was never manually corrected (stock_initial_manual), and
-        still has the untouched default stock_initial of 0 - cascading
-        further forward as long as each next season meets the same
-        condition, so a chain of several stale successor seasons is fixed
-        in one pass.
+        Previously fixed a successor season's stock_initial after a
+        historical import filled in (or extended) its predecessor - but
+        that is the same inter-season carry-over this import path no
+        longer performs at all (see _import_carry_over_values), so
+        propagating it forward would silently reintroduce it through a
+        different door.
         """
-        seasons = self._data.get("seasons", {})
-        to_check = list(dict.fromkeys(affected))
-        seen: set[str] = set()
-        while to_check:
-            season = to_check.pop(0)
-            if season in seen:
-                continue
-            seen.add(season)
-            successor = next_season_key(season)
-            successor_data = seasons.get(successor)
-            if (
-                successor_data is None
-                or successor not in pre_import_seasons
-                or successor_data.get("stock_initial_manual")
-                or successor_data.get("stock_initial", 0.0) != 0
-            ):
-                continue
-            totals = self.totals(season)
-            successor_data["stock_initial"] = totals["stock_bags"]
-            successor_data["stock_initial_value_eur"] = totals["stock_value_eur"]
-            to_check.append(successor)
+        return
 
     async def async_import_entries(self, imported: list[dict[str, Any]]) -> None:
         """Atomically append a validated batch of historical entries."""
@@ -506,12 +446,11 @@ class PelletJournal:
                 entry_date = str(item["date"])
                 date.fromisoformat(entry_date)
                 if season not in self._data["seasons"]:
-                    # First time this import touches this season: decide
-                    # whether it continues a previous season introduced
-                    # by this same import (event-log format) or must
-                    # stand on its own at 0 (grille-mensuelle format, or
-                    # a season unrelated to any prior one in this
-                    # import).
+                    # Every season created by an import starts at 0 -
+                    # see _import_carry_over_values for why this no
+                    # longer varies with what else is in the same
+                    # import (combined multi-season file vs that
+                    # season's own file imported alone).
                     stock_initial, stock_initial_value = (
                         self._import_carry_over_values(season, pre_import_seasons)
                     )
@@ -716,7 +655,7 @@ class PelletJournal:
         if target_season != season:
             entries.pop(index)
             self._season_entries(target_season).append(entry)
-            self._prune_if_empty(season)
+        self._prune_if_empty(season)
         await self._async_save()
         return entry
 
@@ -761,7 +700,7 @@ class PelletJournal:
                 stock += qty_kg / DEFAULT_BAG_WEIGHT_KG
             elif entry["type"] == ENTRY_TYPE_CONSUMPTION:
                 stock -= qty_kg / DEFAULT_BAG_WEIGHT_KG
-                minimum = min(minimum, stock)
+            minimum = min(minimum, stock)
         return minimum
 
     def _reference_stock_unit_value(self, season: str) -> float:
