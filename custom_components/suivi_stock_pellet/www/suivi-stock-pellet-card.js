@@ -237,6 +237,7 @@
     show_cost_total_chart: true,
     show_csv_import: true,
     show_csv_export: true,
+    show_secondary_actions: true,
   };
 
   var TOGGLE_FIELDS = [
@@ -253,7 +254,8 @@
     { key: "show_achat_chart", label: "Graphique coût achat par saison" },
     { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" },
     { key: "show_csv_import", label: "Bouton Importer CSV" },
-    { key: "show_csv_export", label: "Bouton Exporter CSV" }
+    { key: "show_csv_export", label: "Bouton Exporter CSV" },
+    { key: "show_secondary_actions", label: "Boutons Achat / Maintenance / Entretien" }
   ];
 
   var TOGGLE_GROUPS = [
@@ -261,7 +263,7 @@
     { key: "group_cost_chart", title: "Graphique de coût par saison", fields: ["show_price_chart", "show_maintenance_chart", "show_entretien_chart", "show_achat_chart", "show_cost_total_chart"] },
     { key: "group_consumption_chart", title: "Graphique de consommation", fields: ["show_monthly_chart"] },
     { key: "group_history_calendar", title: "Historique & calendrier", fields: ["show_history", "show_calendar"] },
-    { key: "group_actions", title: "Saisie & actions", fields: ["show_actions", "show_csv_import", "show_csv_export"] }
+    { key: "group_actions", title: "Saisie & actions", fields: ["show_actions", "show_secondary_actions", "show_csv_import", "show_csv_export"] }
   ];
 
   function findEntity(hass, key) {
@@ -690,29 +692,35 @@
 
         actionsRow1.appendChild(btnConso);
         els.btnConso = btnConso;
-        actionsRow1.appendChild(btnAchat);
+        if (cfg.show_secondary_actions) actionsRow1.appendChild(btnAchat);
         if (btnQuick) actionsRow1.appendChild(btnQuick);
         els.btnQuick = btnQuick;
-        actionsRow2.appendChild(btnMaintenance);
-        els.btnMaintenance = btnMaintenance;
-        actionsRow2.appendChild(btnEntretien);
-        els.btnEntretien = btnEntretien;
+        if (cfg.show_secondary_actions) {
+          actionsRow2.appendChild(btnMaintenance);
+          els.btnMaintenance = btnMaintenance;
+          actionsRow2.appendChild(btnEntretien);
+          els.btnEntretien = btnEntretien;
+        }
         actionsWrap.appendChild(actionsRow1);
-        actionsWrap.appendChild(actionsRow2);
-        els.actionsRow2 = actionsRow2;
+        if (actionsRow2.children.length) {
+          actionsWrap.appendChild(actionsRow2);
+          els.actionsRow2 = actionsRow2;
+        }
 
         var formConso = this._buildForm("consumption");
         var formAchat = this._buildForm("purchase");
         var formMaintenance = this._buildCostForm("maintenance");
         var formEntretien = this._buildCostForm("entretien");
         actionsWrap.appendChild(formConso.el);
-        actionsWrap.appendChild(formAchat.el);
-        actionsWrap.appendChild(formMaintenance.el);
-        actionsWrap.appendChild(formEntretien.el);
         els.consoSeasonSelect = formConso.seasonSelect;
-        els.achatSeasonSelect = formAchat.seasonSelect;
-        els.maintenanceSeasonSelect = formMaintenance.seasonSelect;
-        els.entretienSeasonSelect = formEntretien.seasonSelect;
+        if (cfg.show_secondary_actions) {
+          actionsWrap.appendChild(formAchat.el);
+          actionsWrap.appendChild(formMaintenance.el);
+          actionsWrap.appendChild(formEntretien.el);
+          els.achatSeasonSelect = formAchat.seasonSelect;
+          els.maintenanceSeasonSelect = formMaintenance.seasonSelect;
+          els.entretienSeasonSelect = formEntretien.seasonSelect;
+        }
 
         var csvRow = document.createElement("div");
 csvRow.className = "actions-row";
@@ -800,12 +808,12 @@ if (cfg.show_csv_import) {
         });
         }
 
-        var actionPairs = [
-          { btn: btnConso, form: formConso },
-          { btn: btnAchat, form: formAchat },
-          { btn: btnMaintenance, form: formMaintenance },
-          { btn: btnEntretien, form: formEntretien }
-        ];
+        var actionPairs = [{ btn: btnConso, form: formConso }];
+        if (cfg.show_secondary_actions) {
+          actionPairs.push({ btn: btnAchat, form: formAchat });
+          actionPairs.push({ btn: btnMaintenance, form: formMaintenance });
+          actionPairs.push({ btn: btnEntretien, form: formEntretien });
+        }
         function updateActionButtons() {
           actionPairs.forEach(function (pair) {
             if (pair.form.el.classList.contains("visible")) {
