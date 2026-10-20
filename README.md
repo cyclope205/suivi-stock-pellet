@@ -219,6 +219,20 @@ Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer 
 
 **⚠️ La carte affiche « Erreur de configuration : Custom element doesn't exist: suivi-stock-pellet-card » juste après l'installation ?** C'est normal, le temps que le navigateur recharge le cache : faites **Ctrl+F5** sur navigateur (rechargement forcé), ou **fermez complètement puis relancez l'application Home Assistant Companion** sur mobile. La carte s'affiche ensuite normalement.
 
+### Ajouter la carte au tableau de bord
+
+Une fois l'intégration installée (étapes ci-dessus), la carte doit être ajoutée manuellement à votre tableau de bord :
+
+1. Ouvrez le tableau de bord concerné et cliquez sur le crayon en haut à droite pour passer en mode édition.
+2. Cliquez sur "+ Ajouter une carte" en bas de l'écran.
+3. Dans la barre de recherche, tapez "Suivi Stock Pellet" : la carte apparaît dans la liste, cliquez dessus puis sur "Enregistrer".
+
+Alternative en YAML (onglet "Modifier en YAML" de la fenêtre d'ajout de carte) :
+
+```yaml
+type: custom:suivi-stock-pellet-card
+```
+
 ### Configuration
 
 À l'ajout de l'intégration :
