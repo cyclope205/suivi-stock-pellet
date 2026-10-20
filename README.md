@@ -250,7 +250,7 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 |---|---|
 | `show_stats` | Tuiles consommé / énergie / dépensé / jours |
 | `show_cost_stats` | Tuiles coût / jour CONSO, coût / mois CONSO, coût du sac, coût total saison, coût/mois total saison |
-| `show_actions` | Boutons et formulaires de saisie |
+| `show_actions` | Boutons et formulaires de saisie (Consommation, Achat, Maintenance, Entretien) : un seul interrupteur pour tout le bloc, pratique pour masquer Maintenance/Entretien si vous ne les utilisez qu'une fois par an par exemple |
 | `show_csv_import` | Boutons "Importer CSV" et "Exporter CSV" (import réservé aux administrateurs Home Assistant) |
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
 | `show_price_chart` | Onglet "Prix moyen" du graphique de coût par saison |
