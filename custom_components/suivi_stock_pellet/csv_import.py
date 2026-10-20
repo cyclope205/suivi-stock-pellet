@@ -162,7 +162,16 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
             if price < 0: raise CsvImportError(f"Prix d'achat invalide pour {raw_date}.")
         entries.append({"type": kind,"qty_bags": qty,"date": entry_date,"price_eur": price,"note": None,"bag_weight_kg": None,"calorific_value": None,"season": season})
     if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
-    entries.sort(key=lambda e: (e["date"], 0 if e["type"] == "purchase" else 1))
+    # Group by season first (chronological order, which plain string
+    # comparison gives since every key is a zero-padded "YYYY-YYYY"), then
+    # by date within each season. A flat sort by date alone would
+    # interleave seasons whenever an advance purchase is dated earlier
+    # than the season it belongs to, and async_import_entries's stock
+    # carry-over relies on every entry of an earlier season having
+    # already been appended before a later season is first touched -
+    # an interleaved date-only order silently breaks that and froze a
+    # wrong (usually far too low) carried-over stock at season creation.
+    entries.sort(key=lambda e: (e["season"], e["date"], 0 if e["type"] == "purchase" else 1))
     return entries
 
 def _find_season(rows,header_idx):
