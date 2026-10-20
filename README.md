@@ -13,6 +13,13 @@
 
 ---
 
+### ❤️ Sponsors GitHub
+
+<!--START_SECTION:github-sponsors-->
+<!-- Aucun sponsor GitHub public actif pour le moment -->
+<!--END_SECTION:github-sponsors-->
+
+---
 ### ☕ Merci aux donateurs
 
 <!--START_SECTION:paypal-->
@@ -23,18 +30,12 @@
 <!-- Les nouveaux dons seront ajoutés ici automatiquement -->
 <!--END_SECTION:buy-me-a-coffee-->
 
-### ❤️ Sponsors GitHub
-
-<!--START_SECTION:github-sponsors-->
-<!-- Aucun sponsor GitHub public actif pour le moment -->
-<!--END_SECTION:github-sponsors-->
-
 ---
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-cyclope205-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://bmc-eight-red.vercel.app/api/donate?repo=suivi-stock-pellet) [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://bmc-eight-red.vercel.app/api/paypal?repo=suivi-stock-pellet&amount=5)
 <img src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/custom_components/suivi_stock_pellet/brand/logo.png" alt="Suivi Stock Pellet" width="32">
 
-### ☕ Offrez-moi un café pour m'aider à rester éveillé (et coder vos applications préférées)
+### ☕ Offrez-moi un café pour m'aider à rester éveillé (et coder vos intégrations préférées)
 
 En remerciement, votre nom apparaîtra (de façon anonymisée) dans la section « ☕ Merci aux donateurs » ci-dessus.
 
