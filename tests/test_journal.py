@@ -855,52 +855,54 @@ def test_set_stock_initial_uses_previous_stock_cost_when_old_stock_is_zero():
     assert totals["stock_initial_bags"] == 5
     assert totals["stock_initial_value_eur"] == 32.5
 
-# --- async_import_entries: report multi-saisons (format "journal d'événements") -----------------
+# --- async_import_entries: chaque saison importee demarre a stock 0 -----------------
+#
+# Un import (contrairement a la saisie manuelle via async_add_entry, qui
+# continue de reporter le stock restant d'une saison a l'autre - voir
+# test_stock_carries_over_between_seasons plus haut) ne reporte plus
+# aucun stock entre deux saisons. Un fichier CSV combinant plusieurs
+# saisons est de toute facon refuse en amont par parse_csv_history (voir
+# tests/test_csv_import.py), mais async_import_entries lui-meme ne doit
+# jamais recalculer de report, meme si on l'appelle directement (ex. un
+# futur appelant different du CSV) avec des entrees couvrant plusieurs
+# saisons.
 
-def test_import_entries_multi_season_event_log_carries_over_across_seasons():
-    # Regression test for a real reported bug (Scooby82): importing a
-    # multi-season "journal d'événements" history was wrongly rejected
-    # with "le stock ... passerait sous 0", because each new season
-    # created during the import started at stock_initial=0 instead of
-    # continuing the previous season's ending stock - even though the
-    # previous season was itself part of the very same import.
+def test_import_entries_each_season_starts_at_zero_even_across_multiple_seasons():
+    # Avant la suppression du report, 2020-2021 continuait le stock de
+    # fin de 2019-2020 (70 sacs) ; desormais chaque saison importee
+    # demarre a 0, qu'elle soit la premiere ou non de l'import.
     journal = _make_journal()
     run(journal.async_import_entries([
         {"season": "2019-2020", "type": "purchase", "qty_bags": 150, "date": "2019-09-10", "price_eur": 900.0},
         {"season": "2019-2020", "type": "consumption", "qty_bags": 80, "date": "2020-01-15"},
-        {"season": "2020-2021", "type": "consumption", "qty_bags": 25, "date": "2020-09-20"},
-        {"season": "2020-2021", "type": "purchase", "qty_bags": 30, "date": "2020-11-01", "price_eur": 200.0},
+        {"season": "2020-2021", "type": "purchase", "qty_bags": 30, "date": "2020-10-01", "price_eur": 200.0},
+        {"season": "2020-2021", "type": "consumption", "qty_bags": 25, "date": "2020-11-01"},
     ]))
-    # 2019-2020 has no previous season at all (absent from history and
-    # never pre-existing): it correctly starts at 0.
     assert journal.totals("2019-2020")["stock_initial_bags"] == 0.0
     assert journal.totals("2019-2020")["stock_bags"] == 70
-    # 2020-2021 continues 2019-2020's ending stock of 70 bags - the
-    # real history never drops below 45 bags (70 - 25), matching what
-    # Scooby82 verified by hand.
+    # 2020-2021 does NOT inherit 2019-2020's 70 bags anymore.
     totals = journal.totals("2020-2021")
-    assert totals["stock_initial_bags"] == 70
-    assert totals["stock_bags"] == 75  # 70 - 25 + 30
+    assert totals["stock_initial_bags"] == 0.0
+    assert totals["stock_bags"] == 5  # 0 + 30 - 25
 
 
-def test_import_entries_carries_over_past_an_empty_hole_season():
+def test_import_entries_each_season_starts_at_zero_past_an_empty_hole_season():
     # Edge case: the imported history has a season with no entries at
-    # all in the middle (e.g. a year with nothing logged). The
-    # carry-over chain must skip straight past it to the last non-empty
-    # season introduced by this same import, rather than stopping at
-    # the immediately preceding (absent) season and restarting at 0.
+    # all in the middle (e.g. a year with nothing logged). That hole
+    # must have no bearing on the next season's starting stock either,
+    # since nothing is ever carried over during an import any more.
     journal = _make_journal()
     run(journal.async_import_entries([
         {"season": "2019-2020", "type": "purchase", "qty_bags": 100, "date": "2019-09-10", "price_eur": 600.0},
         {"season": "2019-2020", "type": "consumption", "qty_bags": 40, "date": "2020-03-01"},
         # 2020-2021 has nothing at all logged in this import - a hole.
-        {"season": "2021-2022", "type": "consumption", "qty_bags": 50, "date": "2021-10-01"},
-        {"season": "2021-2022", "type": "purchase", "qty_bags": 5, "date": "2021-11-01", "price_eur": 30.0},
+        {"season": "2021-2022", "type": "purchase", "qty_bags": 5, "date": "2021-10-01", "price_eur": 30.0},
+        {"season": "2021-2022", "type": "consumption", "qty_bags": 3, "date": "2021-11-01"},
     ]))
     assert "2020-2021" not in journal.seasons()
     totals = journal.totals("2021-2022")
-    assert totals["stock_initial_bags"] == 60  # carried from 2019-2020 (100 - 40)
-    assert totals["stock_bags"] == 15  # 60 - 50 + 5
+    assert totals["stock_initial_bags"] == 0.0
+    assert totals["stock_bags"] == 2  # 0 + 5 - 3
 
 
 def test_import_entries_does_not_inherit_from_a_pre_existing_previous_season():
@@ -921,19 +923,17 @@ def test_import_entries_does_not_inherit_from_a_pre_existing_previous_season():
     assert totals["stock_bags"] == 5
 
 
-# --- async_import_entries: report retroactif vers une saison existante -----------------
+# --- async_import_entries: n'affecte jamais une saison existante -----------------
 
 
-def test_import_entries_backfills_a_successor_season_created_before_the_import():
-    # Regression test for a real reported bug: logging a purchase in the
-    # current season before importing its two previous seasons left the
-    # current season's average price stuck ignoring the newly imported
-    # carry-over stock - importing the same two seasons BEFORE logging
-    # the purchase gave the correct, carried-over price instead. A
-    # season's stock_initial is only computed once, when the season is
-    # first touched (see _get_season) - if its predecessor doesn't exist
-    # yet at that moment, nothing used to go back and fix it once a
-    # later import backfilled the missing history.
+def test_import_entries_does_not_backfill_a_successor_season_created_before_the_import():
+    # Avant la suppression du report, importer deux saisons anterieures
+    # venait retroactivement corriger le stock_initial (et le prix
+    # moyen) d'une saison suivante deja touchee manuellement - ce
+    # report retroactif a disparu en meme temps que le report normal :
+    # une saison deja existante avant l'import garde son stock_initial
+    # tel qu'il etait au moment de sa creation, quoi que l'import
+    # apporte ensuite comme historique anterieur.
     journal = _make_journal()
     run(journal.async_add_entry("2026-2027", "purchase", 50, "2026-10-01", price_eur=300.0))
     totals_before = journal.totals("2026-2027")
@@ -947,10 +947,9 @@ def test_import_entries_backfills_a_successor_season_created_before_the_import()
     ]))
 
     totals_after = journal.totals("2026-2027")
-    assert totals_after["stock_initial_bags"] == 100
-    assert totals_after["stock_initial_value_eur"] == 660.0
-    assert totals_after["avg_price_per_bag"] == 6.4
-    assert totals_after["stock_bags"] == 150
+    assert totals_after["stock_initial_bags"] == 0.0
+    assert totals_after["avg_price_per_bag"] == 6.0
+    assert totals_after["stock_bags"] == 50
 
 
 def test_import_entries_does_not_overwrite_a_manually_corrected_successor_season():
