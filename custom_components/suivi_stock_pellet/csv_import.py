@@ -166,11 +166,9 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
     # comparison gives since every key is a zero-padded "YYYY-YYYY"), then
     # by date within each season. A flat sort by date alone would
     # interleave seasons whenever an advance purchase is dated earlier
-    # than the season it belongs to, and async_import_entries's stock
-    # carry-over relies on every entry of an earlier season having
-    # already been appended before a later season is first touched -
-    # an interleaved date-only order silently breaks that and froze a
-    # wrong (usually far too low) carried-over stock at season creation.
+    # than the season it belongs to. A combined multi-season file is
+    # rejected below in parse_csv_history anyway, but this grouping keeps
+    # a single season's own entries correctly ordered regardless.
     entries.sort(key=lambda e: (e["season"], e["date"], 0 if e["type"] == "purchase" else 1))
     return entries
 
@@ -242,7 +240,27 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
     if event_header is not None:
         header_idx, keys = event_header
         entries = _parse_event_log(rows, header_idx, keys, int(season_start_month))
-        return {"season": entries[0]["season"],"seasons": sorted({entry["season"] for entry in entries}),"entries": entries,"consumption_count": sum(e["type"] == "consumption" for e in entries),"purchase_count": sum(e["type"] == "purchase" for e in entries),"consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),"purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase")}
+        seasons = sorted({entry["season"] for entry in entries})
+        if len(seasons) > 1:
+            # A season created by an import always starts at a stock of 0
+            # (no carry-over from a previous season, see
+            # PelletJournal._import_carry_over_values) so that importing a
+            # given season always produces the same result whether it is
+            # imported alone or as part of a larger combined export - see
+            # the regression this guards against: a real user's continuous,
+            # never-empty stock history was previously imported by carrying
+            # stock across season boundaries, which made a season's final
+            # stock depend on what else was imported alongside it. Rather
+            # than let a multi-season file fail deep into the import with a
+            # confusing "stock passerait sous 0" error (or silently import
+            # with a wrong, zeroed-out starting stock for every season past
+            # the first), refuse it upfront with a clear, actionable message.
+            raise CsvImportError(
+                "Ce fichier contient plusieurs saisons (" + ", ".join(seasons) + "). "
+                "L'import ne peut traiter qu'une seule saison à la fois : "
+                "importez chaque saison séparément, un fichier CSV par saison."
+            )
+        return {"season": entries[0]["season"],"seasons": seasons,"entries": entries,"consumption_count": sum(e["type"] == "consumption" for e in entries),"purchase_count": sum(e["type"] == "purchase" for e in entries),"consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),"purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase")}
     header_idx,months=_find_header(rows)
     season=_season(default_season) if default_season else _find_season(rows,header_idx)
     start_year=int(season[:4])
