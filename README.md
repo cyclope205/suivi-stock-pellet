@@ -36,7 +36,7 @@
 
 ### ☕ Offrez-moi un café pour m'aider à rester éveillé (et coder vos applications préférées)
 
-En remerciement, votre nom apparaîtra (de façon anonymisée) dans la liste des généreux donateurs ci-dessous.
+En remerciement, votre nom apparaîtra (de façon anonymisée) dans la section « ☕ Merci aux donateurs » ci-dessus.
 
 Intégration Home Assistant pour suivre le stock, la consommation et les achats de granulés de bois (pellets), avec une carte Lovelace clé en main.
 
@@ -334,11 +334,6 @@ data:
   unit: kg
   stock_initial_kg: 180
 ```
-
-## 🙏 Généreux donateurs
-
-- J.D.
-- Fred de Lyon
 
 ## Licence
 
