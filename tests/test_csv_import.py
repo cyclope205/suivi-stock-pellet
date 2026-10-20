@@ -229,3 +229,56 @@ def test_maintenance_block_rejects_negative_cost():
     )
     with pytest.raises(CsvImportError):
         parse_csv_history(csv_text)
+
+
+# --- rejection of multi-season "journal d'événements" files -------------
+#
+# A season created by an import always starts at stock_initial=0 (see
+# PelletJournal._import_carry_over_values): no stock is ever carried over
+# from one imported season into the next. That guarantees a given season
+# imports identically whether it is alone in its own file or combined
+# with other seasons in one export - but it also means a combined file
+# can no longer be processed as a whole, since there would be nothing
+# left to make a continuous, never-emptied stock history add up across
+# the season boundary. Rather than let that surface deep into the import
+# as a confusing "stock sous 0" rejection (or, worse, silently treat every
+# season past the first as starting from nothing), parse_csv_history
+# refuses any event-log file spanning more than one season upfront.
+
+
+def test_event_log_rejects_file_spanning_multiple_seasons():
+    csv_text = """Date;Type d'événement;Quantité;Prix total
+2024-10-15;Achat;10;65,00 €
+2025-10-20;Consommation;2;
+"""
+    with pytest.raises(CsvImportError, match="plusieurs saisons"):
+        parse_csv_history(csv_text)
+
+
+def test_event_log_multi_season_error_names_every_season_found():
+    csv_text = """Date;Type d'événement;Quantité;Prix total
+2024-10-15;Achat;10;65,00 €
+2025-10-20;Consommation;2;
+2026-10-05;Achat;5;32,50 €
+"""
+    with pytest.raises(CsvImportError) as excinfo:
+        parse_csv_history(csv_text)
+    message = str(excinfo.value)
+    assert "2024-2025" in message
+    assert "2025-2026" in message
+    assert "2026-2027" in message
+
+
+def test_event_log_single_season_still_accepted_even_with_advance_purchase():
+    # A purchase dated outside the season it belongs to (an advance buy
+    # for next winter, tagged via the Saison column) must not be mistaken
+    # for a second season - this is the same single-season file the
+    # Saison-trust fix already covers, just re-asserted against the new
+    # multi-season guard to make sure it doesn't false-positive here.
+    csv_text = """Saison;Date;Type;Quantite;Prix total
+2024-2025;2024-10-15;Achat;10;65,00 €
+2024-2025;2025-06-20;Achat;5;32,50 €
+2024-2025;2025-01-05;Consommation;3;
+"""
+    result = parse_csv_history(csv_text)
+    assert result["seasons"] == ["2024-2025"]

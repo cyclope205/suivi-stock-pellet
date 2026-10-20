@@ -3,24 +3,36 @@
 Imports the literal "journal d'événements" CSV a user sent to the project,
 byte-for-byte as they sent it, through the real parse_csv_history() +
 PelletJournal.async_import_entries() pipeline - not a hand-built/shortened
-fixture. This complements the synthetic carry-over tests added in commit
-6b74a3f (test_import_entries_multi_season_event_log_carries_over_across_seasons
-and friends in test_journal.py) with an end-to-end check against an actual
-reported CSV, run through the real parser as well as the real journal.
+fixture.
 
-Expected figures below were computed by hand from the CSV's own "Stock
-Restant (sacs)" column (a continuous running balance that never resets at
-season boundaries) and cross-checked against purchased/consumed totals per
-season (season_start_month defaults to 9, i.e. seasons run Sept->Aug):
+This file originally asserted that this exact CSV was accepted and that
+stock correctly carried over from season 2019-2020 into season 2020-2021
+(168 bags carried, ending at 246, never dropping below 45) - a fix for a
+real bug this same user reported, where the import used to be rejected
+with "le stock ... passerait sous 0" because each new season created
+during the import started at stock_initial=0 instead of continuing the
+previous season's ending stock.
 
-- Season 2019-2020 (first season in the history, no prior season to carry
-  from): purchases 195+65+130=390, consumption 222 -> ends at 0+390-222=168.
-- Season 2020-2021: starts at stock_initial=168 (carried over from
-  2019-2020's ending stock). Purchases 130+198=328, consumption 250 ->
-  ends at 168+328-250=246. The running balance dips to exactly 45 bags on
-  2021-01-31 before the next purchase on 2021-02-12 - the lowest point of
-  that season - matching what Scooby82 verified by hand ("never below
-  ~45").
+That carry-over-during-import feature has since been removed entirely
+(see PelletJournal._import_carry_over_values): a season created by an
+import must always start at 0, so that importing a given season produces
+the same result whether it is imported alone or combined with others in
+one file - see the suite in test_journal.py around
+test_import_entries_*_starts_each_season_at_zero. A direct, mechanical
+consequence is that THIS exact CSV (which spans several seasons and
+never resets its physical stock to 0 between them) can no longer be
+imported as one combined file at all: parse_csv_history now refuses any
+"journal d'événements" file containing more than one season, upfront,
+with a clear message - rather than importing the first season fine and
+failing confusingly on the second with a "stock sous 0" error (or, worse,
+silently starting the second season's stock_initial at 0 and treating the
+very first withdrawal of the heating season as draining from nothing).
+
+This file keeps the real reported CSV as a regression fixture, but now
+asserts the opposite of what it used to: that the multi-season combined
+file is rejected, with a message naming every season it contains, so a
+user splitting it into one file per season gets clear guidance instead of
+a dead end.
 
 No pytest-homeassistant-custom-component fixture is used, matching the
 rest of the test suite: hass is a bare unittest.mock.MagicMock and async
@@ -28,30 +40,15 @@ methods are driven through asyncio.run() rather than pytest-asyncio.
 """
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock
+import re
 
 import pytest
 
-from custom_components.suivi_stock_pellet.csv_import import parse_csv_history
-from custom_components.suivi_stock_pellet.journal import PelletJournal
-
-
-def run(coro):
-    return asyncio.run(coro)
-
-
-def _make_journal() -> PelletJournal:
-    hass = MagicMock()
-    journal = PelletJournal(hass, "test_entry")
-    # Store does real file I/O in async_load/async_save - never call those
-    # against a bare MagicMock hass. Stub the save so this test never
-    # touches the filesystem, matching test_journal.py's convention.
-    journal._async_save = AsyncMock()
-    return journal
+from custom_components.suivi_stock_pellet.csv_import import CsvImportError, parse_csv_history
 
 
 # The literal CSV as sent by the reporting user (Scooby82), unmodified.
+# It spans seasons 2019-2020 through 2026-2027 (season_start_month=9).
 SCOOBY82_CSV = """Date;Type d'événement;Type de sac;Quantité (sacs);Poids (kg);Stock Restant (sacs);Prix Total (€);Prix Unitaire (€/sac);Fournisseur / Notes
 2019-09-18;Achat;15 kg;195;2 925;195;1 016,93 €;5,22 €;Houdayer
 2019-09-30;Consommation;15 kg;8;120;187;;;
@@ -165,48 +162,46 @@ TOTAUX;Achat;;1 819;27 285;;10 679,38 €;;
 """
 
 
-def test_scooby82_multi_season_import_is_accepted():
-    """The real bug: this exact import used to raise ValueError
-    ("le stock de la saison 2020-2021 passerait sous 0 à un moment de
-    l'historique") before the fix in commit 8d52cda. It must now succeed
-    without raising anything.
+def test_scooby82_multi_season_import_is_now_rejected_upfront():
+    """This exact file is a genuine multi-season "journal d'événements"
+    export (seasons 2019-2020 through 2026-2027): since a combined
+    multi-season import is no longer supported at all (each imported
+    season must start at a stock of 0, and this history's physical stock
+    never resets to 0 between seasons), parse_csv_history must now refuse
+    it outright, rather than accept it (the old behaviour) or fail deep
+    into the import with a confusing "stock sous 0" error.
     """
-    parsed = parse_csv_history(SCOOBY82_CSV)
-    journal = _make_journal()
-
-    # Must not raise.
-    run(journal.async_import_entries(parsed["entries"]))
+    with pytest.raises(CsvImportError, match="plusieurs saisons"):
+        parse_csv_history(SCOOBY82_CSV)
 
 
-def test_scooby82_season_2019_2020_ends_at_168_bags():
-    parsed = parse_csv_history(SCOOBY82_CSV)
-    journal = _make_journal()
-    run(journal.async_import_entries(parsed["entries"]))
-
-    totals = journal.totals("2019-2020")
-    # First season in the history: nothing to carry over from.
-    assert totals["stock_initial_bags"] == 0.0
-    assert totals["stock_bags"] == 168
-
-
-def test_scooby82_season_2020_2021_carries_over_168_and_ends_at_246():
-    parsed = parse_csv_history(SCOOBY82_CSV)
-    journal = _make_journal()
-    run(journal.async_import_entries(parsed["entries"]))
-
-    totals = journal.totals("2020-2021")
-    # Carried over from 2019-2020's ending stock.
-    assert totals["stock_initial_bags"] == 168
-    assert totals["stock_bags"] == 246
+def test_scooby82_rejection_message_names_every_season_found():
+    with pytest.raises(CsvImportError) as excinfo:
+        parse_csv_history(SCOOBY82_CSV)
+    message = str(excinfo.value)
+    # Every season this history spans must be named, so the user knows
+    # exactly how many separate files to split it into.
+    for season in (
+        "2019-2020", "2020-2021", "2021-2022", "2022-2023",
+        "2023-2024", "2024-2025", "2025-2026", "2026-2027",
+    ):
+        assert season in message
 
 
-def test_scooby82_season_2020_2021_never_drops_below_45_bags():
-    parsed = parse_csv_history(SCOOBY82_CSV)
-    journal = _make_journal()
-    run(journal.async_import_entries(parsed["entries"]))
+def test_scooby82_single_season_slice_imports_fine_once_split_out():
+    # Splitting the combined export into one file per season (what the
+    # rejection message asks the user to do) must work normally: a
+    # single season's own rows import cleanly and start at stock 0, same
+    # as any other single-season import.
+    season_2019_2020_rows = "\n".join(
+        line
+        for line in SCOOBY82_CSV.splitlines()
+        if re.match(r"^201[9]-", line) or re.match(r"^2020-0[1-6]-", line)
+    )
+    header = SCOOBY82_CSV.splitlines()[0]
+    csv_text = header + "\n" + season_2019_2020_rows + "\n"
 
-    entries_2020_2021 = journal.entries("2020-2021")
-    minimum = journal._minimum_chronological_stock("2020-2021", entries_2020_2021)
-    # The real low point, reached right before the 2021-02-12 purchase.
-    assert minimum == pytest.approx(45)
-    assert minimum >= 45 - 1e-6
+    result = parse_csv_history(csv_text)
+    assert result["seasons"] == ["2019-2020"]
+    assert result["purchase_bags"] == 195 + 65
+    assert result["consumption_bags"] == 8 + 12 + 28 + 36 + 24 + 24 + 52 + 8 + 5 + 10

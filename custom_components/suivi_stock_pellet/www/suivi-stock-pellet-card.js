@@ -1462,6 +1462,12 @@ if (cfg.show_csv_import) {
           var types = Object.keys(self._exportDialogTypeChecks).filter(function (t) { return self._exportDialogTypeChecks[t].checked; });
           if (!seasons.length) { alert("Selectionne au moins une saison."); return; }
           if (!types.length) { alert("Selectionne au moins une categorie."); return; }
+          if (seasons.length > 1) {
+                      var ok = window.confirm(
+                                  "Vous avez coche " + seasons.length + " saisons : le fichier genere ne pourra pas etre reimporte tel quel (l'import ne traite qu'une seule saison a la fois).\n\nExporter quand meme ?"
+                                  );
+                      if (!ok) return;
+          }
           self._exportDialogConfirmBtn.disabled = true;
           var calls = seasons.map(function (season) {
             return self._hass.connection.sendMessagePromise({
