@@ -73,7 +73,7 @@ Configuration de l'intégration — **Kilogrammes (kg)** :
 
 Import d'une ancienne saison par **CSV** :
 
-<img width="600" alt="Capture d’écran 2026-09-27 à 12 40 34" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/5d4c02fe-0e2f-434a-b866-9e7e07b0ca7a-Capture_d__cran_2026-09-28___22.15.11.png" />
+<img width="600" alt="Capture d'écran 2026-09-27 à 12 40 34" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/5d4c02fe-0e2f-434a-b866-9e7e07b0ca7a-Capture_d__cran_2026-09-28___22.15.11.png" />
 
 ---
 
@@ -157,7 +157,7 @@ La tuile "Dépensé" s'appelle "Dépense pellet", pour la distinguer des coûts 
 - Historique conservé indéfiniment : aucune saison n'est jamais supprimée ou écrasée au changement de saison. Un **sélecteur de saison** dans l'en-tête de la carte permet de consulter les tuiles, l'historique et les graphiques de n'importe quelle saison passée (les saisies restent verrouillées sur la saison en cours, sauf champ "Saison" explicite dans les formulaires).
 - Les saisons sans aucune saisie sont automatiquement supprimées de la liste (au démarrage et dès qu'une saison redevient vide).
 - Une saison entière peut être supprimée via le bouton poubelle à côté du sélecteur de saison, avec confirmation. Un avertissement s'affiche si une saison suivante existe déjà, car son stock initial (reporté de la saison supprimée) n'est pas recalculé automatiquement.
-- Stock initial d'une saison repris automatiquement du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service [`set_stock_initial`](#service-set_stock_initial).
+- Stock initial d'une saison repris automatiquement du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service [`set_stock_initial`](#service-set_stock_initial). **Ce report automatique ne s'applique qu'à la saisie manuelle au fil de l'eau — voir ci-dessous pour l'import CSV, qui ne reporte jamais de stock entre saisons.**
 - Comparaison à date égale avec la saison précédente : consommation, coût en € et différence en € des deux saisons, avec badge en pourcentage (masquable via `show_comparison`).
 - Modifier ou supprimer une saisie ne peut jamais faire passer le stock réel d'une saison sous 0 : ce cas est refusé avec un message d'erreur explicite.
 
@@ -177,9 +177,11 @@ Le bouton **« Importer CSV »** (réservé aux administrateurs Home Assistant) 
 
 - **Format "grille Excel historique"** : reconnaît un ancien tableau de suivi au format jour/mois en colonnes, avec un panneau latéral "Achats granules" / "Maintenance" / "Entretien". Ce format a été construit par rétro-ingénierie sur un tableur Excel personnel précis ; il repose sur des heuristiques (libellés exacts des marqueurs, disposition en grille) qui ne reconnaîtront pas forcément un historique Excel structuré différemment.
 
-Dans les deux cas : la saison `AAAA-AAAA` est détectée automatiquement (ou déduite des dates pour le format journal), les nombres français et les montants en euros sont pris en charge, et les données restent stockées en sacs (affichables ensuite en sacs ou en kg). Les CSV vides ou invalides sont refusés avec une erreur explicite. Plusieurs anciennes saisons peuvent être importées séparément.
+Dans les deux cas : la saison `AAAA-AAAA` est détectée automatiquement (ou déduite des dates pour le format journal), les nombres français et les montants en euros sont pris en charge, et les données restent stockées en sacs (affichables ensuite en sacs ou en kg). Les CSV vides ou invalides sont refusés avec une erreur explicite.
 
-Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une ou plusieurs saisons et une ou plusieurs catégories (Achat / Consommation / Maintenance / Entretien), puis télécharger un CSV fusionné au format "journal" ci-dessus (`Saison;Date;Type;Quantite;Prix par sac;Prix total;Note`). C'est le même fichier qui peut ensuite être réimporté tel quel.
+> **⚠️ Un fichier CSV ne peut contenir qu'une seule saison.** Contrairement à la saisie manuelle au fil de l'eau (qui reporte automatiquement le stock restant d'une saison sur la suivante, voir [Saisons de chauffe](#saisons-de-chauffe)), une saison créée par un **import** démarre toujours avec un stock de départ à **0**, sans aucun report depuis une saison précédente — même si cette saison précédente fait partie du même import. C'est volontaire et définitif : cela garantit qu'importer une saison donne toujours exactement le même résultat, qu'elle soit importée seule ou combinée avec d'autres saisons dans un seul fichier. Un fichier au format "journal" qui mélange plusieurs saisons (un export cumulé sur plusieurs années, par exemple) est donc **refusé dès l'analyse**, avec un message listant les saisons détectées : importez chaque saison séparément, un fichier CSV par saison. Si votre stock réel ne repart jamais à 0 d'une saison à l'autre, cette limite ne peut pas être levée côté import ; utilisez le service [`set_stock_initial`](#service-set_stock_initial) après l'import pour corriger manuellement le stock de départ de chaque saison concernée.
+
+Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une ou plusieurs saisons et une ou plusieurs catégories (Achat / Consommation / Maintenance / Entretien), puis télécharger un CSV fusionné au format "journal" ci-dessus (`Saison;Date;Type;Quantite;Prix par sac;Prix total;Note`). Pour pouvoir le réimporter, veillez à ne cocher qu'une seule saison à la fois lors de l'export.
 
 > **En cas d'échec de l'import** (fichier refusé, erreur inattendue...), merci d'ouvrir une issue sur le dépôt avec le détail de l'erreur et, si possible, un extrait du fichier CSV concerné : [ouvrir une issue](https://github.com/cyclope205/suivi-stock-pellet/issues/new).
 
@@ -290,7 +292,7 @@ Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`
 
 ## Service `set_stock_initial`
 
-Pour corriger manuellement le stock de départ d'une saison (comptage physique, saison déjà entamée avant l'ajout du report automatique...), en plus du report automatique décrit plus haut :
+Pour corriger manuellement le stock de départ d'une saison (comptage physique, saison déjà entamée avant l'ajout du report automatique, ou saison importée par CSV dont le stock réel ne repartait pas de 0...), en plus du report automatique décrit plus haut :
 
 | Paramètre | Description |
 |---|---|
