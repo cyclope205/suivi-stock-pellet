@@ -5,7 +5,7 @@
 [![Build](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/validate.yml)
 [![Tests](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml/badge.svg)](https://github.com/cyclope205/suivi-stock-pellet/actions/workflows/tests.yml)
 [![Issues](https://img.shields.io/github/issues/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/issues)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/cyclope205/suivi-stock-pellet/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/cyclope205/suivi-stock-pellet/total)](https://github.com/cyclope205/suivi-stock-pellet/releases)
 [![Downloads latest](https://img.shields.io/github/downloads/cyclope205/suivi-stock-pellet/latest/total)](https://github.com/cyclope205/suivi-stock-pellet/releases/latest)
 [![Stars](https://img.shields.io/github/stars/cyclope205/suivi-stock-pellet)](https://github.com/cyclope205/suivi-stock-pellet/stargazers)
@@ -340,4 +340,4 @@ data:
 
 ## Licence
 
-MIT — voir [LICENSE](LICENSE).
+MIT — voir [LICENSE](https://github.com/cyclope205/suivi-stock-pellet/blob/main/LICENSE).
