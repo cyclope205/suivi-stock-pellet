@@ -1,3 +1,4 @@
+
 # Suivi Stock Pellet
 
 [![HACS: Default](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
@@ -219,6 +220,7 @@ Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer 
 1. Ouvrir le dépôt dans HACS et l'installer :
    [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
       [![Ouvrir dans Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
+   
    ou rechercher "Suivi Stock Pellet" dans HACS.
 3. Redémarrer Home Assistant.
 4. Ajouter l'intégration :
