@@ -168,7 +168,8 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
         if config_entry
         else DEFAULT_SEASON_START_MONTH
     )
-    today = dt_util.now().date()
+        calorific_value = config_entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE) if config_entry else DEFAULT_CALORIFIC_VALUE
+        today = dt_util.now().date()
     real_current_season = season_for_date(today, start_month)
     season = msg.get("season") or real_current_season
     previous_season = previous_season_key(season)
@@ -183,7 +184,7 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
             else season_start_date(season, start_month)
         )
 
-    current_totals = journal.totals(season, as_of_date=as_of_current.isoformat(), season_start_month=start_month)
+    current_totals = journal.totals(season, as_of_date=as_of_current.isoformat(), season_start_month=start_month, default_calorific_value=calorific_value)
     result = {
         "current_season": season,
         "current_consumed_bags": current_totals["consumed_bags"],
@@ -205,7 +206,7 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
             days=days_elapsed
         )
         previous_totals = journal.totals(
-            previous_season, as_of_date=as_of_previous.isoformat(), season_start_month=start_month
+            previous_season, as_of_date=as_of_previous.isoformat(), season_start_month=start_month, default_calorific_value=calorific_value
         )
         previous_consumed = previous_totals["consumed_bags"]
         previous_consumed_kg = previous_totals["consumed_kg"]
