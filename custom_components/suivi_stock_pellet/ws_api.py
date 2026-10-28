@@ -168,8 +168,8 @@ async def _ws_get_season_comparison(hass: HomeAssistant, connection, msg) -> Non
         if config_entry
         else DEFAULT_SEASON_START_MONTH
     )
-        calorific_value = config_entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE) if config_entry else DEFAULT_CALORIFIC_VALUE
-        today = dt_util.now().date()
+    calorific_value = config_entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE) if config_entry else DEFAULT_CALORIFIC_VALUE
+    today = dt_util.now().date()
     real_current_season = season_for_date(today, start_month)
     season = msg.get("season") or real_current_season
     previous_season = previous_season_key(season)
