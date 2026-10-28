@@ -56,6 +56,7 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
         else DEFAULT_SEASON_START_MONTH
     )
     season = msg.get("season") or season_for_date(dt_util.now().date(), start_month)
+    calorific_value = config_entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE) if config_entry else DEFAULT_CALORIFIC_VALUE
 
     # Bound the "Jours de suivi" count (real_days_logged) to this season's
     # own end when it is a CLOSED season being browsed via the card's season
@@ -77,7 +78,7 @@ async def _ws_get_journal(hass: HomeAssistant, connection, msg) -> None:
             "season": season,
             "seasons": journal.seasons(),
             "entries": journal.entries(season),
-            "totals": journal.totals(season, as_of_date=as_of_date, season_start_month=start_month),
+            "totals": journal.totals(season, as_of_date=as_of_date, season_start_month=start_month, default_calorific_value=calorific_value),
             "start_month": start_month,
         },
     )
@@ -110,6 +111,7 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
         else DEFAULT_SEASON_START_MONTH
     )
     current_season = season_for_date(dt_util.now().date(), start_month)
+    calorific_value = config_entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE) if config_entry else DEFAULT_CALORIFIC_VALUE
 
     summary = []
     display_unit = (
@@ -118,7 +120,7 @@ async def _ws_get_seasons_summary(hass: HomeAssistant, connection, msg) -> None:
         else "bag"
     )
     for season in journal.seasons():
-        totals = journal.totals(season, season_start_month=start_month)
+        totals = journal.totals(season, season_start_month=start_month, default_calorific_value=calorific_value)
         # Use the weighted-average price (blends carried-over stock
         # value with this seasons own purchases) instead of a plain
         # spent/purchased ratio, so this chart matches the rest of the
