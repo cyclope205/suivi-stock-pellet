@@ -51,6 +51,7 @@ from .const import (
     ENTRY_TYPE_CONSUMPTION,
     ENTRY_TYPE_ENTRETIEN,
     ENTRY_TYPE_MAINTENANCE,
+    ENTRY_TYPE_NETTOYAGE,
     ENTRY_TYPE_PURCHASE,
     ATTR_STOCK_INITIAL_BAGS,
     ATTR_STOCK_INITIAL_KG,
@@ -61,6 +62,7 @@ from .const import (
     SERVICE_LOG_CONSUMPTION,
     SERVICE_LOG_ENTRETIEN,
     SERVICE_LOG_MAINTENANCE,
+    SERVICE_LOG_NETTOYAGE,
     SERVICE_LOG_PURCHASE,
     SERVICE_SET_STOCK_INITIAL,
     SERVICE_UNDO_LAST_ENTRY,
@@ -83,6 +85,7 @@ _EXPORT_TYPE_LABELS = {
     ENTRY_TYPE_CONSUMPTION: "Consommation",
     ENTRY_TYPE_MAINTENANCE: "Maintenance",
     ENTRY_TYPE_ENTRETIEN: "Entretien",
+    ENTRY_TYPE_NETTOYAGE: "Nettoyage",
 }
 
 
@@ -195,6 +198,16 @@ LOG_ENTRETIEN_SCHEMA = vol.Schema(
     }
 )
 
+LOG_NETTOYAGE_SCHEMA = vol.Schema(
+    {
+        # Pas de price_eur : le nettoyage est un evenement pur (date +
+        # note), jamais un cout - contrairement a maintenance/entretien.
+        vol.Optional(ATTR_DATE): cv.date,
+        vol.Optional("season"): _valid_season,
+        vol.Optional(ATTR_NOTE): cv.string,
+    }
+)
+
 EXPORT_CSV_SCHEMA = vol.Schema(
     {
         vol.Optional("season"): _valid_season,
@@ -209,6 +222,7 @@ EXPORT_CSV_SCHEMA = vol.Schema(
                         ENTRY_TYPE_CONSUMPTION,
                         ENTRY_TYPE_MAINTENANCE,
                         ENTRY_TYPE_ENTRETIEN,
+                        ENTRY_TYPE_NETTOYAGE,
                     ]
                 )
             ],
@@ -410,13 +424,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         _notify()
 
+    async def _handle_log_nettoyage(call: ServiceCall) -> None:
+        note = call.data.get(ATTR_NOTE)
+        entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
+        season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        await journal.async_add_entry(
+            season,
+            ENTRY_TYPE_NETTOYAGE,
+            None,
+            entry_date.isoformat(),
+            note=note,
+        )
+        _notify()
+
     async def _handle_export_csv(call: ServiceCall) -> dict[str, str | int]:
         """Export the journal to CSV, filtered by season/date range/type.
 
         Reads only data the journal already stores - no new field is
-        introduced. "Note" is therefore populated for maintenance/entretien
-        rows (the only types that have ever carried a note) and left empty
-        for achat/consommation rows, by design.
+        introduced. "Note" is therefore populated for maintenance/entretien/
+        nettoyage rows (the only types that have ever carried a note) and
+        left empty for achat/consommation rows, by design. Nettoyage rows
+        never carry a price_eur, so their "Prix total"/"Prix par sac"
+        columns are always empty, same as a row with no price recorded.
         """
         season_filter = call.data.get("season")
         date_from = call.data.get(ATTR_DATE_FROM)
@@ -536,6 +565,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     hass.services.async_register(
         DOMAIN,
+        SERVICE_LOG_NETTOYAGE,
+        _handle_log_nettoyage,
+        schema=LOG_NETTOYAGE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_EXPORT_CSV,
         _handle_export_csv,
         schema=EXPORT_CSV_SCHEMA,
@@ -563,6 +598,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             SERVICE_DELETE_SEASON,
             SERVICE_LOG_MAINTENANCE,
             SERVICE_LOG_ENTRETIEN,
+            SERVICE_LOG_NETTOYAGE,
             SERVICE_EXPORT_CSV,
         ):
             if hass.services.has_service(DOMAIN, service):

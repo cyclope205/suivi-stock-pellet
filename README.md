@@ -51,7 +51,7 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 - [Unités et prix (sacs / kg)](#unités-et-prix-sacs--kg)
 - [Saisons de chauffe](#saisons-de-chauffe)
 - [Import et export CSV](#import-et-export-csv)
-- [Maintenance et entretien](#maintenance-et-entretien)
+- [Maintenance, entretien et nettoyage](#maintenance-entretien-et-nettoyage)
 - [Carte Lovelace](#carte-lovelace)
 - [Installation](#installation)
 - [Utilisation](#utilisation)
@@ -148,6 +148,7 @@ Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
 - Saisons de chauffe calculées automatiquement, historique conservé indéfiniment, consultable via le sélecteur de saison.
 - Import d'anciennes saisons par CSV, et export CSV par saison/catégorie.
 - Suivi des frais de maintenance et d'entretien du poêle, indépendamment du stock de granulés.
+- Suivi des nettoyages du poêle (dépoussiérage, vidage du cendrier, ramonage du conduit...) : un évènement daté purement informatif, sans coût, qui n'a **aucun** impact sur le stock, la consommation ou les calculs de coût — voir [Maintenance, entretien et nettoyage](#maintenance-entretien-et-nettoyage).
 - Carte Lovelace intégrée, clé en main : tuiles, boutons d'ajout rapide, historique modifiable, calendrier, graphiques, comparaison à la saison précédente.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
 
@@ -181,32 +182,56 @@ Le bouton **« Importer CSV »** (réservé aux administrateurs Home Assistant) 
   2025-10-15,consommation,1.8,
   ```
 
-  La date accepte le format AAAA-MM-JJ ou un texte en français. La colonne `type` doit contenir « achat », « consommation », « maintenance » ou « entretien » pour être prise en compte.
+  La date accepte le format AAAA-MM-JJ ou un texte en français. La colonne `type` doit contenir « achat », « consommation », « maintenance », « entretien » ou « nettoyage » pour être prise en compte. Une ligne « nettoyage » n'a besoin d'aucune colonne prix (contrairement à maintenance/entretien) : seules la date et, en option, une note sont lues.
 
-- **Format "grille Excel historique"** : reconnaît un ancien tableau de suivi au format jour/mois en colonnes, avec un panneau latéral "Achats granules" / "Maintenance" / "Entretien". Ce format a été construit par rétro-ingénierie sur un tableur Excel personnel précis ; il repose sur des heuristiques (libellés exacts des marqueurs, disposition en grille) qui ne reconnaîtront pas forcément un historique Excel structuré différemment.
+- **Format "grille Excel historique"** : reconnaît un ancien tableau de suivi au format jour/mois en colonnes, avec un panneau latéral "Achats granules" / "Maintenance" / "Entretien" / "Nettoyage" (cette dernière section est optionnelle : un fichier existant qui ne la contient pas s'importe exactement comme avant). Ce format a été construit par rétro-ingénierie sur un tableur Excel personnel précis ; il repose sur des heuristiques (libellés exacts des marqueurs, disposition en grille) qui ne reconnaîtront pas forcément un historique Excel structuré différemment.
 
 Dans les deux cas : la saison `AAAA-AAAA` est détectée automatiquement (ou déduite des dates pour le format journal), les nombres français et les montants en euros sont pris en charge, et les données restent stockées en sacs (affichables ensuite en sacs ou en kg). Les CSV vides ou invalides sont refusés avec une erreur explicite.
 
 > **⚠️ Un fichier CSV ne peut contenir qu'une seule saison.** Contrairement à la saisie manuelle au fil de l'eau (qui reporte automatiquement le stock restant d'une saison sur la suivante, voir [Saisons de chauffe](#saisons-de-chauffe)), une saison créée par un **import** démarre toujours avec un stock de départ à **0**, sans aucun report depuis une saison précédente — même si cette saison précédente fait partie du même import. C'est volontaire et définitif : cela garantit qu'importer une saison donne toujours exactement le même résultat, qu'elle soit importée seule ou combinée avec d'autres saisons dans un seul fichier. Un fichier au format "journal" qui mélange plusieurs saisons (un export cumulé sur plusieurs années, par exemple) est donc **refusé dès l'analyse**, avec un message listant les saisons détectées : importez chaque saison séparément, un fichier CSV par saison. Si votre stock réel ne repart jamais à 0 d'une saison à l'autre, cette limite ne peut pas être levée côté import ; utilisez le service [`set_stock_initial`](#service-set_stock_initial) après l'import pour corriger manuellement le stock de départ de chaque saison concernée.
 
-Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une ou plusieurs saisons et une ou plusieurs catégories (Achat / Consommation / Maintenance / Entretien), puis télécharger un CSV fusionné au format "journal" ci-dessus (`Saison;Date;Type;Quantite;Prix par sac;Prix total;Note`). Pour pouvoir le réimporter, veillez à ne cocher qu'une seule saison à la fois lors de l'export.
+Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une ou plusieurs saisons et une ou plusieurs catégories (Achat / Consommation / Maintenance / Entretien / Nettoyage), puis télécharger un CSV fusionné au format "journal" ci-dessus (`Saison;Date;Type;Quantite;Prix par sac;Prix total;Note`). Pour pouvoir le réimporter, veillez à ne cocher qu'une seule saison à la fois lors de l'export. Les lignes "Nettoyage" exportées ont toujours leurs colonnes de prix vides, puisque ce type n'a jamais de coût.
 
 > **En cas d'échec de l'import** (fichier refusé, erreur inattendue...), merci d'ouvrir une issue sur le dépôt avec le détail de l'erreur et, si possible, un extrait du fichier CSV concerné : [ouvrir une issue](https://github.com/cyclope205/suivi-stock-pellet/issues/new).
 
-## Maintenance et entretien
+## Maintenance, entretien et nettoyage
 
-Suivi des frais de maintenance et d'entretien du poêle, indépendamment du stock de granulés : deux boutons dédiés ("Maintenance" / "Entretien") ouvrent chacun un formulaire (coût, date, note libre) utilisable même sur une saison passée via le champ saison. Ces saisies apparaissent dans l'historique avec leur note, dans le calendrier avec une couleur dédiée par type, et alimentent deux tuiles ("Coût maintenance", "Coût entretien") ainsi que deux courbes "par saison" masquables.
+Trois types de saisies suivent la vie du poêle indépendamment du stock de granulés, sans jamais influencer son calcul (stock, consommation, coûts liés aux granulés) :
+
+| Type | Pour quoi | Coût | Impact stock/consommation/coût granulés |
+|---|---|---|---|
+| **Maintenance** | Réparation, intervention technique, remplacement d'une pièce | Obligatoire | Aucun |
+| **Entretien** | Entretien périodique ou approfondi (révision, ramonage programmé...) | Obligatoire | Aucun |
+| **Nettoyage** | Geste de nettoyage courant (dépoussiérage, vidage du cendrier, nettoyage de la vitre...) | **Aucun** — champ non proposé | **Aucun**, et ce **de façon absolue** : un nettoyage n'est jamais compté dans aucun total, aucune tuile et aucun graphique de coût |
+
+Trois boutons dédiés ("Maintenance" / "Nettoyage" / "Entretien") ouvrent chacun un formulaire utilisable même sur une saison passée via le champ saison. Maintenance et Entretien demandent un coût, une date et une note libre ; Nettoyage ne demande qu'une date et une note libre, puisqu'il ne porte jamais de coût.
+
+Ces saisies apparaissent dans l'historique avec leur note, dans le calendrier avec une couleur dédiée par type (voir [Carte Lovelace](#carte-lovelace) pour le détail des couleurs), et pour Maintenance/Entretien alimentent en plus deux tuiles ("Coût maintenance", "Coût entretien") ainsi que deux courbes "par saison" masquables — Nettoyage n'a pas d'équivalent, n'ayant aucun coût à représenter.
 
 ## Carte Lovelace
 
 Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`), servie automatiquement par l'intégration (aucune ressource à ajouter manuellement) :
 
-- Stock en un coup d'œil, boutons "+ Consommation" / "+ Achat", bouton rapide d'ajout (quantité configurable, "+1 sac aujourd'hui" par défaut, visible uniquement sur la saison en cours), annulation de la dernière saisie.
+- Stock en un coup d'œil, boutons d'action organisés sur **2 rangées** :
+  - **Rangée 1 (toujours visible)** : Consommation, Nettoyage, bouton rapide d'ajout (quantité configurable, "+1 sac aujourd'hui" par défaut, visible uniquement sur la saison en cours).
+  - **Rangée 2 (masquable via `show_secondary_actions`)** : Maintenance, Achat, Entretien — pratique si vous ne vous en servez que rarement ; masquer cette rangée ne désactive rien et ne perd aucune donnée, elle est simplement cachée.
+  - Annulation de la dernière saisie.
+- Palette de couleurs dédiée à chaque type d'action, utilisée de façon cohérente partout (boutons, historique, calendrier, légendes) :
+
+  | Type | Couleur |
+  |---|---|
+  | Achat | 🟢 Vert `#2EAD55` |
+  | Consommation | 🔴 Rouge `#E53935` |
+  | Maintenance | 🔵 Bleu `#1565C0` |
+  | Entretien | 🟠 Orange doré `#FF8F00` |
+  | Nettoyage | 🟣 Violet `#6A1B9A` |
+  | Bouton rapide "+1 sac" | 🔴 Rouge `#E53935` (identique à Consommation) |
+
 - Historique des dernières entrées, modifiable (crayon) et supprimable (corbeille, avec confirmation).
 - Les formulaires Achat/Consommation acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent un champ "Saison" optionnel pour rattacher la saisie à une saison différente de celle déduite de la date, et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
 - Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et boutons pour n'afficher que l'une des deux ; sa valeur mensuelle s'affiche directement sur le graphique quand une seule courbe est visible.
-- Graphique de coût par saison à onglets (Prix moyen / Maintenance / Entretien / Achat / Total).
-- Section calendrier (navigable mois par mois) : chaque jour affiche les achats et consommations enregistrés, avec une couleur différente selon le type ; mise à jour immédiate après ajout, suppression ou modification.
+- Graphique de coût par saison à onglets (Prix moyen / Maintenance / Entretien / Achat / Total). Nettoyage n'ayant jamais de coût, il n'a pas d'onglet.
+- Section calendrier (navigable mois par mois) : chaque jour affiche jusqu'à **5 types d'évènements simultanés** — Achat, Consommation, Maintenance, Entretien et Nettoyage se partagent la cellule à **parts égales selon le nombre de types réellement présents ce jour-là** (1 type = case entièrement colorée, 2 types = moitié/moitié, 3 types = trois tiers, 4 types = quatre quarts), chacun dans la couleur du tableau ci-dessus. Cas particulier lorsque les 5 types sont présents le même jour : la cellule est divisée en **4 quarts** (Achat/Consommation/Maintenance/Entretien) et Nettoyage est représenté par un **rond central violet** superposé par-dessus, plutôt que par une 5ᵉ part trop petite pour rester lisible. Cliquer/toucher un jour affiche le détail (type, quantité ou note) dans une bulle flottante ; mise à jour immédiate après ajout, suppression ou modification.
 - Titre "Évolution de la consommation" cliquable : replie ou déplie tout le bas de la carte (graphique mensuel, coût par saison, historique, calendrier) ; pratique sur un tableau de bord en vue portrait. L'état plié/déplié est mémorisé dans le navigateur.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section sans toucher au YAML.
 - Tuiles, historique, calendrier et graphiques visibles pour tous les utilisateurs du tableau de bord ; seules les actions d'écriture (saisie, modification, suppression) sont réservées à un accès normal.
@@ -275,8 +300,8 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 |---|---|
 | `show_stats` | Tuiles consommé / énergie / dépensé / jours |
 | `show_cost_stats` | Tuiles coût / jour CONSO, coût / mois CONSO, coût du sac, coût total saison, coût/mois total saison |
-| `show_actions` | Boutons et formulaires de saisie (Consommation, Achat, Maintenance, Entretien, bouton rapide) |
-| `show_secondary_actions` | Masque ensemble les boutons et formulaires Achat, Maintenance et Entretien (Consommation et le bouton rapide restent toujours visibles) : pratique si vous ne vous en servez que rarement, par exemple une fois par an pour Maintenance/Entretien |
+| `show_actions` | Boutons et formulaires de saisie (Consommation, Nettoyage, Achat, Maintenance, Entretien, bouton rapide) |
+| `show_secondary_actions` | Masque entièrement la 2e rangée de boutons (Maintenance, Achat, Entretien) et leurs formulaires ; la 1re rangée (Consommation, Nettoyage, bouton rapide) reste toujours visible. Pratique si vous ne vous servez de Maintenance/Achat/Entretien que rarement — rien n'est désactivé ni perdu, ces fonctions restent accessibles via les services Home Assistant |
 | `show_csv_import` | Boutons "Importer CSV" et "Exporter CSV" (import réservé aux administrateurs Home Assistant) |
 | `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
 | `show_price_chart` | Onglet "Prix moyen" du graphique de coût par saison |
@@ -305,6 +330,7 @@ Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`
 - `suivi_stock_pellet.delete_season` (`season`) — supprime entièrement une saison (toutes ses saisies)
 - `suivi_stock_pellet.log_maintenance` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût de maintenance
 - `suivi_stock_pellet.log_entretien` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût d'entretien
+- `suivi_stock_pellet.log_nettoyage` (`season` facultative, `date` facultative, `note` facultative) — enregistre un nettoyage ; pas de `price_eur`, ce type n'a jamais de coût
 - `suivi_stock_pellet.export_csv` (`season` facultative — toutes les saisons si absente, `date_from`/`date_to` facultatives, `types` facultatif) — génère un CSV au format "journal" (utilisé en interne par le bouton "Exporter CSV")
 
 ## Entités créées

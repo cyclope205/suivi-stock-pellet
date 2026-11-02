@@ -316,10 +316,23 @@ class PelletDaysUsedSensor(_BasePelletSensor):
         return attrs
 
 
+_ENTRY_TYPE_LABELS_FR = {
+    "consumption": "Consommation",
+    "purchase": "Achat",
+    "maintenance": "Maintenance",
+    "entretien": "Entretien",
+    "nettoyage": "Nettoyage",
+}
+
+
 def _summarize_entry(entry: dict | None) -> str | None:
     if not entry:
         return None
-    label = "Consommation" if entry["type"] == "consumption" else "Achat"
+    label = _ENTRY_TYPE_LABELS_FR.get(entry["type"], entry["type"])
+    if entry["type"] not in ("consumption", "purchase"):
+        # maintenance/entretien/nettoyage : ni sacs ni kg, juste la date
+        # (+ un cout pour maintenance/entretien, jamais pour nettoyage).
+        return f"{label} : {entry['date']}"
     if entry.get("unit") == "kg":
         return f"{label} : {entry.get('qty_kg', 0)} kg le {entry['date']}"
     return f"{label} : {entry.get('qty_bags', 0)} sac(s) le {entry['date']}"

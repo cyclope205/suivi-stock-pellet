@@ -21,9 +21,18 @@ from .const import (
     ENTRY_TYPE_CONSUMPTION,
     ENTRY_TYPE_ENTRETIEN,
     ENTRY_TYPE_MAINTENANCE,
+    ENTRY_TYPE_NETTOYAGE,
     ENTRY_TYPE_PURCHASE,
     STORAGE_VERSION,
 )
+
+# Types dont la saisie ne porte qu'une date (+ note facultative) : jamais de
+# quantite de granules, jamais de cout, jamais pris en compte dans le calcul
+# du stock. Entretien/maintenance ont un cout obligatoire ; nettoyage n'en a
+# aucun (evenement pur, voir ENTRY_TYPE_NETTOYAGE).
+COST_ENTRY_TYPES = (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN)
+DATE_ONLY_ENTRY_TYPES = (ENTRY_TYPE_NETTOYAGE,)
+NON_STOCK_ENTRY_TYPES = COST_ENTRY_TYPES + DATE_ONLY_ENTRY_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -343,7 +352,7 @@ class PelletJournal:
         qty_kg: float | None = None,
         note: str | None = None,
     ) -> None:
-        if entry_type in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
+        if entry_type in COST_ENTRY_TYPES:
             # Maintenance/entretien entries track a cost and an optional
             # note, not a pellet quantity - they never participate in the
             # stock/bag math (purchase/consumption only), only in
@@ -354,6 +363,20 @@ class PelletJournal:
                 "type": entry_type,
                 "date": entry_date,
                 "price_eur": float(price_eur),
+                "note": note,
+            }
+            self._season_entries(season).append(stored)
+            await self._async_save()
+            return
+        if entry_type in DATE_ONLY_ENTRY_TYPES:
+            # Nettoyage: evenement pur date + note facultative, jamais de
+            # cout ni de quantite - ne doit jamais entrer dans un calcul de
+            # stock/consommation/cout (voir totals(), qui ne le somme nulle
+            # part), contrairement a maintenance/entretien qui portent un
+            # cout obligatoire.
+            stored = {
+                "type": entry_type,
+                "date": entry_date,
                 "note": note,
             }
             self._season_entries(season).append(stored)
@@ -460,7 +483,7 @@ class PelletJournal:
                         "stock_initial_value_eur": stock_initial_value,
                     }
                 entries = self._data["seasons"][season]["entries"]
-                if entry_type in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
+                if entry_type in COST_ENTRY_TYPES:
                     # Maintenance/entretien rows track a cost and an
                     # optional note, never a pellet quantity - same
                     # shape as async_add_entry's equivalent branch, and
@@ -472,6 +495,15 @@ class PelletJournal:
                         "type": entry_type,
                         "date": entry_date,
                         "price_eur": float(price),
+                        "note": item.get("note"),
+                    })
+                    continue
+                if entry_type in DATE_ONLY_ENTRY_TYPES:
+                    # Nettoyage: aucune quantite ni cout a valider, meme
+                    # logique que async_add_entry.
+                    entries.append({
+                        "type": entry_type,
+                        "date": entry_date,
                         "note": item.get("note"),
                     })
                     continue
@@ -560,12 +592,16 @@ class PelletJournal:
         entry = entries[index]
         updated = dict(entry)
 
-        if entry["type"] in (ENTRY_TYPE_MAINTENANCE, ENTRY_TYPE_ENTRETIEN):
-            # No qty/unit concept for these - only cost, date and note.
+        if entry["type"] in NON_STOCK_ENTRY_TYPES:
+            # No qty/unit concept for these - cost (when applicable), date
+            # and note only. Nettoyage (DATE_ONLY_ENTRY_TYPES) never has a
+            # price_eur at all - a price_eur passed in for one is ignored
+            # rather than silently creating a cost field a pure dated
+            # event should never carry.
             if entry_date is not None:
                 date.fromisoformat(entry_date)
                 updated["date"] = entry_date
-            if price_eur is not None:
+            if price_eur is not None and entry["type"] in COST_ENTRY_TYPES:
                 if not math.isfinite(price_eur) or price_eur < 0:
                     # Même lacune que celle corrigée dans async_add_entry :
                     # un prix NaN/infini n'était validé que par
