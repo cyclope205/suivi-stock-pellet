@@ -2398,40 +2398,47 @@ if (cfg.show_csv_import) {
         let cell = document.createElement("div");
         cell.className = "calendar-cell";
         var info = byDay[day];
-        // Calendrier a 5 types : 4 triangles (Achat/Consommation/
-        // Maintenance/Entretien, se rejoignant au centre comme les deux
-        // diagonales d'un carre) + un rond central violet pour Nettoyage.
-        // Un type absent laisse son triangle transparent (le fond neutre
-        // de la cellule apparait a la place) : aucune couleur redondante
-        // n'est affichee pour un type absent, et un jour avec seulement
-        // Nettoyage n'affiche que le rond.
+        // Calendrier a 5 types : jusqu'a 4 "parts" colorees (Achat/
+        // Consommation/Maintenance/Entretien) se partageant le cercle a
+        // parts egales selon le nombre de types presents ce jour-la (pas
+        // un decoupage fixe en 4 quarts) + un rond central violet pour
+        // Nettoyage, toujours superpose par-dessus :
+        //   1 type  -> la case entiere est remplie de sa couleur (360deg)
+        //   2 types -> 2 moities (180deg chacune)
+        //   3 types -> 3 triangles (120deg chacun)
+        //   4 types -> 4 quarts (90deg chacun), comme avant
+        // L'ordre relatif (achat, consommation, maintenance, entretien)
+        // est conserve ; un type absent ne reserve aucune part. Un jour
+        // avec seulement Nettoyage n'affiche que le rond.
         var hasPurchase = !!(info && info.purchase > 0);
         var hasConsumption = !!(info && info.consumption > 0);
         var hasMaintenance = !!(info && info.maintenance_count > 0);
         var hasEntretien = !!(info && info.entretien_count > 0);
         var hasNettoyage = !!(info && info.nettoyage_count > 0);
-        var hasAnyTriangle = hasPurchase || hasConsumption || hasMaintenance || hasEntretien;
+        var presentColors = [];
+        if (hasPurchase) presentColors.push("rgb(46, 173, 85)");
+        if (hasConsumption) presentColors.push("rgb(229, 57, 53)");
+        if (hasMaintenance) presentColors.push("rgb(21, 101, 192)");
+        if (hasEntretien) presentColors.push("rgb(255, 143, 0)");
+        var hasAnyTriangle = presentColors.length > 0;
         if (hasAnyTriangle || hasNettoyage) {
-          var topColor = hasPurchase ? "rgb(46, 173, 85)" : "transparent";
-          var rightColor = hasConsumption ? "rgb(229, 57, 53)" : "transparent";
-          var bottomColor = hasMaintenance ? "rgb(21, 101, 192)" : "transparent";
-          var leftColor = hasEntretien ? "rgb(255, 143, 0)" : "transparent";
           var layers = [];
           if (hasNettoyage) {
             // Rond central violet, sans contour blanc, rayon ~23% de la
             // largeur de cellule (cellule carree, aspect-ratio:1 en CSS).
+            // Toujours dessine en premier (donc par-dessus) pour rester
+            // bien visible meme quand la case est entierement coloree.
             layers.push(
               "radial-gradient(circle at center, rgb(106, 27, 154) 0%, rgb(106, 27, 154) 23%, transparent 23%)"
             );
           }
           if (hasAnyTriangle) {
-            layers.push(
-              "conic-gradient(from 45deg, " +
-                topColor + " 0deg 90deg, " +
-                rightColor + " 90deg 180deg, " +
-                bottomColor + " 180deg 270deg, " +
-                leftColor + " 270deg 360deg)"
-            );
+            var sliceCount = presentColors.length;
+            var sliceDeg = 360 / sliceCount;
+            var stops = presentColors.map(function (color, i) {
+              return color + " " + (i * sliceDeg) + "deg " + ((i + 1) * sliceDeg) + "deg";
+            });
+            layers.push("conic-gradient(from 45deg, " + stops.join(", ") + ")");
           }
           cell.style.backgroundImage = layers.join(", ");
           if (hasAnyTriangle) {
