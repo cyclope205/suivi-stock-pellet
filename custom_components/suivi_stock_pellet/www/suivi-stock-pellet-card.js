@@ -2398,41 +2398,51 @@ if (cfg.show_csv_import) {
         let cell = document.createElement("div");
         cell.className = "calendar-cell";
         var info = byDay[day];
-        // Calendrier a 5 types : jusqu'a 4 "parts" colorees (Achat/
-        // Consommation/Maintenance/Entretien) se partageant le cercle a
-        // parts egales selon le nombre de types presents ce jour-la (pas
-        // un decoupage fixe en 4 quarts) + un rond central violet pour
-        // Nettoyage, toujours superpose par-dessus :
-        //   1 type  -> la case entiere est remplie de sa couleur (360deg)
+        // Calendrier a 5 types. Nettoyage participe au decoupage
+        // proportionnel comme les 4 autres types TANT QUE les 5 ne sont
+        // pas presents en meme temps :
+        //   1 type  (nettoyage seul inclus) -> case entiere (360deg)
         //   2 types -> 2 moities (180deg chacune)
         //   3 types -> 3 triangles (120deg chacun)
-        //   4 types -> 4 quarts (90deg chacun), comme avant
-        // L'ordre relatif (achat, consommation, maintenance, entretien)
-        // est conserve ; un type absent ne reserve aucune part. Un jour
-        // avec seulement Nettoyage n'affiche que le rond.
+        //   4 types (n'importe lesquels parmi les 5) -> 4 quarts (90deg)
+        // Cas particulier, quand les 5 sont presents le meme jour : la
+        // case est divisee en 4 quarts (Achat/Consommation/Maintenance/
+        // Entretien) et Nettoyage est represente par un rond central
+        // violet superpose par-dessus (pas une 5e part, ce serait trop
+        // petit pour rester lisible).
+        // L'ordre relatif (achat, consommation, maintenance, entretien,
+        // puis nettoyage en dernier s'il participe au decoupage) est
+        // conserve ; un type absent ne reserve aucune part.
         var hasPurchase = !!(info && info.purchase > 0);
         var hasConsumption = !!(info && info.consumption > 0);
         var hasMaintenance = !!(info && info.maintenance_count > 0);
         var hasEntretien = !!(info && info.entretien_count > 0);
         var hasNettoyage = !!(info && info.nettoyage_count > 0);
-        var presentColors = [];
-        if (hasPurchase) presentColors.push("rgb(46, 173, 85)");
-        if (hasConsumption) presentColors.push("rgb(229, 57, 53)");
-        if (hasMaintenance) presentColors.push("rgb(21, 101, 192)");
-        if (hasEntretien) presentColors.push("rgb(255, 143, 0)");
-        var hasAnyTriangle = presentColors.length > 0;
-        if (hasAnyTriangle || hasNettoyage) {
+        var triangleColors = [];
+        if (hasPurchase) triangleColors.push("rgb(46, 173, 85)");
+        if (hasConsumption) triangleColors.push("rgb(229, 57, 53)");
+        if (hasMaintenance) triangleColors.push("rgb(21, 101, 192)");
+        if (hasEntretien) triangleColors.push("rgb(255, 143, 0)");
+        var allFivePresent = triangleColors.length === 4 && hasNettoyage;
+        if (triangleColors.length > 0 || hasNettoyage) {
           var layers = [];
-          if (hasNettoyage) {
-            // Rond central violet, sans contour blanc, rayon ~23% de la
-            // largeur de cellule (cellule carree, aspect-ratio:1 en CSS).
-            // Toujours dessine en premier (donc par-dessus) pour rester
-            // bien visible meme quand la case est entierement coloree.
+          if (allFivePresent) {
+            // Rond central violet, sans contour blanc, rayon ~30% de la
+            // largeur de cellule (cellule carree, aspect-ratio:1 en CSS) -
+            // assez visible pour ne pas se perdre par-dessus les 4 quarts.
+            // Dessine en premier (donc par-dessus) pour rester visible
+            // meme quand la case est entierement coloree.
             layers.push(
-              "radial-gradient(circle at center, rgb(106, 27, 154) 0%, rgb(106, 27, 154) 23%, transparent 23%)"
+              "radial-gradient(circle at center, rgb(106, 27, 154) 0%, rgb(106, 27, 154) 30%, transparent 30%)"
             );
-          }
-          if (hasAnyTriangle) {
+            var sliceDeg4 = 90;
+            var stops4 = triangleColors.map(function (color, i) {
+              return color + " " + (i * sliceDeg4) + "deg " + ((i + 1) * sliceDeg4) + "deg";
+            });
+            layers.push("conic-gradient(from 45deg, " + stops4.join(", ") + ")");
+          } else {
+            var presentColors = triangleColors.slice();
+            if (hasNettoyage) presentColors.push("rgb(106, 27, 154)");
             var sliceCount = presentColors.length;
             var sliceDeg = 360 / sliceCount;
             var stops = presentColors.map(function (color, i) {
@@ -2441,10 +2451,8 @@ if (cfg.show_csv_import) {
             layers.push("conic-gradient(from 45deg, " + stops.join(", ") + ")");
           }
           cell.style.backgroundImage = layers.join(", ");
-          if (hasAnyTriangle) {
-            cell.style.color = "#fff";
-            cell.style.fontWeight = "700";
-          }
+          cell.style.color = "#fff";
+          cell.style.fontWeight = "700";
           cell.classList.add("has-events");
         }
         cell.textContent = String(day);
