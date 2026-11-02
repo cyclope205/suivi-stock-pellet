@@ -11,9 +11,9 @@
     "websocket_api"
   ],
   "documentation": "https://github.com/cyclope205/suivi-stock-pellet",
-    "iot_class": "calculated",
+  "iot_class": "calculated",
   "issue_tracker": "https://github.com/cyclope205/suivi-stock-pellet/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "1.11.35"
+  "version": "1.12.0"
 }
