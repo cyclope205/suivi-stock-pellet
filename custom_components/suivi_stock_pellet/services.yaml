@@ -327,6 +327,30 @@ log_entretien:
       selector:
         text: {}
 
+log_nettoyage:
+  name: Enregistrer un nettoyage
+  description: Ajoute un événement de nettoyage au journal (dépoussiérage du poêle, vidage du cendrier, nettoyage du conduit...). Purement informatif : aucun coût, n'affecte jamais le stock, la consommation ou les calculs de coût. La saison est déterminée automatiquement à partir de la date, sauf si une saison est précisée explicitement.
+  fields:
+    date:
+      name: Date
+      description: Date du nettoyage (par défaut aujourd'hui).
+      required: false
+      selector:
+        date: {}
+    season:
+      name: Saison
+      description: Force la saison de destination, au format AAAA-AAAA (ex. 2024-2025), si elle doit différer de celle déduite de la date (facultatif).
+      required: false
+      example: "2024-2025"
+      selector:
+        text: {}
+    note:
+      name: Note
+      description: Note libre pour se rappeler ce qui a été fait (facultatif).
+      required: false
+      selector:
+        text: {}
+
 export_csv:
   name: Exporter en CSV
   description: Génère un export CSV du journal (Saison, Date, Type, Quantité, Prix par sac, Prix total, Note) à partir des données déjà enregistrées, avec filtres optionnels. Le contenu CSV est renvoyé dans la réponse de l'action (response_variable en YAML, ou visible directement dans Outils de développement > Actions).
@@ -366,3 +390,5 @@ export_csv:
               value: maintenance
             - label: Entretien
               value: entretien
+            - label: Nettoyage
+              value: nettoyage

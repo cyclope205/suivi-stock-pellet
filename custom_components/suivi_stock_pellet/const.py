@@ -32,6 +32,7 @@ SERVICE_SET_STOCK_INITIAL = "set_stock_initial"
 SERVICE_DELETE_SEASON = "delete_season"
 SERVICE_LOG_MAINTENANCE = "log_maintenance"
 SERVICE_LOG_ENTRETIEN = "log_entretien"
+SERVICE_LOG_NETTOYAGE = "log_nettoyage"
 SERVICE_EXPORT_CSV = "export_csv"
 
 ATTR_QTY_BAGS = "qty_bags"
@@ -51,3 +52,6 @@ ENTRY_TYPE_CONSUMPTION = "consumption"
 ENTRY_TYPE_PURCHASE = "purchase"
 ENTRY_TYPE_MAINTENANCE = "maintenance"
 ENTRY_TYPE_ENTRETIEN = "entretien"
+# Nettoyage : evenement date pur (note facultative), sans quantite ni cout.
+# Il n'intervient jamais dans le stock, la consommation ou les depenses.
+ENTRY_TYPE_NETTOYAGE = "nettoyage"

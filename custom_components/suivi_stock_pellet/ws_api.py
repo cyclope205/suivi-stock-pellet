@@ -260,6 +260,7 @@ async def _ws_csv_import_preview(hass: HomeAssistant, connection, msg) -> None:
         "purchase_count": parsed["purchase_count"],
         "maintenance_count": parsed.get("maintenance_count", 0),
         "entretien_count": parsed.get("entretien_count", 0),
+        "nettoyage_count": parsed.get("nettoyage_count", 0),
         "consumption_bags": parsed["consumption_bags"],
         "purchase_bags": parsed["purchase_bags"],
         "maintenance_eur": parsed.get("maintenance_eur", 0),
@@ -327,6 +328,7 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
         "purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase"),
         "maintenance_count": sum(1 for e in entries if e["type"] == "maintenance"),
         "entretien_count": sum(1 for e in entries if e["type"] == "entretien"),
+        "nettoyage_count": sum(1 for e in entries if e["type"] == "nettoyage"),
     })
 
 def async_register_ws_api(hass: HomeAssistant) -> None:

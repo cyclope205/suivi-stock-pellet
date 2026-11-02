@@ -128,6 +128,7 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
         event_type = _norm(row[type_col])
         if "consommation" in event_type: kind = "consumption"
         elif "achat" in event_type: kind = "purchase"
+        elif "nettoyage" in event_type: kind = "nettoyage"
         elif "entretien" in event_type: kind = "entretien"
         elif "maintenance" in event_type: kind = "maintenance"
         else: continue
@@ -143,6 +144,15 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
             season = raw_season
         else:
             season = f"{parsed_date.year}-{parsed_date.year + 1}" if parsed_date.month >= season_start_month else f"{parsed_date.year - 1}-{parsed_date.year}"
+        if kind == "nettoyage":
+            # Evenement pur : aucune colonne cout a lire ni a exiger,
+            # contrairement a entretien/maintenance.
+            note = None
+            if note_col is not None and note_col < len(row):
+                note_text = str(row[note_col] or "").strip()
+                note = note_text or None
+            entries.append({"type": kind, "date": entry_date, "note": note, "season": season})
+            continue
         if kind in ("entretien", "maintenance"):
             cost = _number(row[price_col]) if price_col is not None and price_col < len(row) else None
             if cost is None: raise CsvImportError(f"Coût manquant pour {raw_date}.")
@@ -199,6 +209,43 @@ def _find_cost_block_header(rows, marker, limit=6):
         if "date" in keys and any(k in keys for k in ("cout", "coût")):
             return i, keys
     return None
+
+def _find_event_only_block_header(rows, marker, limit=6):
+    """Like _find_cost_block_header but for a block with no cost column
+    at all (Nettoyage): only a "Date" header cell is required."""
+    for i in range(marker + 1, min(marker + 1 + limit, len(rows))):
+        keys = {_norm(v): c for c, v in enumerate(rows[i])}
+        if "date" in keys:
+            return i, keys
+    return None
+
+
+def _parse_event_only_block(rows, header_idx, keys, end, entry_type, season):
+    """Parse the rows of a pure dated-event block (Nettoyage): date and an
+    optional free-text note, no cost and no pellet quantity involved."""
+    date_col = keys["date"]
+    note_col = next((keys[k] for k in ("note",) if k in keys), None)
+    entries = []
+    for row in rows[header_idx + 1:end]:
+        if len(row) <= date_col:
+            continue
+        raw_date = str(row[date_col] or "").strip()
+        if not raw_date:
+            continue
+        note = None
+        if note_col is not None and note_col < len(row):
+            note_text = str(row[note_col] or "").strip()
+            note = note_text or None
+        entries.append(
+            {
+                "type": entry_type,
+                "date": _date(raw_date),
+                "note": note,
+                "season": season,
+            }
+        )
+    return entries
+
 
 def _parse_cost_block(rows, header_idx, keys, end, entry_type, season):
     """Parse the rows of a Maintenance/Entretien block: date, cost and an
@@ -260,7 +307,7 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
                 "L'import ne peut traiter qu'une seule saison à la fois : "
                 "importez chaque saison séparément, un fichier CSV par saison."
             )
-        return {"season": entries[0]["season"],"seasons": seasons,"entries": entries,"consumption_count": sum(e["type"] == "consumption" for e in entries),"purchase_count": sum(e["type"] == "purchase" for e in entries),"consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),"purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase")}
+        return {"season": entries[0]["season"],"seasons": seasons,"entries": entries,"consumption_count": sum(e["type"] == "consumption" for e in entries),"purchase_count": sum(e["type"] == "purchase" for e in entries),"maintenance_count": sum(e["type"] == "maintenance" for e in entries),"entretien_count": sum(e["type"] == "entretien" for e in entries),"nettoyage_count": sum(e["type"] == "nettoyage" for e in entries),"consumption_bags": sum(e["qty_bags"] for e in entries if e["type"] == "consumption"),"purchase_bags": sum(e["qty_bags"] for e in entries if e["type"] == "purchase")}
     header_idx,months=_find_header(rows)
     season=_season(default_season) if default_season else _find_season(rows,header_idx)
     start_year=int(season[:4])
@@ -269,11 +316,19 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
         if any("achat" in _norm(v) and "granul" in _norm(v) for v in row): marker=i; break
     maintenance_marker = _find_section_marker(rows, "maintenance")
     entretien_marker = _find_section_marker(rows, "entretien")
+    # Section "Nettoyage" optionnelle : absente de tout fichier existant,
+    # donc un ancien export/fichier legacy sans cette section s'importe à
+    # l'identique (nettoyage_marker reste None, la boucle plus bas n'a
+    # simplement rien à lire).
+    nettoyage_marker = _find_section_marker(rows, "nettoyage")
     # Bound each cost block's data range at the next known section marker
     # (whichever comes first after its own header), so a block with no
     # rows of its own (e.g. an empty "Maintenance" section) never spills
     # into reading the following section's header/title rows as data.
-    all_markers = sorted(m for m in (marker, maintenance_marker, entretien_marker) if m is not None)
+    all_markers = sorted(
+        m for m in (marker, maintenance_marker, entretien_marker, nettoyage_marker)
+        if m is not None
+    )
 
     def _end_bound(start_row: int) -> int:
         for m in all_markers:
@@ -346,6 +401,14 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
         hi, keys = header
         end = _end_bound(hi)
         entries.extend(_parse_cost_block(rows, hi, keys, end, entry_type, season))
+    if nettoyage_marker is not None:
+        header = _find_event_only_block_header(rows, nettoyage_marker)
+        if header is not None:
+            hi, keys = header
+            end = _end_bound(hi)
+            entries.extend(
+                _parse_event_only_block(rows, hi, keys, end, "nettoyage", season)
+            )
     if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
     entries.sort(key=lambda e:(e["date"],0 if e["type"]=="purchase" else 1))
-    return {"season":season,"entries":entries,"consumption_count":sum(e["type"]=="consumption" for e in entries),"purchase_count":sum(e["type"]=="purchase" for e in entries),"consumption_bags":sum(e["qty_bags"] for e in entries if e["type"]=="consumption"),"purchase_bags":sum(e["qty_bags"] for e in entries if e["type"]=="purchase")}
+    return {"season":season,"entries":entries,"consumption_count":sum(e["type"]=="consumption" for e in entries),"purchase_count":sum(e["type"]=="purchase" for e in entries),"maintenance_count":sum(e["type"]=="maintenance" for e in entries),"entretien_count":sum(e["type"]=="entretien" for e in entries),"nettoyage_count":sum(e["type"]=="nettoyage" for e in entries),"consumption_bags":sum(e["qty_bags"] for e in entries if e["type"]=="consumption"),"purchase_bags":sum(e["qty_bags"] for e in entries if e["type"]=="purchase")}
