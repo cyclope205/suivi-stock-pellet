@@ -51,49 +51,51 @@ def test_nettoyage_button_exists_with_dedicated_class_and_color():
     assert "rgb(106, 27, 154)" in CARD_JS  # #6A1B9A
 
 
-def test_calendar_renders_dynamic_conic_gradient_split():
-    """Test #6 (corrige) : le calendrier doit repartir le cercle a parts
-    egales selon le NOMBRE de types presents ce jour-la (achat/
-    consommation/maintenance/entretien), pas un decoupage fixe en 4
-    quarts :
-      - 1 type  -> cercle entier (360deg)
-      - 2 types -> 2 moities (180deg chacune)
-      - 3 types -> 3 triangles (120deg chacun)
-      - 4 types -> 4 quarts (90deg chacun)
-    Le degre par part est donc calcule dynamiquement (360 / nombre de
-    types presents), pas ecrit en dur dans le source."""
+def test_calendar_nettoyage_participates_in_proportional_split():
+    """Test #6 (corrige 2e fois) : Nettoyage compte comme un type a part
+    entiere dans le decoupage proportionnel du cercle, au meme titre
+    qu'Achat/Consommation/Maintenance/Entretien, TANT QUE les 5 types ne
+    sont pas presents en meme temps ce jour-la :
+      - Nettoyage seul        -> cercle entier (360deg), pas juste un rond
+      - Nettoyage + 1 autre   -> 2 moities (180deg chacune)
+      - Nettoyage + 2 autres  -> 3 triangles (120deg chacun)
+      - 4 types sans Nettoyage, ou avec Nettoyage et 3 autres -> 4 quarts
+    La couleur de Nettoyage est ajoutee a la liste des parts presentes
+    (apres les 4 "triangle"), et le degre par part est calcule
+    dynamiquement (360 / nombre de types presents)."""
     assert "conic-gradient(from 45deg" in CARD_JS
-    assert "presentColors" in CARD_JS
-    assert "360 / sliceCount" in CARD_JS
-    # Les parts sont construites par calcul (i * sliceDeg), pas par des
-    # chaines de degres fixes comme '0deg 90deg' ecrites en dur.
-    assert "sliceDeg" in CARD_JS
-    assert '"deg "' in CARD_JS or "'deg '" in CARD_JS
+    assert "triangleColors" in CARD_JS
+    assert "presentColors = triangleColors.slice()" in CARD_JS
+    assert 'if (hasNettoyage) presentColors.push("rgb(106, 27, 154)")' in CARD_JS
+    assert "sliceCount = presentColors.length" in CARD_JS
+    assert "sliceDeg = 360 / sliceCount" in CARD_JS
 
 
 def test_calendar_single_type_fills_whole_cell():
-    """Un seul type present ce jour-la doit remplir toute la case de sa
-    couleur (360deg), pas seulement un quart fixe."""
-    # presentColors.length == 1 -> sliceDeg = 360 / 1 = 360, donc le seul
-    # stop genere va de 0deg a 360deg : verifie par le calcul dynamique
-    # lui-meme plutot qu'une chaine figee (le calcul est partage avec les
-    # cas 2/3/4 types, voir test_calendar_renders_dynamic_conic_gradient_split).
+    """Un seul type present ce jour-la (Nettoyage inclus) doit remplir
+    toute la case de sa couleur (360deg), pas seulement un quart fixe ni
+    un simple rond."""
+    # presentColors.length == 1 -> sliceDeg = 360 / 1 = 360 : verifie par
+    # le calcul dynamique partage avec les cas 2/3/4 types (voir
+    # test_calendar_nettoyage_participates_in_proportional_split).
     assert "sliceCount" in CARD_JS
-    assert "presentColors.length" in CARD_JS
+    assert "presentColors" in CARD_JS
 
 
-def test_calendar_renders_center_circle_for_nettoyage():
-    """Test #6: a radial-gradient circle, no white outline, sized ~23% of
-    the cell width, used only when nettoyage is present that day."""
+def test_calendar_center_circle_only_when_all_five_present():
+    """Le rond central violet pour Nettoyage n'apparait QUE quand les 5
+    types sont presents le meme jour (cas particulier) ; dans ce cas la
+    case est divisee en 4 quarts fixes (Achat/Consommation/Maintenance/
+    Entretien) et Nettoyage n'est PAS une 5e part du cercle, il est
+    represente par le rond, assez visible (rayon 30% de la cellule)."""
+    assert "allFivePresent = triangleColors.length === 4 && hasNettoyage" in CARD_JS
     assert "radial-gradient(circle at center" in CARD_JS
-    assert "23%" in CARD_JS
-    assert "hasNettoyage" in CARD_JS
+    assert "30%" in CARD_JS
+    # Le rond est construit dans la branche allFivePresent uniquement.
+    all_five_block = CARD_JS.split("if (allFivePresent) {", 1)[1][:700]
+    assert "radial-gradient(circle at center" in all_five_block
     # No white outline/stroke was added around the circle.
     assert "stroke" not in CARD_JS.split("radial-gradient(circle at center", 1)[1][:300]
-
-
-def test_calendar_only_circle_when_only_nettoyage_present():
-    assert "hasAnyTriangle || hasNettoyage" in CARD_JS
 
 
 def test_calendar_tooltip_includes_nettoyage():
