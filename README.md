@@ -115,6 +115,14 @@ Calendrier des ajouts:
 
 ---
 
+Nouveau en v1.12.0 — type d'évènement **Nettoyage** : bouton dédié et calendrier avec le découpage proportionnel (1 type = case entière, jusqu'à 4 quarts) et le rond central violet quand les 5 types sont présents le même jour :
+
+<img width="600" alt="Boutons avec Nettoyage" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1793613129575-a3b5c3aa.png" />
+
+<img width="600" alt="Calendrier avec Nettoyage" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1793613123409-0131a099.png" />
+
+---
+
 Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance/entretien :
 
 <img width="600" alt="Vue d'ensemble v1.10.0" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
