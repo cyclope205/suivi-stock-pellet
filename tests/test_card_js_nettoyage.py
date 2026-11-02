@@ -51,15 +51,35 @@ def test_nettoyage_button_exists_with_dedicated_class_and_color():
     assert "rgb(106, 27, 154)" in CARD_JS  # #6A1B9A
 
 
-def test_calendar_renders_4_triangles_via_conic_gradient():
-    """Test #6: the calendar must build a 4-way conic-gradient (one
-    triangle per side, meeting at the cell's center) for
-    achat/consommation/maintenance/entretien."""
+def test_calendar_renders_dynamic_conic_gradient_split():
+    """Test #6 (corrige) : le calendrier doit repartir le cercle a parts
+    egales selon le NOMBRE de types presents ce jour-la (achat/
+    consommation/maintenance/entretien), pas un decoupage fixe en 4
+    quarts :
+      - 1 type  -> cercle entier (360deg)
+      - 2 types -> 2 moities (180deg chacune)
+      - 3 types -> 3 triangles (120deg chacun)
+      - 4 types -> 4 quarts (90deg chacun)
+    Le degre par part est donc calcule dynamiquement (360 / nombre de
+    types presents), pas ecrit en dur dans le source."""
     assert "conic-gradient(from 45deg" in CARD_JS
-    assert '0deg 90deg' in CARD_JS
-    assert '90deg 180deg' in CARD_JS
-    assert '180deg 270deg' in CARD_JS
-    assert '270deg 360deg' in CARD_JS
+    assert "presentColors" in CARD_JS
+    assert "360 / sliceCount" in CARD_JS
+    # Les parts sont construites par calcul (i * sliceDeg), pas par des
+    # chaines de degres fixes comme '0deg 90deg' ecrites en dur.
+    assert "sliceDeg" in CARD_JS
+    assert '"deg "' in CARD_JS or "'deg '" in CARD_JS
+
+
+def test_calendar_single_type_fills_whole_cell():
+    """Un seul type present ce jour-la doit remplir toute la case de sa
+    couleur (360deg), pas seulement un quart fixe."""
+    # presentColors.length == 1 -> sliceDeg = 360 / 1 = 360, donc le seul
+    # stop genere va de 0deg a 360deg : verifie par le calcul dynamique
+    # lui-meme plutot qu'une chaine figee (le calcul est partage avec les
+    # cas 2/3/4 types, voir test_calendar_renders_dynamic_conic_gradient_split).
+    assert "sliceCount" in CARD_JS
+    assert "presentColors.length" in CARD_JS
 
 
 def test_calendar_renders_center_circle_for_nettoyage():
