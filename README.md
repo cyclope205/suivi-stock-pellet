@@ -46,7 +46,6 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 
 ## Sommaire
 
-- [Captures d'écran](#captures-décran)
 - [Fonctionnalités](#fonctionnalités)
 - [Unités et prix (sacs / kg)](#unités-et-prix-sacs--kg)
 - [Saisons de chauffe](#saisons-de-chauffe)
@@ -58,94 +57,6 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 - [Entités créées](#entités-créées)
 - [Service `set_stock_initial`](#service-set_stock_initial)
 - [Licence](#licence)
-
-## Captures d'écran
-
----
-
-Configuration de l'intégration — **Sacs** :
-
-<img width="600" alt="Capture d&#39;écran 2026-09-27 093755" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20093755.png" />
-
-<img width="600" alt="Capture d&#39;écran 2026-09-27 105407" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105407.png" />
-
----
-
-Configuration de l'intégration — **Kilogrammes (kg)** :
-
-<img width="600" alt="Capture d&#39;écran 2026-09-27 105449" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105449.png" />
-
-<img width="600" alt="Capture d&#39;écran 2026-09-27 105513" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105513.png" />
-
----
-
-Import d'une ancienne saison par **CSV** :
-
-<img width="600" alt="Capture d'écran 2026-09-27 à 12 40 34" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/5d4c02fe-0e2f-434a-b866-9e7e07b0ca7a-Capture_d__cran_2026-09-28___22.15.11.png" />
-
----
-
-Vue d'ensemble:
-
-<img width="600" alt="IMG_7474" src="https://github.com/user-attachments/assets/8a8ec906-672f-45bb-928c-c30dadb77a9a" />
-
----
-
-Sélecteur de saison:
-
-<img width="600" alt="IMG_7475" src="https://github.com/user-attachments/assets/6e3cfb0b-d14b-4302-a621-45e338cb8055" />
-
----
-
-Graphique quantité:
-
-<img width="600" alt="IMG_7476" src="https://github.com/user-attachments/assets/f9ff6659-e51f-4b5d-abd6-f609cbe31a0e" />
-
----
-
-Configurateur de carte:
-
-<img width="800" alt="Capture d&#39;écran 2026-09-23 222802" src="https://github.com/user-attachments/assets/7dde8eea-3161-415d-9203-2a8cf587d568" />
-
----
-
-Calendrier des ajouts:
-
-<img width="600" alt="IMG_7477" src="https://github.com/user-attachments/assets/747321f7-a65f-464c-9ecb-fd71fb6361a9" />
-
----
-
-Nouveau en v1.12.0 — type d'évènement **Nettoyage** : bouton dédié et calendrier avec le découpage proportionnel (1 type = case entière, jusqu'à 4 quarts) et le rond central violet quand les 5 types sont présents le même jour :
-
-<img width="600" alt="Boutons avec Nettoyage" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1793613129575-a3b5c3aa.png" />
-
-<img width="600" alt="Calendrier avec Nettoyage" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1793613123409-0131a099.png" />
-
----
-
-Vue d'ensemble de la carte v1.10.0 — suppression de saison, coûts maintenance/entretien :
-
-<img width="600" alt="Vue d'ensemble v1.10.0" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
-
----
-
-Graphique de coût par saison (maintenance, entretien, achat, total) — un seul graphique à onglets :
-
-| Prix moyen | Maintenance | Entretien |
-|---|---|---|
-| ![Prix moyen](docs/screenshots/70a9d5d9-c62b-462f-a81f-8b9e0b595f6c-IMG_7577.jpeg) | ![Maintenance](docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg) | ![Entretien](docs/screenshots/14cb9b1e-5d83-4699-bca6-31c668aad8eb-IMG_7579.jpeg) |
-
-| Achat | Total |
-|---|---|
-| ![Achat](docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg) | ![Total](docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg) |
-
-Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
-
-| Déplié | Replié |
-|---|---|
-| ![Bloc déplié](docs/screenshots/screenshot-1791384983624-52154cbe.png) | ![Bloc replié](docs/screenshots/screenshot-1791384969974-6a7533d1.png) |
-
----
 
 ## Fonctionnalités
 
@@ -168,6 +79,18 @@ Le prix demandé dans la configuration dépend de l'unité choisie : **Prix moye
 
 La tuile "Dépensé" s'appelle "Dépense pellet", pour la distinguer des coûts de maintenance et d'entretien, qui ne sont pas comptés dans le prix moyen du sac.
 
+Configuration de l'intégration — **Sacs** :
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 093755" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20093755.png" />
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105407" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105407.png" />
+
+Configuration de l'intégration — **Kilogrammes (kg)** :
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105449" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105449.png" />
+
+<img width="600" alt="Capture d&#39;écran 2026-09-27 105513" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/Capture%20d%27%C3%A9cran%202026-09-27%20105513.png" />
+
 ## Saisons de chauffe
 
 - Les saisons sont calculées automatiquement à partir d'un **mois de début de saison** configurable (pas d'années codées en dur à ajouter chaque année). La fin de saison est automatiquement le mois précédent. Par exemple, avec septembre comme début, **septembre 2025 → août 2026 = saison 2025-2026**, et un achat de juillet 2026 appartient à cette saison. Ce mois ne peut plus être changé une fois que le journal contient des saisies, pour ne pas désynchroniser les saisons déjà enregistrées.
@@ -177,6 +100,14 @@ La tuile "Dépensé" s'appelle "Dépense pellet", pour la distinguer des coûts 
 - Stock initial d'une saison repris automatiquement du stock restant de la saison précédente (dès la première saisie dans la nouvelle saison) ; corrigeable manuellement via le service [`set_stock_initial`](#service-set_stock_initial). **Ce report automatique ne s'applique qu'à la saisie manuelle au fil de l'eau — voir ci-dessous pour l'import CSV, qui ne reporte jamais de stock entre saisons.**
 - Comparaison à date égale avec la saison précédente : consommation, coût en € et différence en € des deux saisons, avec badge en pourcentage (masquable via `show_comparison`).
 - Modifier ou supprimer une saisie ne peut jamais faire passer le stock réel d'une saison sous 0 : ce cas est refusé avec un message d'erreur explicite.
+
+Sélecteur de saison :
+
+<img width="600" alt="IMG_7475" src="https://github.com/user-attachments/assets/6e3cfb0b-d14b-4302-a621-45e338cb8055" />
+
+Suppression d'une saison et coûts maintenance/entretien dans l'en-tête :
+
+<img width="600" alt="Vue d'ensemble v1.10.0" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/ee2b4b6c-e5cc-407e-aeae-3732a5350b6e-FullSizeRender.jpeg" />
 
 ## Import et export CSV
 
@@ -202,6 +133,10 @@ Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une o
 
 > **En cas d'échec de l'import** (fichier refusé, erreur inattendue...), merci d'ouvrir une issue sur le dépôt avec le détail de l'erreur et, si possible, un extrait du fichier CSV concerné : [ouvrir une issue](https://github.com/cyclope205/suivi-stock-pellet/issues/new).
 
+Import d'une ancienne saison par **CSV** :
+
+<img width="600" alt="Capture d'écran 2026-09-27 à 12 40 34" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/5d4c02fe-0e2f-434a-b866-9e7e07b0ca7a-Capture_d__cran_2026-09-28___22.15.11.png" />
+
 ## Maintenance, entretien et nettoyage
 
 Trois types de saisies suivent la vie du poêle indépendamment du stock de granulés, sans jamais influencer son calcul (stock, consommation, coûts liés aux granulés) :
@@ -220,6 +155,10 @@ Ces saisies apparaissent dans l'historique avec leur note, dans le calendrier av
 
 Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`), servie automatiquement par l'intégration (aucune ressource à ajouter manuellement) :
 
+Vue d'ensemble :
+
+<img width="600" alt="IMG_7474" src="https://github.com/user-attachments/assets/8a8ec906-672f-45bb-928c-c30dadb77a9a" />
+
 - Stock en un coup d'œil, boutons d'action organisés sur **2 rangées** :
   - **Rangée 1 (toujours visible)** : Consommation, Nettoyage, bouton rapide d'ajout (quantité configurable, "+1 sac aujourd'hui" par défaut, visible uniquement sur la saison en cours).
   - **Rangée 2 (masquable via `show_secondary_actions`)** : Maintenance, Achat, Entretien — pratique si vous ne vous en servez que rarement ; masquer cette rangée ne désactive rien et ne perd aucune donnée, elle est simplement cachée.
@@ -235,13 +174,54 @@ Carte Lovelace intégrée (`custom:suivi-stock-pellet-card`), servie automatique
   | Nettoyage | 🟣 Violet `#6A1B9A` |
   | Bouton rapide "+1 sac" | 🔴 Rouge `#E53935` (identique à Consommation) |
 
+  Boutons avec Nettoyage :
+
+  <img width="600" alt="Boutons avec Nettoyage" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1793613129575-a3b5c3aa.png" />
+
 - Historique des dernières entrées, modifiable (crayon) et supprimable (corbeille, avec confirmation).
 - Les formulaires Achat/Consommation acceptent une date libre (passée ou future), ce qui permet de reconstruire une saison passée entièrement après coup ; ils incluent un champ "Saison" optionnel pour rattacher la saisie à une saison différente de celle déduite de la date, et le formulaire Achat propose un champ "prix total du bon de livraison" en alternative au prix par sac.
 - Graphique "Évolution de la consommation" avec deux courbes superposables (sacs consommés / coût en €) et boutons pour n'afficher que l'une des deux ; sa valeur mensuelle s'affiche directement sur le graphique quand une seule courbe est visible.
+
+  Graphique quantité :
+
+  <img width="600" alt="IMG_7476" src="https://github.com/user-attachments/assets/f9ff6659-e51f-4b5d-abd6-f609cbe31a0e" />
+
 - Graphique de coût par saison à onglets (Prix moyen / Maintenance / Entretien / Achat / Total). Nettoyage n'ayant jamais de coût, il n'a pas d'onglet.
+
+  Graphique de coût par saison (maintenance, entretien, achat, total) — un seul graphique à onglets :
+
+  | Prix moyen | Maintenance | Entretien |
+  |---|---|---|
+  | ![Prix moyen](docs/screenshots/70a9d5d9-c62b-462f-a81f-8b9e0b595f6c-IMG_7577.jpeg) | ![Maintenance](docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg) | ![Entretien](docs/screenshots/14cb9b1e-5d83-4699-bca6-31c668aad8eb-IMG_7579.jpeg) |
+
+  | Achat | Total |
+  |---|---|
+  | ![Achat](docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg) | ![Total](docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg) |
+
 - Section calendrier (navigable mois par mois) : chaque jour affiche jusqu'à **5 types d'évènements simultanés** — Achat, Consommation, Maintenance, Entretien et Nettoyage se partagent la cellule à **parts égales selon le nombre de types réellement présents ce jour-là** (1 type = case entièrement colorée, 2 types = moitié/moitié, 3 types = trois tiers, 4 types = quatre quarts), chacun dans la couleur du tableau ci-dessus. Cas particulier lorsque les 5 types sont présents le même jour : la cellule est divisée en **4 quarts** (Achat/Consommation/Maintenance/Entretien) et Nettoyage est représenté par un **rond central violet** superposé par-dessus, plutôt que par une 5ᵉ part trop petite pour rester lisible. Cliquer/toucher un jour affiche le détail (type, quantité ou note) dans une bulle flottante ; mise à jour immédiate après ajout, suppression ou modification.
+
+  Calendrier des ajouts :
+
+  <img width="600" alt="IMG_7477" src="https://github.com/user-attachments/assets/747321f7-a65f-464c-9ecb-fd71fb6361a9" />
+
+  Découpage proportionnel avec le type **Nettoyage** (1 à 4 quarts, rond central violet si les 5 types sont présents le même jour) :
+
+  <img width="600" alt="Calendrier avec Nettoyage" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1793613123409-0131a099.png" />
+
 - Titre "Évolution de la consommation" cliquable : replie ou déplie tout le bas de la carte (graphique mensuel, coût par saison, historique, calendrier) ; pratique sur un tableau de bord en vue portrait. L'état plié/déplié est mémorisé dans le navigateur.
+
+  Bloc repliable (graphique mensuel, coût par saison, historique, calendrier) :
+
+  | Déplié | Replié |
+  |---|---|
+  | ![Bloc déplié](docs/screenshots/screenshot-1791384983624-52154cbe.png) | ![Bloc replié](docs/screenshots/screenshot-1791384969974-6a7533d1.png) |
+
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section sans toucher au YAML.
+
+  Configurateur de carte :
+
+  <img width="800" alt="Capture d&#39;écran 2026-09-23 222802" src="https://github.com/user-attachments/assets/7dde8eea-3161-415d-9203-2a8cf587d568" />
+
 - Tuiles, historique, calendrier et graphiques visibles pour tous les utilisateurs du tableau de bord ; seules les actions d'écriture (saisie, modification, suppression) sont réservées à un accès normal.
 
 Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer par la carte, via le service `suivi_stock_pellet.log_consumption` (ex. `qty_bags: 1`) depuis n'importe quelle automatisation.
@@ -348,7 +328,7 @@ Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`
 - `sensor.*_consomme_kwh` — énergie consommée cette saison (kWh, tableau de bord Énergie)
 - `sensor.*_achete_kg` — acheté cette saison (kg)
 - `sensor.*_depense` — dépensé cette saison (€)
-- `sensor.*_jours_utilisation` — nombre de jours de consommation enregistrés
+- `sensor.*_jours_utilisation` — nombre de jours de consommation enregistrées
 
 ## Service `set_stock_initial`
 
