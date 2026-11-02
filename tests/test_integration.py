@@ -15,6 +15,7 @@ from custom_components.suivi_stock_pellet import (
     SERVICE_LOG_CONSUMPTION,
     SERVICE_LOG_ENTRETIEN,
     SERVICE_LOG_MAINTENANCE,
+    SERVICE_LOG_NETTOYAGE,
     SERVICE_LOG_PURCHASE,
     SERVICE_SET_STOCK_INITIAL,
     SERVICE_UNDO_LAST_ENTRY,
@@ -84,6 +85,7 @@ async def test_setup_registers_all_services_and_unload_removes_them():
         SERVICE_DELETE_SEASON,
         SERVICE_LOG_MAINTENANCE,
         SERVICE_LOG_ENTRETIEN,
+        SERVICE_LOG_NETTOYAGE,
     }
     assert {service for domain, service in services.registered if domain == DOMAIN} == expected
     assert hass.config_entries.async_forward_entry_setups.await_count == 1
