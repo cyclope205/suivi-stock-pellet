@@ -71,11 +71,11 @@
     ".actions-row button:hover { filter: brightness(1.06); }",
     ".actions-row button:active { transform: scale(0.98); }",
     ".actions-row button.secondary { background: var(--secondary-background-color, rgba(127,127,127,0.15)); color: var(--primary-text-color, inherit); }",
-    ".actions-row button.type-conso:not(.secondary) { background: linear-gradient(135deg, #ff8a80, rgb(239, 83, 80)); color: #fff; }",
-    ".actions-row button.type-conso.secondary { background: rgba(239, 83, 80, 0.12); color: rgb(239, 83, 80); border: 1px solid rgba(239, 83, 80, 0.35); }",
-    ".actions-row button.type-achat:not(.secondary) { background: linear-gradient(135deg, #81c784, rgb(102, 187, 106)); color: #fff; }",
-    ".actions-row button.type-achat.secondary { background: rgba(102, 187, 106, 0.12); color: rgb(102, 187, 106); border: 1px solid rgba(102, 187, 106, 0.35); }",
-    "@keyframes pellet-quick-flash { 0% { box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.9); } 100% { box-shadow: 0 0 0 14px rgba(239, 83, 80, 0); } }",
+    ".actions-row button.type-conso:not(.secondary) { background: linear-gradient(135deg, #ff6f61, rgb(229, 57, 53)); color: #fff; }",
+    ".actions-row button.type-conso.secondary { background: rgba(229, 57, 53, 0.12); color: rgb(229, 57, 53); border: 1px solid rgba(229, 57, 53, 0.35); }",
+    ".actions-row button.type-achat:not(.secondary) { background: linear-gradient(135deg, #66d18c, rgb(46, 173, 85)); color: #fff; }",
+    ".actions-row button.type-achat.secondary { background: rgba(46, 173, 85, 0.12); color: rgb(46, 173, 85); border: 1px solid rgba(46, 173, 85, 0.35); }",
+    "@keyframes pellet-quick-flash { 0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.9); } 100% { box-shadow: 0 0 0 14px rgba(229, 57, 53, 0); } }",
     ".actions-row button.flash { animation: pellet-quick-flash 0.45s ease-out; }",
     ".calendar-tip { background: rgba(15,15,15,0.98); color: #fff; font-size: 0.75em; padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 9999; pointer-events: none; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.65); }",
 ".form { display: none; flex-direction: column; gap: 10px; margin-top: 6px; padding: 14px; border-radius: 14px; background: var(--secondary-background-color, rgba(127,127,127,0.1)); border: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
@@ -100,7 +100,7 @@
     ".chart { display: flex; align-items: flex-end; gap: 4px; height: 90px; padding: 0 2px 8px; border-bottom: 1px solid var(--divider-color, rgba(127,127,127,0.2)); }",
     ".chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }",
     ".chart-bar-wrap { flex: 1; display: flex; align-items: flex-end; width: 100%; justify-content: center; }",
-    ".chart-bar { width: 55%; min-width: 4px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, rgb(239, 83, 80), rgba(239, 83, 80, 0.55)); transition: height 0.2s ease; }",
+    ".chart-bar { width: 55%; min-width: 4px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, rgb(229, 57, 53), rgba(229, 57, 53, 0.55)); transition: height 0.2s ease; }",
     ".chart-bar.empty { background: var(--divider-color, rgba(127,127,127,0.25)); }",
     ".chart-label { font-size: 0.62em; opacity: 0.65; }",
     ".chart-label.current { opacity: 1; font-weight: 700; color: var(--pellet-amber); }",
@@ -160,22 +160,21 @@
     ".calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; max-width: 320px; margin: 0 auto; }",
     ".calendar-dow { text-align: center; font-size: 0.85em; opacity: 0.6; padding-bottom: 1px; }",
     ".calendar-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 0.85em; background: var(--secondary-background-color, rgba(127,127,127,0.08)); }",
-    ".calendar-cell.purchase { background: rgba(102, 187, 106, 0.75); color: #fff; font-weight: 700; }",
-    ".calendar-cell.consumption { background: rgba(239, 83, 80, 0.85); color: #fff; }",
-    ".calendar-cell.purchase.consumption { background: linear-gradient(135deg, rgba(102,187,106,0.85) 50%, rgba(239,83,80,0.85) 50%); color: #fff; font-weight:700; }",
-    ".calendar-legend { display: flex; gap: 14px; justify-content: center; max-width: 320px; margin: 6px auto 0 auto; font-size: 0.85em; opacity: 0.85; }",
+    ".calendar-cell.has-events { background-color: var(--secondary-background-color, rgba(127,127,127,0.08)); background-repeat: no-repeat; background-position: center; }",
+    ".calendar-legend { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; max-width: 320px; margin: 6px auto 0 auto; font-size: 0.85em; opacity: 0.85; }",
     ".calendar-legend-item { display: inline-flex; align-items: center; gap: 5px; }",
     ".calendar-dot { width: 7px; height: 7px; border-radius: 50%; }",
-    ".calendar-dot.purchase { background: rgb(102, 187, 106); }",
-    ".calendar-dot.consumption { background: rgb(239, 83, 80); }",
-    ".calendar-cell.maintenance { background: rgba(38, 166, 154, 0.85); color: #fff; }",
-    ".calendar-cell.entretien { background: rgba(236, 64, 122, 0.85); color: #fff; }",
-    ".calendar-dot.maintenance { background: rgb(38, 166, 154); }",
-    ".calendar-dot.entretien { background: rgb(236, 64, 122); }",
-    ".actions-row button.type-maintenance:not(.secondary) { background: linear-gradient(135deg, #4db6ac, rgb(38, 166, 154)); color: #fff; }",
-    ".actions-row button.type-maintenance.secondary { background: rgba(38, 166, 154, 0.12); color: rgb(38, 166, 154); border: 1px solid rgba(38, 166, 154, 0.35); }",
-    ".actions-row button.type-entretien:not(.secondary) { background: linear-gradient(135deg, #f06292, rgb(236, 64, 122)); color: #fff; }",
-    ".actions-row button.type-entretien.secondary { background: rgba(236, 64, 122, 0.12); color: rgb(236, 64, 122); border: 1px solid rgba(236, 64, 122, 0.35); }",
+    ".calendar-dot.purchase { background: rgb(46, 173, 85); }",
+    ".calendar-dot.consumption { background: rgb(229, 57, 53); }",
+    ".calendar-dot.maintenance { background: rgb(21, 101, 192); }",
+    ".calendar-dot.entretien { background: rgb(255, 143, 0); }",
+    ".calendar-dot.nettoyage { background: rgb(106, 27, 154); }",
+    ".actions-row button.type-maintenance:not(.secondary) { background: linear-gradient(135deg, #4b91e2, rgb(21, 101, 192)); color: #fff; }",
+    ".actions-row button.type-maintenance.secondary { background: rgba(21, 101, 192, 0.12); color: rgb(21, 101, 192); border: 1px solid rgba(21, 101, 192, 0.35); }",
+    ".actions-row button.type-entretien:not(.secondary) { background: linear-gradient(135deg, #ffb74d, rgb(255, 143, 0)); color: #fff; }",
+    ".actions-row button.type-entretien.secondary { background: rgba(255, 143, 0, 0.12); color: rgb(255, 143, 0); border: 1px solid rgba(255, 143, 0, 0.35); }",
+    ".actions-row button.type-nettoyage:not(.secondary) { background: linear-gradient(135deg, #9c4dcc, rgb(106, 27, 154)); color: #fff; }",
+    ".actions-row button.type-nettoyage.secondary { background: rgba(106, 27, 154, 0.12); color: rgb(106, 27, 154); border: 1px solid rgba(106, 27, 154, 0.35); }",
     ".season-delete-btn { background: none; border: none; color: inherit; opacity: 0.55; cursor: pointer; padding: 4px; display: inline-flex; align-items: center; margin-left: 2px; }",
     ".season-delete-btn:hover { opacity: 1; color: rgb(239, 83, 80); }",
     ".season-delete-btn ha-icon { --mdc-icon-size: 16px; }",
@@ -219,8 +218,26 @@
     green: "102, 187, 106",
     purple: "171, 71, 188",
     teal: "38, 166, 154",
-    pink: "236, 64, 122"
+    pink: "236, 64, 122",
+    // Palette dediee aux 5 types de saisie (achat/consommation/maintenance/
+    // entretien/nettoyage), utilisee partout ou un type est identifie
+    // visuellement : boutons, historique, calendrier, legendes, graphiques
+    // de cout par type. Valeurs exactes demandees (hex -> rgb) :
+    //   Achat       #2EAD55 -> 46, 173, 85
+    //   Consommation #E53935 -> 229, 57, 53
+    //   Maintenance #1565C0 -> 21, 101, 192
+    //   Entretien   #FF8F00 -> 255, 143, 0
+    //   Nettoyage   #6A1B9A -> 106, 27, 154
+    //   +1 sac : identique a Consommation (voir ci-dessous)
+    achat: "46, 173, 85",
+    consommation: "229, 57, 53",
+    maintenance: "21, 101, 192",
+    entretien: "255, 143, 0",
+    nettoyage: "106, 27, 154"
   };
+  // +1 sac reutilise exactement la couleur Consommation (meme teinte, meme
+  // usage rapide de "j'ai consomme aujourd'hui").
+  COLORS.quick = COLORS.consommation;
 
   var DEFAULT_CONFIG = {
     show_stats: true,
@@ -255,7 +272,7 @@
     { key: "show_cost_total_chart", label: "Graphique coût total par saison (achat + maintenance + entretien)" },
     { key: "show_csv_import", label: "Bouton Importer CSV" },
     { key: "show_csv_export", label: "Bouton Exporter CSV" },
-    { key: "show_secondary_actions", label: "Boutons Achat / Maintenance / Entretien" }
+    { key: "show_secondary_actions", label: "Boutons Maintenance / Achat / Entretien (2e rangée)" }
   ];
 
   var TOGGLE_GROUPS = [
@@ -604,8 +621,8 @@
         els.statCoutMois = addStat(costStats, "Coût / mois CONSO", "mdi:calendar-month", COLORS.blue);
         els.statCoutSac = addStat(costStats, self._entryUnit === "kg" ? "Coût moyen / kg" : "Coût moyen / sac", self._entryUnit === "kg" ? "mdi:weight-kilogram" : "mdi:sack", COLORS.amber);
         els.statCoutAnnee = addStat(costStats, "Coût consommé", "mdi:cash-multiple", COLORS.purple);
-        els.statCoutMaintenance = addStat(costStats, "Coût maintenance", "mdi:wrench", COLORS.teal);
-        els.statCoutEntretien = addStat(costStats, "Coût entretien", "mdi:broom", COLORS.pink);
+        els.statCoutMaintenance = addStat(costStats, "Coût maintenance", "mdi:wrench", COLORS.maintenance);
+        els.statCoutEntretien = addStat(costStats, "Coût entretien", "mdi:broom", COLORS.entretien);
         els.statCoutTotal = addStat(costStats, "Coût total saison", "mdi:cash-check", COLORS.green);
         els.statCoutMoisTotal = addStat(costStats, "Coût/mois total saison", "mdi:calendar-sync", COLORS.blue);
         card.appendChild(costStats);
@@ -621,6 +638,11 @@
         btnConso.className = "type-conso";
         btnConso.appendChild(icon("mdi:fire"));
         btnConso.appendChild(document.createTextNode("Consommation"));
+        var btnNettoyage = document.createElement("button");
+        btnNettoyage.type = "button";
+        btnNettoyage.className = "secondary type-nettoyage";
+        btnNettoyage.appendChild(icon("mdi:spray-bottle"));
+        btnNettoyage.appendChild(document.createTextNode("Nettoyage"));
         var btnAchat = document.createElement("button");
         btnAchat.type = "button";
         btnAchat.className = "secondary type-achat";
@@ -685,6 +707,11 @@
         btnEntretien.appendChild(icon("mdi:broom"));
         btnEntretien.appendChild(document.createTextNode("Entretien"));
 
+        // Ligne 1 : Consommation, Nettoyage, +1 sac - toujours visible,
+        // quel que soit show_secondary_actions.
+        // Ligne 2 : Maintenance, Achat, Entretien - masquee entierement
+        // quand show_secondary_actions est false (sans rien desactiver
+        // ni perdre de donnees, juste cachee du DOM).
         var actionsRow1 = document.createElement("div");
         actionsRow1.className = "actions-row";
         var actionsRow2 = document.createElement("div");
@@ -692,12 +719,15 @@
 
         actionsRow1.appendChild(btnConso);
         els.btnConso = btnConso;
-        if (cfg.show_secondary_actions) actionsRow1.appendChild(btnAchat);
+        actionsRow1.appendChild(btnNettoyage);
+        els.btnNettoyage = btnNettoyage;
         if (btnQuick) actionsRow1.appendChild(btnQuick);
         els.btnQuick = btnQuick;
         if (cfg.show_secondary_actions) {
           actionsRow2.appendChild(btnMaintenance);
           els.btnMaintenance = btnMaintenance;
+          actionsRow2.appendChild(btnAchat);
+          els.btnAchat = btnAchat;
           actionsRow2.appendChild(btnEntretien);
           els.btnEntretien = btnEntretien;
         }
@@ -708,11 +738,14 @@
         }
 
         var formConso = this._buildForm("consumption");
+        var formNettoyage = this._buildCostForm("nettoyage");
         var formAchat = this._buildForm("purchase");
         var formMaintenance = this._buildCostForm("maintenance");
         var formEntretien = this._buildCostForm("entretien");
         actionsWrap.appendChild(formConso.el);
         els.consoSeasonSelect = formConso.seasonSelect;
+        actionsWrap.appendChild(formNettoyage.el);
+        els.nettoyageSeasonSelect = formNettoyage.seasonSelect;
         if (cfg.show_secondary_actions) {
           actionsWrap.appendChild(formAchat.el);
           actionsWrap.appendChild(formMaintenance.el);
@@ -808,10 +841,13 @@ if (cfg.show_csv_import) {
         });
         }
 
-        var actionPairs = [{ btn: btnConso, form: formConso }];
+        var actionPairs = [
+          { btn: btnConso, form: formConso },
+          { btn: btnNettoyage, form: formNettoyage },
+        ];
         if (cfg.show_secondary_actions) {
-          actionPairs.push({ btn: btnAchat, form: formAchat });
           actionPairs.push({ btn: btnMaintenance, form: formMaintenance });
+          actionPairs.push({ btn: btnAchat, form: formAchat });
           actionPairs.push({ btn: btnEntretien, form: formEntretien });
         }
         function updateActionButtons() {
@@ -1052,11 +1088,18 @@ if (cfg.show_csv_import) {
         calDotEntretien.className = "calendar-dot entretien";
         calLegendEntretien.appendChild(calDotEntretien);
         calLegendEntretien.appendChild(document.createTextNode("Entretien"));
+        var calLegendNettoyage = document.createElement("span");
+        calLegendNettoyage.className = "calendar-legend-item";
+        var calDotNettoyage = document.createElement("span");
+        calDotNettoyage.className = "calendar-dot nettoyage";
+        calLegendNettoyage.appendChild(calDotNettoyage);
+        calLegendNettoyage.appendChild(document.createTextNode("Nettoyage"));
 
         calLegend.appendChild(calLegendPurchase);
         calLegend.appendChild(calLegendConso);
         calLegend.appendChild(calLegendMaintenance);
         calLegend.appendChild(calLegendEntretien);
+        calLegend.appendChild(calLegendNettoyage);
         calSection.appendChild(calLegend);
 
         bottomWrap.appendChild(calSection);
@@ -1264,27 +1307,33 @@ if (cfg.show_csv_import) {
     }
 
     _buildCostForm(kind) {
-      // kind: "maintenance" ou "entretien". Formulaire jumeau de
-      // _buildForm mais sans quantite/unite : ces saisies ne portent
-      // qu un cout, une date et une note libre, et n interviennent
-      // jamais dans le calcul du stock de granules.
+      // kind: "maintenance", "entretien" ou "nettoyage". Formulaire jumeau
+      // de _buildForm mais sans quantite/unite : ces saisies n interviennent
+      // jamais dans le calcul du stock de granules. maintenance/entretien
+      // portent un cout obligatoire ; nettoyage est un evenement pur (date +
+      // note facultative), sans aucun champ cout - voir ENTRY_TYPE_NETTOYAGE
+      // cote backend : il ne doit jamais affecter stock/consommation/cout.
       var self = this;
+      var hasCost = kind !== "nettoyage";
       var el = document.createElement("div");
       el.className = "form";
 
       var row1 = document.createElement("div");
       row1.className = "form-row";
 
-      var priceWrap = document.createElement("div");
-      var priceLabel = document.createElement("label");
-      priceLabel.textContent = "Coût (€)";
-      var priceInput = document.createElement("input");
-      priceInput.type = "number";
-      priceInput.step = "0.01";
-      priceInput.min = "0";
-      priceWrap.appendChild(priceLabel);
-      priceWrap.appendChild(priceInput);
-      row1.appendChild(priceWrap);
+      var priceInput = null;
+      if (hasCost) {
+        var priceWrap = document.createElement("div");
+        var priceLabel = document.createElement("label");
+        priceLabel.textContent = "Coût (€)";
+        priceInput = document.createElement("input");
+        priceInput.type = "number";
+        priceInput.step = "0.01";
+        priceInput.min = "0";
+        priceWrap.appendChild(priceLabel);
+        priceWrap.appendChild(priceInput);
+        row1.appendChild(priceWrap);
+      }
 
       var dateWrap = document.createElement("div");
       var dateLabel = document.createElement("label");
@@ -1300,7 +1349,9 @@ if (cfg.show_csv_import) {
 
       var noteWrap = document.createElement("div");
       var noteLabel = document.createElement("label");
-      noteLabel.textContent = "Note (facultatif, ex. : ramonage, remplacement joint...)";
+      noteLabel.textContent = kind === "nettoyage"
+        ? "Note (facultatif, ex. : dépoussiérage, vidage cendrier, ramonage conduit...)"
+        : "Note (facultatif, ex. : ramonage, remplacement joint...)";
       var noteInput = document.createElement("input");
       noteInput.type = "text";
       noteWrap.appendChild(noteLabel);
@@ -1328,24 +1379,36 @@ if (cfg.show_csv_import) {
       formActions.className = "form-actions";
       var submitBtn = document.createElement("button");
       submitBtn.type = "button";
-      submitBtn.textContent = kind === "maintenance" ? "Enregistrer la maintenance" : "Enregistrer l entretien";
+      submitBtn.textContent = kind === "maintenance"
+        ? "Enregistrer la maintenance"
+        : kind === "entretien"
+          ? "Enregistrer l entretien"
+          : "Enregistrer le nettoyage";
       formActions.appendChild(submitBtn);
       el.appendChild(formActions);
 
       submitBtn.addEventListener("click", function () {
-        var price = parseFloat(priceInput.value);
-        if (isNaN(price) || price < 0) {
-          alert("Indique un coût valide (0 ou plus).");
-          return;
+        var price = null;
+        if (hasCost) {
+          price = parseFloat(priceInput.value);
+          if (isNaN(price) || price < 0) {
+            alert("Indique un coût valide (0 ou plus).");
+            return;
+          }
         }
         var formSeason = seasonInput.value;
         if (!formSeason) {
           alert("Choisis d abord la saison a laquelle cette saisie doit etre rattachee.");
           return;
         }
-        var data = { price_eur: price, date: dateInput.value, season: formSeason };
+        var data = { date: dateInput.value, season: formSeason };
+        if (hasCost) data.price_eur = price;
         if (noteInput.value) data.note = noteInput.value;
-        var service = kind === "maintenance" ? "log_maintenance" : "log_entretien";
+        var service = kind === "maintenance"
+          ? "log_maintenance"
+          : kind === "entretien"
+            ? "log_entretien"
+            : "log_nettoyage";
         submitBtn.disabled = true;
         self._hass
           .callService("suivi_stock_pellet", service, data)
@@ -1355,7 +1418,7 @@ if (cfg.show_csv_import) {
             self._seasonsFetchedAt = 0;
             self._seasonsDirty = true;
             el.classList.remove("visible");
-            priceInput.value = "";
+            if (priceInput) priceInput.value = "";
             noteInput.value = "";
             dateInput.value = todayIso();
             self._populateFormSeasonSelect(seasonInput, dateInput.value);
@@ -1405,7 +1468,8 @@ if (cfg.show_csv_import) {
             { value: "purchase", label: "Achat" },
             { value: "consumption", label: "Consommation" },
             { value: "maintenance", label: "Maintenance" },
-            { value: "entretien", label: "Entretien" }
+            { value: "entretien", label: "Entretien" },
+            { value: "nettoyage", label: "Nettoyage" }
           ];
           var typeChecks = {};
           TYPE_DEFS.forEach(function (def) {
@@ -1714,6 +1778,9 @@ if (cfg.show_csv_import) {
       this._knownSeasons = seasons;
       if (els.consoSeasonSelect) {
         this._populateFormSeasonSelect(els.consoSeasonSelect, todayIso());
+      }
+      if (els.nettoyageSeasonSelect) {
+        this._populateFormSeasonSelect(els.nettoyageSeasonSelect, todayIso());
       }
       if (els.achatSeasonSelect) {
         this._populateFormSeasonSelect(els.achatSeasonSelect, todayIso());
@@ -2031,27 +2098,35 @@ if (cfg.show_csv_import) {
         var isConso = entry.type === "consumption";
         var isMaintenance = entry.type === "maintenance";
         var isEntretien = entry.type === "entretien";
+        var isNettoyage = entry.type === "nettoyage";
         var isCostEntry = isMaintenance || isEntretien;
+        // Nettoyage : meme traitement "pas de quantite" que maintenance/
+        // entretien pour l'affichage, mais sans aucun cout (voir plus bas).
+        var isDateOnlyEntry = isCostEntry || isNettoyage;
 
         var dot = document.createElement("div");
         dot.className = "history-dot";
-        var dotColor = isCostEntry
-          ? (isMaintenance ? COLORS.teal : COLORS.pink)
-          : (isConso ? COLORS.red : COLORS.green);
+        var dotColor = isNettoyage
+          ? COLORS.nettoyage
+          : isCostEntry
+            ? (isMaintenance ? COLORS.maintenance : COLORS.entretien)
+            : (isConso ? COLORS.consommation : COLORS.achat);
         dot.style.background = "rgba(" + dotColor + ", 0.2)";
-        var dotIconName = isMaintenance ? "mdi:wrench" : isEntretien ? "mdi:broom" : isConso ? "mdi:fire" : "mdi:cart";
+        var dotIconName = isMaintenance ? "mdi:wrench" : isEntretien ? "mdi:broom" : isNettoyage ? "mdi:spray-bottle" : isConso ? "mdi:fire" : "mdi:cart";
         var dotIcon = icon(dotIconName);
         dotIcon.style.color = "rgb(" + dotColor + ")";
         dot.appendChild(dotIcon);
 
         var label = document.createElement("span");
         label.className = "history-label";
-        var typeLabel = isMaintenance ? "Maintenance" : isEntretien ? "Entretien" : isConso ? "Consommation" : "Achat";
-        label.textContent = typeLabel + " · " + entry.date + (isCostEntry && entry.note ? " · " + entry.note : "");
+        var typeLabel = isMaintenance ? "Maintenance" : isEntretien ? "Entretien" : isNettoyage ? "Nettoyage" : isConso ? "Consommation" : "Achat";
+        label.textContent = typeLabel + " · " + entry.date + (isDateOnlyEntry && entry.note ? " · " + entry.note : "");
 
         var value = document.createElement("span");
         value.className = "history-value";
-        if (isCostEntry) {
+        if (isNettoyage) {
+          value.textContent = "";
+        } else if (isCostEntry) {
           value.textContent = fmt(entry.price_eur, 2) + " €";
         } else {
           var histUnit = entryUnit(entry);
@@ -2098,6 +2173,7 @@ if (cfg.show_csv_import) {
 
       var isPurchase = entry.type === "purchase";
       var isCostEntry = entry.type === "maintenance" || entry.type === "entretien";
+      var isNettoyage = entry.type === "nettoyage";
       var editUnit = entryUnit(entry);
       var qtyNow = entryQtyDisplay(entry, editUnit, self._bagWeight || 15);
       var pricePerUnitNow = isPurchase && entry.price_eur && qtyNow ? entry.price_eur / qtyNow : "";
@@ -2124,7 +2200,7 @@ if (cfg.show_csv_import) {
         costPriceInput.placeholder = "Coût (€)";
         costPriceInput.value = entry.price_eur != null ? entry.price_eur : "";
         row1.appendChild(costPriceInput);
-      } else {
+      } else if (!isNettoyage) {
         qtyInput = document.createElement("input");
         qtyInput.type = "number";
         qtyInput.step = "0.1";
@@ -2132,6 +2208,8 @@ if (cfg.show_csv_import) {
         qtyInput.value = qtyNow;
         row1.appendChild(qtyInput);
       }
+      // Nettoyage : ni quantite ni cout - seulement date + note (ajoutee
+      // plus bas via la condition isCostEntry || isNettoyage).
 
       var dateInput = document.createElement("input");
       dateInput.type = "date";
@@ -2148,7 +2226,7 @@ if (cfg.show_csv_import) {
         priceInput.value = pricePerUnitNow ? Number(pricePerUnitNow).toFixed(2) : "";
         row1.appendChild(priceInput);
       }
-      if (isCostEntry) {
+      if (isCostEntry || isNettoyage) {
         noteInput = document.createElement("input");
         noteInput.type = "text";
         noteInput.placeholder = "Note";
@@ -2209,6 +2287,8 @@ if (cfg.show_csv_import) {
           var price = parseFloat(costPriceInput.value);
           if (isNaN(price) || price < 0) return;
           data = { season: self._season, index: index, date: dateInput.value, price_eur: price, note: noteInput.value || "" };
+        } else if (isNettoyage) {
+          data = { season: self._season, index: index, date: dateInput.value, note: noteInput.value || "" };
         } else {
           var qty = parseFloat(qtyInput.value);
           if (!qty || qty <= 0) return;
@@ -2275,7 +2355,10 @@ if (cfg.show_csv_import) {
         var m = parseInt(parts[1], 10);
         var d = parseInt(parts[2], 10);
         if (y !== year || m !== month) return;
-        if (!byDay[d]) byDay[d] = { purchase: 0, consumption: 0, maintenance: 0, entretien: 0, maintenance_count: 0, entretien_count: 0 };
+        if (!byDay[d]) byDay[d] = {
+          purchase: 0, consumption: 0, maintenance: 0, entretien: 0,
+          maintenance_count: 0, entretien_count: 0, nettoyage_count: 0,
+        };
         if (entry.type === "purchase") {
           byDay[d].purchase += entryQtyDisplay(entry, self._entryUnit, self._bagWeight || 15);
         } else if (entry.type === "consumption") {
@@ -2286,6 +2369,10 @@ if (cfg.show_csv_import) {
         } else if (entry.type === "entretien") {
           byDay[d].entretien += Number(entry.price_eur) || 0;
           byDay[d].entretien_count++;
+        } else if (entry.type === "nettoyage") {
+          // Evenement pur : aucune quantite ni cout a accumuler, juste un
+          // compteur pour savoir si le rond central doit s'afficher.
+          byDay[d].nettoyage_count++;
         }
       });
 
@@ -2311,17 +2398,47 @@ if (cfg.show_csv_import) {
         let cell = document.createElement("div");
         cell.className = "calendar-cell";
         var info = byDay[day];
-        if (info && info.purchase > 0) {
-          cell.classList.add("purchase");
-        }
-        if (info && info.consumption > 0) {
-          cell.classList.add("consumption");
-        }
-        if (info && info.maintenance_count > 0) {
-          cell.classList.add("maintenance");
-        }
-        if (info && info.entretien_count > 0) {
-          cell.classList.add("entretien");
+        // Calendrier a 5 types : 4 triangles (Achat/Consommation/
+        // Maintenance/Entretien, se rejoignant au centre comme les deux
+        // diagonales d'un carre) + un rond central violet pour Nettoyage.
+        // Un type absent laisse son triangle transparent (le fond neutre
+        // de la cellule apparait a la place) : aucune couleur redondante
+        // n'est affichee pour un type absent, et un jour avec seulement
+        // Nettoyage n'affiche que le rond.
+        var hasPurchase = !!(info && info.purchase > 0);
+        var hasConsumption = !!(info && info.consumption > 0);
+        var hasMaintenance = !!(info && info.maintenance_count > 0);
+        var hasEntretien = !!(info && info.entretien_count > 0);
+        var hasNettoyage = !!(info && info.nettoyage_count > 0);
+        var hasAnyTriangle = hasPurchase || hasConsumption || hasMaintenance || hasEntretien;
+        if (hasAnyTriangle || hasNettoyage) {
+          var topColor = hasPurchase ? "rgb(46, 173, 85)" : "transparent";
+          var rightColor = hasConsumption ? "rgb(229, 57, 53)" : "transparent";
+          var bottomColor = hasMaintenance ? "rgb(21, 101, 192)" : "transparent";
+          var leftColor = hasEntretien ? "rgb(255, 143, 0)" : "transparent";
+          var layers = [];
+          if (hasNettoyage) {
+            // Rond central violet, sans contour blanc, rayon ~23% de la
+            // largeur de cellule (cellule carree, aspect-ratio:1 en CSS).
+            layers.push(
+              "radial-gradient(circle at center, rgb(106, 27, 154) 0%, rgb(106, 27, 154) 23%, transparent 23%)"
+            );
+          }
+          if (hasAnyTriangle) {
+            layers.push(
+              "conic-gradient(from 45deg, " +
+                topColor + " 0deg 90deg, " +
+                rightColor + " 90deg 180deg, " +
+                bottomColor + " 180deg 270deg, " +
+                leftColor + " 270deg 360deg)"
+            );
+          }
+          cell.style.backgroundImage = layers.join(", ");
+          if (hasAnyTriangle) {
+            cell.style.color = "#fff";
+            cell.style.fontWeight = "700";
+          }
+          cell.classList.add("has-events");
         }
         cell.textContent = String(day);
         if (info) {
@@ -2330,6 +2447,7 @@ if (cfg.show_csv_import) {
           if (info.consumption > 0) parts2.push("Consommation : " + fmt(info.consumption, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)"));
           if (info.maintenance_count > 0) parts2.push("Maintenance : " + fmt(info.maintenance, 2) + " €");
           if (info.entretien_count > 0) parts2.push("Entretien : " + fmt(info.entretien, 2) + " €");
+          if (info.nettoyage_count > 0) parts2.push("Nettoyage" + (info.nettoyage_count > 1 ? " (" + info.nettoyage_count + ")" : ""));
           cell.title = parts2.join(" \u00b7 ");
           cell.addEventListener("touchstart", function (e) {
                   cell.__tsX = e.touches[0].clientX;
@@ -2468,7 +2586,7 @@ if (cfg.show_csv_import) {
           rect.setAttribute("width", barW);
           rect.setAttribute("height", h);
           rect.setAttribute("rx", 2);
-          rect.setAttribute("fill", v === 0 ? "rgba(127,127,127,0.3)" : "rgb(239, 83, 80)");
+          rect.setAttribute("fill", v === 0 ? "rgba(127,127,127,0.3)" : "rgb(229, 57, 53)");
           var t = document.createElementNS(svgNS, "title");
           t.textContent = MONTHS_FR[m] + " : " + fmt(v, 1) + (self._entryUnit === "kg" ? " kg" : " sac(s)");
           rect.appendChild(t);
@@ -2673,8 +2791,8 @@ if (cfg.show_csv_import) {
       var tab = this._activeCostTab || els.costTabDefs[0].key;
       var seasons = this._lastSeasonsResult || [];
       var defs = {
-        maintenance: { field: "maintenance_eur", color: COLORS.teal, label: "Coût maintenance par saison", icon: "mdi:wrench", emptyUnit: "Coût maintenance (€)" },
-        entretien: { field: "entretien_eur", color: COLORS.pink, label: "Coût entretien par saison", icon: "mdi:broom", emptyUnit: "Coût entretien (€)" },
+        maintenance: { field: "maintenance_eur", color: COLORS.maintenance, label: "Coût maintenance par saison", icon: "mdi:wrench", emptyUnit: "Coût maintenance (€)" },
+        entretien: { field: "entretien_eur", color: COLORS.entretien, label: "Coût entretien par saison", icon: "mdi:broom", emptyUnit: "Coût entretien (€)" },
         achat: { field: "spent_eur", color: COLORS.amber, label: "Coût achat par saison", icon: "mdi:cart-plus", emptyUnit: "Coût achat (€)" },
         total: { field: "total_eur", color: COLORS.green, label: "Coût total par saison", icon: "mdi:cash-check", emptyUnit: "Coût total (€)" }
       };
