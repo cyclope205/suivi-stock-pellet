@@ -96,6 +96,6 @@ async def test_setup_registers_all_services_and_unload_removes_them():
     assert services.registered == {}
 
     assert await async_unload_entry(hass, entry) is True
-    assert len(services.removed) == 10
+    assert len(services.removed) == 11
     assert hass.data[DOMAIN] == {}
     assert unload_callbacks
