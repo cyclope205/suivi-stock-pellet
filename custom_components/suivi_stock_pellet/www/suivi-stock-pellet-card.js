@@ -336,15 +336,6 @@
       for (var k in config) {
         merged[k] = config[k];
       }
-
-      // Migration de compatibilité : l'ancien éditeur visuel pouvait
-      // enregistrer simultanément ces deux options à false. Dans ce cas,
-      // on rétablit les sections afin qu'une ancienne configuration ne
-      // fasse pas disparaître le graphique et le calendrier.
-      if (config.show_monthly_chart === false && config.show_calendar === false) {
-        merged.show_monthly_chart = true;
-        merged.show_calendar = true;
-      }
     }
     return merged;
   }
@@ -385,7 +376,6 @@
             schema: group.fields.map(function (key) {
               return {
                 name: key,
-                default: DEFAULT_CONFIG[key],
                 selector: { boolean: {} },
               };
             }),
