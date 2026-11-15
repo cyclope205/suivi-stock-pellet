@@ -9,6 +9,12 @@ CONF_PRICE_PER_KG = "price_per_kg"
 CONF_CALORIFIC_VALUE = "calorific_value_kwh_per_kg"
 CONF_SEASON_START_MONTH = "season_start_month"
 CONF_DISPLAY_UNIT = "display_unit"
+# Liste de noms de poeles, saisie en texte libre separe par des virgules
+# (ex: "Poele salon, Poele chambre"), vide par defaut. Tant qu'elle contient
+# moins de 2 noms, aucun selecteur "poele" n'apparait nulle part (formulaires
+# de saisie, edition, config de la carte) : zero impact pour l'utilisateur
+# a un seul poele.
+CONF_POELES = "poeles"
 
 DEFAULT_BAG_WEIGHT_KG = 15.0
 DEFAULT_BAG_QTY = 1
@@ -47,6 +53,11 @@ ATTR_NOTE = "note"
 ATTR_DATE_FROM = "date_from"
 ATTR_DATE_TO = "date_to"
 ATTR_TYPES = "types"
+# Tag facultatif sur une entree de consommation/maintenance/entretien pour
+# distinguer le poele concerne, quand plusieurs sont configures (CONF_POELES).
+# Jamais present sur un achat ou un stock initial : le stock reste unique,
+# partage entre tous les poeles.
+ATTR_POELE = "poele"
 
 ENTRY_TYPE_CONSUMPTION = "consumption"
 ENTRY_TYPE_PURCHASE = "purchase"
