@@ -19,7 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
-    CONF_BAG_WEIGHT_KG, CONF_CALORIFIC_VALUE, CONF_SEASON_START_MONTH,
+    CONF_BAG_WEIGHT_KG, CONF_CALORIFIC_VALUE, CONF_POELES, CONF_SEASON_START_MONTH,
     DEFAULT_BAG_WEIGHT_KG, DEFAULT_CALORIFIC_VALUE, DEFAULT_SEASON_START_MONTH, DOMAIN,
 )
 from .csv_import import CsvImportError, parse_csv_history
@@ -331,6 +331,76 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
         "nettoyage_count": sum(1 for e in entries if e["type"] == "nettoyage"),
     })
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "suivi_stock_pellet/poele_totals",
+        vol.Optional("season"): str,
+        vol.Optional("poele"): str,
+        vol.Optional("entry_id"): str,
+    }
+)
+@websocket_api.async_response
+async def _ws_get_poele_totals(hass: HomeAssistant, connection, msg) -> None:
+    """Return the configured poele list and, if one is requested, its
+    filtered consumption/maintenance totals for the given season.
+
+    Kept as a separate command from suivi_stock_pellet/journal so that
+    command's existing response shape never changes for back-compat -
+    this is purely additive, only used by card instances that opt into
+    the multi-poele feature (>=2 poeles configured). Purchases/stock are
+    never filtered by poele (see journal.totals_by_device): they stay a
+    single shared figure across every poele.
+    """
+    stored = list(hass.data.get(DOMAIN, {}).items())
+    if not stored:
+        connection.send_error(msg["id"], "not_found", "Integration not set up")
+        return
+
+    requested_entry_id = msg.get("entry_id")
+    if requested_entry_id:
+        match = [(eid, j) for eid, j in stored if eid == requested_entry_id]
+        if not match:
+            connection.send_error(msg["id"], "not_found", "Integration entry not found")
+            return
+        entry_id, journal = match[0]
+    else:
+        entry_id, journal = stored[0]
+    config_entry = hass.config_entries.async_get_entry(entry_id)
+    poeles = config_entry.options.get(CONF_POELES, []) if config_entry else []
+    start_month = (
+        config_entry.options.get(CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH)
+        if config_entry
+        else DEFAULT_SEASON_START_MONTH
+    )
+    season = msg.get("season") or season_for_date(dt_util.now().date(), start_month)
+    poele = msg.get("poele")
+
+    result = {"season": season, "poeles": poeles}
+    if poele:
+        default_bag_weight_kg = (
+            config_entry.options.get(CONF_BAG_WEIGHT_KG, DEFAULT_BAG_WEIGHT_KG)
+            if config_entry else DEFAULT_BAG_WEIGHT_KG
+        )
+        calorific_value = (
+            config_entry.options.get(CONF_CALORIFIC_VALUE, DEFAULT_CALORIFIC_VALUE)
+            if config_entry else DEFAULT_CALORIFIC_VALUE
+        )
+        real_current_season = season_for_date(dt_util.now().date(), start_month)
+        if season == real_current_season:
+            as_of_date = dt_util.now().date().isoformat()
+        else:
+            entry_dates = [e["date"] for e in journal.entries(season)]
+            as_of_date = max(entry_dates) if entry_dates else None
+        result["totals"] = journal.totals_by_device(
+            season,
+            poele,
+            as_of_date=as_of_date,
+            default_bag_weight_kg=default_bag_weight_kg,
+            default_calorific_value=calorific_value,
+        )
+    connection.send_result(msg["id"], result)
+
+
 def async_register_ws_api(hass: HomeAssistant) -> None:
     """Register the websocket commands, once per HA run."""
     flag = f"{DOMAIN}_ws_registered"
@@ -342,3 +412,4 @@ def async_register_ws_api(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _ws_get_season_comparison)
     websocket_api.async_register_command(hass, _ws_csv_import_preview)
     websocket_api.async_register_command(hass, _ws_csv_import_commit)
+    websocket_api.async_register_command(hass, _ws_get_poele_totals)
