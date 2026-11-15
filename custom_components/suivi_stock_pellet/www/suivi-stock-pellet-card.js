@@ -1209,6 +1209,26 @@ if (cfg.show_csv_import) {
       seasonWrap.appendChild(seasonLabel);
       seasonWrap.appendChild(seasonInput);
       el.appendChild(seasonWrap);
+
+      // Le selecteur de poele n'existe que pour la consommation (jamais
+      // l'achat : le stock reste unique et partage entre tous les
+      // poeles) et reste masque tant que moins de 2 poeles ne sont
+      // configures.
+      var poeleWrap = null;
+      var poeleInput = null;
+      if (kind === "consumption") {
+        poeleWrap = document.createElement("div");
+        poeleWrap.style.display = "none";
+        var poeleLabel = document.createElement("label");
+        poeleLabel.textContent = "Poêle (facultatif)";
+        poeleInput = document.createElement("select");
+        poeleWrap.appendChild(poeleLabel);
+        poeleWrap.appendChild(poeleInput);
+        el.appendChild(poeleWrap);
+        self._poeleFormFields = self._poeleFormFields || [];
+        self._poeleFormFields.push({ wrap: poeleWrap, select: poeleInput });
+      }
+
       self._populateFormSeasonSelect(seasonInput, dateInput.value);
       dateInput.addEventListener("change", function () {
         self._populateFormSeasonSelect(seasonInput, dateInput.value);
@@ -1248,6 +1268,7 @@ if (cfg.show_csv_import) {
         }
         var data = { date: dateInput.value, season: formSeason || self._seasonForDate(dateInput.value), unit: self._entryUnit };
         if (self._entryUnit === "kg") data.qty_kg = qty; else data.qty_bags = qty;
+        if (kind === "consumption" && poeleInput && poeleInput.value) data.poele = poeleInput.value;
         if (kind === "purchase") {
           if (totalPriceInput && totalPriceInput.value) {
             data.price_eur = parseFloat(totalPriceInput.value);
@@ -1293,7 +1314,7 @@ if (cfg.show_csv_import) {
           });
       });
 
-      return { el: el, seasonSelect: seasonInput };
+      return { el: el, seasonSelect: seasonInput, poeleSelect: poeleInput };
     }
 
     _buildCostForm(kind) {
@@ -1355,6 +1376,25 @@ if (cfg.show_csv_import) {
       seasonWrap.appendChild(seasonLabel);
       seasonWrap.appendChild(seasonInput);
       el.appendChild(seasonWrap);
+
+      // Poele facultatif pour maintenance/entretien uniquement (jamais
+      // nettoyage, evenement purement date) ; masque tant que moins de 2
+      // poeles ne sont configures.
+      var poeleWrap = null;
+      var poeleInput = null;
+      if (hasCost) {
+        poeleWrap = document.createElement("div");
+        poeleWrap.style.display = "none";
+        var poeleLabel = document.createElement("label");
+        poeleLabel.textContent = "Poêle (facultatif)";
+        poeleInput = document.createElement("select");
+        poeleWrap.appendChild(poeleLabel);
+        poeleWrap.appendChild(poeleInput);
+        el.appendChild(poeleWrap);
+        self._poeleFormFields = self._poeleFormFields || [];
+        self._poeleFormFields.push({ wrap: poeleWrap, select: poeleInput });
+      }
+
       self._populateFormSeasonSelect(seasonInput, dateInput.value);
       dateInput.addEventListener("change", function () {
         self._populateFormSeasonSelect(seasonInput, dateInput.value);
@@ -1394,6 +1434,7 @@ if (cfg.show_csv_import) {
         var data = { date: dateInput.value, season: formSeason };
         if (hasCost) data.price_eur = price;
         if (noteInput.value) data.note = noteInput.value;
+        if (hasCost && poeleInput && poeleInput.value) data.poele = poeleInput.value;
         var service = kind === "maintenance"
           ? "log_maintenance"
           : kind === "entretien"
@@ -1423,7 +1464,7 @@ if (cfg.show_csv_import) {
           });
       });
 
-      return { el: el, seasonSelect: seasonInput };
+      return { el: el, seasonSelect: seasonInput, poeleSelect: poeleInput };
       }
 
       _openExportDialog() {
@@ -1738,6 +1779,7 @@ if (cfg.show_csv_import) {
           self._seasonDataFetchedFor = season;
           self._seasonDataFetchedAt = Date.now();
           self._applySeasonData(result);
+          self._refreshPoeleData();
           if (self._seasonDataDirty) {
             self._seasonDataDirty = false;
             self._refreshSelectedSeason();
@@ -1931,6 +1973,83 @@ if (cfg.show_csv_import) {
       }
     }
 
+    _refreshPoeleData() {
+      // Recupere la liste des poeles configures et, si cette instance de
+      // carte est scopee a un poele precis (cfg.poele), les totaux
+      // consommation/maintenance/entretien filtres pour ce poele. Purement
+      // additif : sans aucun poele configure (cas de l'immense majorite des
+      // utilisateurs), cfg.poele est absent et seule la liste (vide) est
+      // recuperee, sans aucun effet visuel.
+      var self = this;
+      if (!this._hass || !this._hass.connection || !this._season) return;
+      var cfg = this._config || DEFAULT_CONFIG;
+      var msg = { type: "suivi_stock_pellet/poele_totals", season: this._season };
+      if (cfg.poele) msg.poele = cfg.poele;
+      this._hass.connection
+        .sendMessagePromise(msg)
+        .then(function (result) {
+          self._poeles = result.poeles || [];
+          self._renderPoeleFormFields();
+          if (cfg.poele && result.totals) {
+            self._applyPoeleOverride(result.totals);
+          }
+        })
+        .catch(function () {});
+    }
+
+    _applyPoeleOverride(totals) {
+      // N'ecrase que les tuiles Consomme/Energie/Maintenance/Entretien
+      // avec les valeurs filtrees pour le poele selectionne - jamais
+      // Stock/Achete/Depense, qui restent toujours globaux et partages
+      // entre tous les poeles (voir journal.totals_by_device).
+      var els = this._els;
+      var cfg = this._config || DEFAULT_CONFIG;
+      var entryUnit = this._entryUnit === "kg" ? "kg" : "bag";
+      if (cfg.show_stats) {
+        if (els.statConsomme) {
+          var consumedKg = Number(totals.consumed_kg) || 0;
+          var consumedBags = Number(totals.consumed_bags) || 0;
+          els.statConsomme.textContent = entryUnit === "kg" ? fmt(consumedKg, 0) + " kg" : fmt(consumedBags, 1) + " sac(s)";
+        }
+        if (els.statEnergie) {
+          els.statEnergie.textContent = fmt(Number(totals.consumed_kwh) || 0, 1) + " kWh";
+        }
+      }
+      if (cfg.show_cost_stats) {
+        if (els.statCoutMaintenance) els.statCoutMaintenance.textContent = fmt(Number(totals.maintenance_eur) || 0, 2) + " €";
+        if (els.statCoutEntretien) els.statCoutEntretien.textContent = fmt(Number(totals.entretien_eur) || 0, 2) + " €";
+      }
+    }
+
+    _renderPoeleFormFields() {
+      // Affiche/peuple les selecteurs "Poele" des formulaires (consommation,
+      // maintenance, entretien) uniquement si >= 2 poeles sont configures -
+      // sinon ils restent masques, sans aucun impact pour les utilisateurs
+      // a un seul poele.
+      var poeles = this._poeles || [];
+      (this._poeleFormFields || []).forEach(function (field) {
+        if (!field.wrap || !field.select) return;
+        if (poeles.length < 2) {
+          field.wrap.style.display = "none";
+          return;
+        }
+        var current = field.select.value;
+        field.wrap.style.display = "";
+        field.select.innerHTML = "";
+        var emptyOpt = document.createElement("option");
+        emptyOpt.value = "";
+        emptyOpt.textContent = "(non précisé)";
+        field.select.appendChild(emptyOpt);
+        poeles.forEach(function (name) {
+          var opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          field.select.appendChild(opt);
+        });
+        field.select.value = current || "";
+      });
+    }
+
     _populateSeasonSelect(seasons) {
       var select = this._els.season;
       if (!select) return;
@@ -2110,7 +2229,7 @@ if (cfg.show_csv_import) {
         var label = document.createElement("span");
         label.className = "history-label";
         var typeLabel = isMaintenance ? "Maintenance" : isEntretien ? "Entretien" : isNettoyage ? "Nettoyage" : isConso ? "Consommation" : "Achat";
-        label.textContent = typeLabel + " · " + entry.date + (isDateOnlyEntry && entry.note ? " · " + entry.note : "");
+        label.textContent = typeLabel + " · " + entry.date + (entry.poele ? " · " + entry.poele : "") + (isDateOnlyEntry && entry.note ? " · " + entry.note : "");
 
         var value = document.createElement("span");
         value.className = "history-value";
@@ -2236,6 +2355,27 @@ if (cfg.show_csv_import) {
       }
       seasonSelect.value = self._season;
 
+      // Reassignation retroactive du poele, uniquement si >= 2 poeles sont
+      // configures et que l'entree n'est pas un achat (stock toujours
+      // partage, jamais scinde par poele).
+      var poeleSelect = null;
+      if (!isPurchase && self._poeles && self._poeles.length >= 2) {
+        poeleSelect = document.createElement("select");
+        poeleSelect.title = "Poêle";
+        var poeleNoneOpt = document.createElement("option");
+        poeleNoneOpt.value = "";
+        poeleNoneOpt.textContent = "(non précisé)";
+        poeleSelect.appendChild(poeleNoneOpt);
+        self._poeles.forEach(function (name) {
+          var opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          poeleSelect.appendChild(opt);
+        });
+        poeleSelect.value = entry.poele || "";
+        row1.appendChild(poeleSelect);
+      }
+
       form.appendChild(row1);
 
       var row2 = document.createElement("div");
@@ -2291,6 +2431,9 @@ if (cfg.show_csv_import) {
         }
         if (seasonSelect.value && seasonSelect.value !== self._season) {
           data.new_season = seasonSelect.value;
+        }
+        if (poeleSelect) {
+          data.poele = poeleSelect.value || "";
         }
         self._hass.callService("suivi_stock_pellet", "edit_entry", data)
           .then(function () {
@@ -2942,6 +3085,20 @@ if (cfg.show_csv_import) {
 
     set hass(hass) {
       this._hass = hass;
+      this._fetchPoelesOnce();
+    }
+
+    _fetchPoelesOnce() {
+      var self = this;
+      if (this._poelesFetched || !this._hass || !this._hass.connection) return;
+      this._poelesFetched = true;
+      this._hass.connection
+        .sendMessagePromise({ type: "suivi_stock_pellet/poele_totals" })
+        .then(function (result) {
+          self._poeles = result.poeles || [];
+          self._renderPoeleField();
+        })
+        .catch(function () {});
     }
 
     _render() {
@@ -3019,6 +3176,54 @@ if (cfg.show_csv_import) {
           self._switches[field.key] = toggle;
         });
       });
+
+      var poeleWrap = document.createElement("div");
+      poeleWrap.className = "row";
+      poeleWrap.style.display = "none";
+      var poeleLabelWrap = document.createElement("div");
+      var poeleLabel = document.createElement("div");
+      poeleLabel.className = "row-label";
+      poeleLabel.textContent = "Poêle";
+      poeleLabelWrap.appendChild(poeleLabel);
+      var poeleSelect = document.createElement("select");
+      poeleSelect.addEventListener("change", function () {
+        self._config.poele = poeleSelect.value || undefined;
+        self._emitConfigChanged();
+      });
+      poeleWrap.appendChild(poeleLabelWrap);
+      poeleWrap.appendChild(poeleSelect);
+      this.appendChild(poeleWrap);
+      this._poeleWrap = poeleWrap;
+      this._poeleSelect = poeleSelect;
+      this._renderPoeleField();
+      this._fetchPoelesOnce();
+    }
+
+    _renderPoeleField() {
+      // Masque entierement ce champ tant que moins de 2 poeles ne sont
+      // configures (CONF_POELES) : zero changement visuel pour l'immense
+      // majorite des utilisateurs a un seul poele.
+      if (!this._poeleWrap || !this._poeleSelect) return;
+      var poeles = this._poeles || [];
+      if (poeles.length < 2) {
+        this._poeleWrap.style.display = "none";
+        return;
+      }
+      this._poeleWrap.style.display = "";
+      var current = this._config.poele || "";
+      this._poeleSelect.innerHTML = "";
+      var emptyOpt = document.createElement("option");
+      emptyOpt.value = "";
+      emptyOpt.textContent = "(toutes / non filtré)";
+      this._poeleSelect.appendChild(emptyOpt);
+      var selectEl = this._poeleSelect;
+      poeles.forEach(function (name) {
+        var opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        selectEl.appendChild(opt);
+      });
+      this._poeleSelect.value = current;
     }
 
     _syncUnitButtons() {
