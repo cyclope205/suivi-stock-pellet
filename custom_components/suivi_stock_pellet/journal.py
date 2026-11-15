@@ -351,6 +351,7 @@ class PelletJournal:
         unit: str = "bag",
         qty_kg: float | None = None,
         note: str | None = None,
+        poele: str | None = None,
     ) -> None:
         if entry_type in COST_ENTRY_TYPES:
             # Maintenance/entretien entries track a cost and an optional
@@ -365,6 +366,8 @@ class PelletJournal:
                 "price_eur": float(price_eur),
                 "note": note,
             }
+            if poele:
+                stored["poele"] = poele
             self._season_entries(season).append(stored)
             await self._async_save()
             return
@@ -413,6 +416,10 @@ class PelletJournal:
                 "bag_weight_kg": bag_weight_kg,
                 "calorific_value": calorific_value,
             }
+        # Le poele n'est jamais enregistre sur un achat : le stock reste
+        # une quantite unique et partagee, jamais scindee par poele.
+        if poele and entry_type == ENTRY_TYPE_CONSUMPTION:
+            stored["poele"] = poele
         self._season_entries(season).append(stored)
         await self._async_save()
 
@@ -580,6 +587,8 @@ class PelletJournal:
         unit: str | None = None,
         qty_kg: float | None = None,
         note: str | None = None,
+        poele: str | None = None,
+        clear_poele: bool = False,
     ) -> dict[str, Any] | None:
         entries = self._season_entries(season)
         if index < 0 or index >= len(entries):
@@ -615,6 +624,10 @@ class PelletJournal:
                 updated["price_eur"] = price_eur
             if note is not None:
                 updated["note"] = note
+            if clear_poele:
+                updated.pop("poele", None)
+            elif poele:
+                updated["poele"] = poele
             target_season = (
                 new_season
                 if (new_season is not None and new_season != season)
@@ -678,6 +691,13 @@ class PelletJournal:
                     "Le prix doit être un nombre fini, positif ou nul"
                 )
             updated["price_eur"] = price_eur
+        # Le poele n'est jamais enregistre sur un achat : le stock reste
+        # une quantite unique et partagee, jamais scindee par poele.
+        if updated["type"] != ENTRY_TYPE_PURCHASE:
+            if clear_poele:
+                updated.pop("poele", None)
+            elif poele:
+                updated["poele"] = poele
         target_season = (
             new_season
             if (new_season is not None and new_season != season)
@@ -1027,6 +1047,58 @@ class PelletJournal:
             "purchased_kg": round(purchased_kg, 2),
             "stock_kg": round(stock_kg, 2),
             "consumed_kwh": round(consumed_kwh, 2),
+        }
+
+    def totals_by_device(
+        self,
+        season: str,
+        poele: str,
+        as_of_date: str | None = None,
+        default_bag_weight_kg: float = DEFAULT_BAG_WEIGHT_KG,
+        default_calorific_value: float = DEFAULT_CALORIFIC_VALUE,
+    ) -> dict[str, float]:
+        """Return consumption/maintenance totals filtered to one poele.
+
+        Scoped deliberately to consumption + maintenance/entretien only:
+        purchases and stock stay a single shared figure across every poele
+        (see totals()), never split or duplicated per device. Entries with
+        no "poele" tag (the overwhelming majority, for anyone not using
+        this feature) are excluded here - they only count in the global
+        totals() above, until retroactively assigned via edit_entry.
+        """
+        season_data = self._data.get("seasons", {}).get(season, {})
+        entries = season_data.get("entries", [])
+        if as_of_date is not None:
+            entries = [e for e in entries if e["date"] <= as_of_date]
+        entries = [e for e in entries if e.get("poele") == poele]
+        consumed_kg = sum(
+            _entry_qty_kg(e, default_bag_weight_kg)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
+        consumed = consumed_kg / default_bag_weight_kg
+        consumed_kwh = sum(
+            _entry_qty_kg(e, default_bag_weight_kg)
+            * (e.get("calorific_value") or default_calorific_value)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_CONSUMPTION
+        )
+        maintenance_eur = sum(
+            (e.get("price_eur") or 0)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_MAINTENANCE
+        )
+        entretien_eur = sum(
+            (e.get("price_eur") or 0)
+            for e in entries
+            if e["type"] == ENTRY_TYPE_ENTRETIEN
+        )
+        return {
+            "consumed_bags": round(consumed, 2),
+            "consumed_kg": round(consumed_kg, 2),
+            "consumed_kwh": round(consumed_kwh, 2),
+            "maintenance_eur": round(maintenance_eur, 2),
+            "entretien_eur": round(entretien_eur, 2),
         }
 
     def last_entry(self, season: str) -> dict[str, Any] | None:
