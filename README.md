@@ -269,10 +269,11 @@ type: custom:suivi-stock-pellet-card
 | Pouvoir calorifique | kWh par kg de granulés, pour le calcul énergie | 4,8 |
 | Mois de début de saison | Mois à partir duquel une nouvelle saison de chauffe commence. La fin de saison est automatiquement le mois précédent | 9 (septembre) |
 | Quantité de sacs par défaut (bouton rapide) | Nombre de sacs ajoutés en un clic par le bouton rapide de la carte | 1 |
+| Poêles | Liste de noms de poêles séparés par des virgules (ex. `Poêle salon, Poêle chambre`), facultatif | vide |
 
 > Le poids de référence de **15 kg par sac est fixe en interne** et n'est pas demandé dans la configuration.
 
-Ces valeurs sont modifiables ensuite via **Configurer** sur l'intégration. Le champ de prix proposé dépend de l'unité d'affichage choisie.
+Ces valeurs sont modifiables ensuite via **Configurer** sur l'intégration. Le champ **Poêles** n'a aucun effet tant qu'il contient moins de 2 noms : aucun sélecteur supplémentaire n'apparaît ailleurs dans l'intégration pour un usage à un seul poêle (voir [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles)). Le champ de prix proposé dépend de l'unité d'affichage choisie.
 
 ## Utilisation
 
@@ -309,15 +310,15 @@ Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`
 
 ### Services
 
-- `suivi_stock_pellet.log_consumption` (`qty_bags`, `season` facultative, `date` facultative)
+- `suivi_stock_pellet.log_consumption` (`qty_bags`, `season` facultative, `date` facultative, `poele` facultatif si plusieurs poêles sont configurés)
 - `suivi_stock_pellet.log_purchase` (`qty_bags`, `season` facultative, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative)
 - `suivi_stock_pellet.undo_last_entry`
-- `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier)
+- `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier, dont `poele` — envoyer une chaîne vide pour retirer l'assignation existante)
 - `suivi_stock_pellet.delete_entry` (`season`, `index`)
 - `suivi_stock_pellet.set_stock_initial` (`season`, `stock_initial_bags`) — définit ou corrige le stock de départ d'une saison, voir [chapitre dédié](#service-set_stock_initial)
 - `suivi_stock_pellet.delete_season` (`season`) — supprime entièrement une saison (toutes ses saisies)
-- `suivi_stock_pellet.log_maintenance` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût de maintenance
-- `suivi_stock_pellet.log_entretien` (`price_eur`, `season` facultative, `date` facultative, `note` facultative) — enregistre un coût d'entretien
+- `suivi_stock_pellet.log_maintenance` (`price_eur`, `season` facultative, `date` facultative, `note` facultative, `poele` facultatif) — enregistre un coût de maintenance
+- `suivi_stock_pellet.log_entretien` (`price_eur`, `season` facultative, `date` facultative, `note` facultative, `poele` facultatif) — enregistre un coût d'entretien
 - `suivi_stock_pellet.log_nettoyage` (`season` facultative, `date` facultative, `note` facultative) — enregistre un nettoyage ; pas de `price_eur`, ce type n'a jamais de coût
 - `suivi_stock_pellet.export_csv` (`season` facultative — toutes les saisons si absente, `date_from`/`date_to` facultatives, `types` facultatif) — génère un CSV au format "journal" (utilisé en interne par le bouton "Exporter CSV")
 
@@ -355,6 +356,18 @@ data:
   unit: kg
   stock_initial_kg: 180
 ```
+
+## Suivi de plusieurs poêles
+
+Si tu chauffes avec plusieurs poêles à granulés alimentés par le même stock, tu peux les suivre séparément sans dupliquer le stock :
+
+1. Dans **Configurer** sur l'intégration, renseigne le champ **Poêles** avec les noms séparés par des virgules (ex. `Poêle salon, Poêle chambre`). Il en faut au moins 2 pour que quoi que ce soit change dans l'interface.
+2. Un sélecteur **Poêle** apparaît alors dans les formulaires de consommation, maintenance et entretien (facultatif — une saisie sans poêle précisé reste comptée dans le stock global, mais n'apparaît dans aucun filtrage par poêle).
+3. Ajoute la carte une seconde fois sur le tableau de bord, et choisis un poêle différent dans l'éditeur de carte pour chaque instance. Les tuiles **Stock**, **Acheté** et **Dépensé** restent identiques sur les deux cartes (le stock de granulés est toujours unique et partagé) ; seules les tuiles **Consommé**, **Énergie**, **Maintenance** et **Entretien** sont filtrées sur le poêle choisi.
+4. Une saisie déjà enregistrée sans poêle peut être assignée a posteriori via le crayon (modification) dans l'historique.
+5. L'export CSV ajoute une colonne **Poêle** en dernière position (vide pour les saisies non assignées).
+
+Tant qu'aucun second poêle n'est configuré, rien ne change dans l'interface.
 
 ## Licence
 
