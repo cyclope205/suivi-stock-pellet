@@ -465,7 +465,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         seasons = [season_filter] if season_filter else journal.seasons()
 
-        rows: list[tuple[str, str, str, float | None, float | None, float | None, str]] = []
+        rows: list[tuple[str, str, str, float | None, float | None, float | None, str, str]] = []
         for season in seasons:
             for item in journal.entries(season):
                 entry_date = date_cls.fromisoformat(item["date"])
@@ -498,6 +498,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         price_per_bag,
                         price,
                         item.get("note") or "",
+                        item.get("poele") or "",
                     )
                 )
 
@@ -506,9 +507,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         buffer = io.StringIO()
         writer = csv.writer(buffer, delimiter=";")
         writer.writerow(
-            ["Saison", "Date", "Type", "Quantite", "Prix par sac", "Prix total", "Note"]
+            ["Saison", "Date", "Type", "Quantite", "Prix par sac", "Prix total", "Note", "Poêle"]
         )
-        for season, entry_date, label, qty, price_per_bag, price, note in rows:
+        for season, entry_date, label, qty, price_per_bag, price, note, poele in rows:
             writer.writerow(
                 [
                     season,
@@ -518,6 +519,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "" if price_per_bag is None else price_per_bag,
                     "" if price is None else price,
                     note,
+                    poele,
                 ]
             )
 
