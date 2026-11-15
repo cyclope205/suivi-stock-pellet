@@ -15,6 +15,7 @@ from .const import (
     CONF_DEFAULT_BAG_QTY,
     CONF_CALORIFIC_VALUE,
     CONF_DISPLAY_UNIT,
+    CONF_POELES,
     CONF_PRICE_PER_KG,
     CONF_SEASON_START_MONTH,
     DEFAULT_BAG_PRICE,
@@ -26,6 +27,30 @@ from .const import (
     DEFAULT_SEASON_START_MONTH,
     DOMAIN,
 )
+
+
+def parse_poeles(raw: str | None) -> list[str]:
+    """Parse the free-text, comma-separated "poeles" field into a clean list.
+
+    Empty/blank entries are dropped, surrounding whitespace is stripped,
+    and case-insensitive duplicates are removed (keeping the first spelling
+    seen) so the same physical poele can't end up listed twice under two
+    slightly different typings.
+    """
+    if not raw:
+        return []
+    seen: set[str] = set()
+    result: list[str] = []
+    for part in raw.split(","):
+        name = part.strip()
+        if not name:
+            continue
+        key = name.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(name)
+    return result
 
 
 DISPLAY_UNIT_SELECTOR = SelectSelector(
@@ -55,6 +80,7 @@ def _details_schema(
     calorific_value: float,
     season_start_month: int,
     default_bag_qty: int,
+    poeles_text: str = "",
 ) -> vol.Schema:
     price_key = CONF_BAG_PRICE if display_unit == "bag" else CONF_PRICE_PER_KG
     price_default = bag_price if display_unit == "bag" else price_per_kg
@@ -72,6 +98,11 @@ def _details_schema(
             vol.Required(
                 CONF_DEFAULT_BAG_QTY, default=default_bag_qty
             ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+            # Facultatif, vide par defaut : tant qu'il y a moins de 2 noms,
+            # aucun selecteur "poele" n'apparait ailleurs dans l'integration.
+            vol.Optional(
+                CONF_POELES, default=poeles_text
+            ): str,
         }
     )
 
@@ -109,6 +140,7 @@ class SuiviStockPelletConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             options = dict(user_input)
             options[CONF_BAG_WEIGHT_KG] = DEFAULT_BAG_WEIGHT_KG
             options[CONF_DISPLAY_UNIT] = self._display_unit
+            options[CONF_POELES] = parse_poeles(options.get(CONF_POELES))
             if self._display_unit == "kg":
                 options.setdefault(
                     CONF_BAG_PRICE,
@@ -175,6 +207,7 @@ class SuiviStockPelletOptionsFlow(config_entries.OptionsFlow):
                 options.update(user_input)
                 options[CONF_BAG_WEIGHT_KG] = DEFAULT_BAG_WEIGHT_KG
                 options[CONF_DISPLAY_UNIT] = self._display_unit
+                options[CONF_POELES] = parse_poeles(options.get(CONF_POELES))
                 if self._display_unit == "kg":
                     options.setdefault(
                         CONF_PRICE_PER_KG,
@@ -207,6 +240,7 @@ class SuiviStockPelletOptionsFlow(config_entries.OptionsFlow):
                 default_bag_qty=current.get(
                     CONF_DEFAULT_BAG_QTY, DEFAULT_BAG_QTY
                 ),
+                poeles_text=", ".join(current.get(CONF_POELES, []) or []),
             ),
             description_placeholders={
                 "start_month": _month_name(current.get(CONF_SEASON_START_MONTH, DEFAULT_SEASON_START_MONTH)),
