@@ -46,6 +46,12 @@ log_consumption:
       example: "2024-2025"
       selector:
         text: {}
+    poele:
+      name: Poêle
+      description: Nom du poêle concerné, si plusieurs poêles sont configurés (facultatif, sans effet si un seul poêle n'est configuré).
+      required: false
+      selector:
+        text: {}
 
 log_purchase:
   name: Enregistrer un achat
@@ -185,6 +191,12 @@ edit_entry:
       example: "2026-2027"
       selector:
         text: {}
+    poele:
+      name: Poêle
+      description: "Nouveau poêle assigné à cette saisie (facultatif). Envoyer une chaîne vide pour retirer l'assignation existante ; absent = inchangé."
+      required: false
+      selector:
+        text: {}
 
 delete_entry:
   name: Supprimer une saisie
@@ -292,6 +304,12 @@ log_maintenance:
       required: false
       selector:
         text: {}
+    poele:
+      name: Poêle
+      description: Nom du poêle concerné, si plusieurs poêles sont configurés (facultatif, sans effet si un seul poêle n'est configuré).
+      required: false
+      selector:
+        text: {}
 
 log_entretien:
   name: Enregistrer un entretien
@@ -323,6 +341,12 @@ log_entretien:
     note:
       name: Note
       description: Note libre pour se rappeler ce qui a ete fait (facultatif).
+      required: false
+      selector:
+        text: {}
+    poele:
+      name: Poêle
+      description: Nom du poêle concerné, si plusieurs poêles sont configurés (facultatif, sans effet si un seul poêle n'est configuré).
       required: false
       selector:
         text: {}
