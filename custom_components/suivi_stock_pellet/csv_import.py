@@ -120,6 +120,14 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
     price_col = next((col for key, col in keys.items() if "prix total" in key or key in {"prix","cout","coût"}), None)
     note_col = next((col for key, col in keys.items() if key == "note"), None)
     season_col = keys.get("saison")
+    # Optional "Poele" column (device association, written by the
+    # service's own CSV export since it added one): absent from every
+    # pre-existing export/legacy file, so its absence here must never
+    # block or alter the import - only consumption/maintenance/entretien
+    # rows can carry it (never purchase/nettoyage), matching the same
+    # restriction async_add_entry enforces when an entry is logged by
+    # hand (see journal.py).
+    poele_col = keys.get("poele")
     entries = []
     for row in rows[header_idx + 1:]:
         if len(row) <= max(date_col, type_col, qty_col): continue
@@ -161,7 +169,12 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
             if note_col is not None and note_col < len(row):
                 note_text = str(row[note_col] or "").strip()
                 note = note_text or None
-            entries.append({"type": kind, "date": entry_date, "price_eur": cost, "note": note, "season": season})
+            entry = {"type": kind, "date": entry_date, "price_eur": cost, "note": note, "season": season}
+            if poele_col is not None and poele_col < len(row):
+                poele_text = str(row[poele_col] or "").strip()
+                if poele_text:
+                    entry["poele"] = poele_text
+            entries.append(entry)
             continue
         qty = _number(row[qty_col])
         if qty is None or qty <= 0: continue
@@ -170,7 +183,14 @@ def _parse_event_log(rows, header_idx, keys, season_start_month):
             if price_col is not None and price_col < len(row): price = _number(row[price_col])
             if price is None: raise CsvImportError(f"Prix d'achat manquant pour {raw_date}.")
             if price < 0: raise CsvImportError(f"Prix d'achat invalide pour {raw_date}.")
-        entries.append({"type": kind,"qty_bags": qty,"date": entry_date,"price_eur": price,"note": None,"bag_weight_kg": None,"calorific_value": None,"season": season})
+        entry = {"type": kind,"qty_bags": qty,"date": entry_date,"price_eur": price,"note": None,"bag_weight_kg": None,"calorific_value": None,"season": season}
+        if kind == "consumption" and poele_col is not None and poele_col < len(row):
+            # Never for "purchase": the stock stays a single shared
+            # quantity, never split by poele (same rule as async_add_entry).
+            poele_text = str(row[poele_col] or "").strip()
+            if poele_text:
+                entry["poele"] = poele_text
+        entries.append(entry)
     if not entries: raise CsvImportError("Aucune consommation ou aucun achat exploitable.")
     # Group by season first (chronological order, which plain string
     # comparison gives since every key is a zero-padded "YYYY-YYYY"), then

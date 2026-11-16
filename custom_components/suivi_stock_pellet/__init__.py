@@ -32,7 +32,6 @@ from .const import (
     ATTR_DATE_TO,
     ATTR_INDEX,
     ATTR_PRICE_EUR,
-    ATTR_POELE,
     ATTR_QTY_BAGS,
     ATTR_QTY_KG,
     ATTR_TYPES,
@@ -114,7 +113,6 @@ LOG_CONSUMPTION_SCHEMA = vol.Schema(
         vol.Optional(ATTR_UNIT, default="bag"): vol.In(["bag", "kg"]),
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
-        vol.Optional(ATTR_POELE): cv.string,
     }
 )
 
@@ -149,7 +147,6 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional(ATTR_NOTE): cv.string,
-        vol.Optional(ATTR_POELE): cv.string,
         # Explicit destination season for a deliberate move (e.g. correcting
         # a purchase filed under the wrong season). Never auto-derived from
         # ATTR_DATE - see _handle_edit_entry.
@@ -189,7 +186,6 @@ LOG_MAINTENANCE_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
         vol.Optional(ATTR_NOTE): cv.string,
-        vol.Optional(ATTR_POELE): cv.string,
     }
 )
 
@@ -199,7 +195,6 @@ LOG_ENTRETIEN_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
         vol.Optional(ATTR_NOTE): cv.string,
-        vol.Optional(ATTR_POELE): cv.string,
     }
 )
 
@@ -282,7 +277,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             calorific_value=_calorific_value(),
             unit=unit,
             qty_kg=qty if unit == "kg" else None,
-            poele=call.data.get(ATTR_POELE),
         )
         _notify()
 
@@ -336,7 +330,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry_date = call.data.get(ATTR_DATE)
         new_season = call.data.get("new_season")
         note = call.data.get(ATTR_NOTE)
-        poele_raw = call.data.get(ATTR_POELE)
         # NOTE: editing an entry never re-derives its season from the
         # (possibly unchanged) date field - a purchase/consumption can be
         # deliberately filed under a season other than the one its date
@@ -359,8 +352,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 unit=unit,
                 qty_kg=qty_kg,
                 note=note,
-                poele=poele_raw or None,
-                clear_poele=(poele_raw == ""),
             )
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
@@ -415,7 +406,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_date.isoformat(),
             price_eur=price,
             note=note,
-            poele=call.data.get(ATTR_POELE),
         )
         _notify()
 
@@ -431,7 +421,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_date.isoformat(),
             price_eur=price,
             note=note,
-            poele=call.data.get(ATTR_POELE),
         )
         _notify()
 
@@ -457,6 +446,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         left empty for achat/consommation rows, by design. Nettoyage rows
         never carry a price_eur, so their "Prix total"/"Prix par sac"
         columns are always empty, same as a row with no price recorded.
+        "Poele" is likewise only ever populated for consommation/
+        maintenance/entretien rows that were actually tagged with one
+        (never achat/nettoyage, same restriction as async_add_entry) -
+        previously this column did not exist at all, so re-importing an
+        exported journal silently lost the poele association even though
+        the journal itself still had it; the CSV importer's "Poele"
+        column (csv_import.py) reads this same header back.
         """
         season_filter = call.data.get("season")
         date_from = call.data.get(ATTR_DATE_FROM)
@@ -507,7 +503,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         buffer = io.StringIO()
         writer = csv.writer(buffer, delimiter=";")
         writer.writerow(
-            ["Saison", "Date", "Type", "Quantite", "Prix par sac", "Prix total", "Note", "Poêle"]
+            ["Saison", "Date", "Type", "Quantite", "Poele", "Prix par sac", "Prix total", "Note"]
         )
         for season, entry_date, label, qty, price_per_bag, price, note, poele in rows:
             writer.writerow(
@@ -516,10 +512,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     entry_date,
                     label,
                     "" if qty is None else qty,
+                    poele,
                     "" if price_per_bag is None else price_per_bag,
                     "" if price is None else price,
                     note,
-                    poele,
                 ]
             )
 

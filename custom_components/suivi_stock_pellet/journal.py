@@ -498,12 +498,22 @@ class PelletJournal:
                     price = item.get("price_eur")
                     if price is None or not math.isfinite(price) or price < 0:
                         raise ValueError("Le cout doit etre positif ou nul")
-                    entries.append({
+                    stored = {
                         "type": entry_type,
                         "date": entry_date,
                         "price_eur": float(price),
                         "note": item.get("note"),
-                    })
+                    }
+                    # Preserve a poele association coming from the import
+                    # source (e.g. the CSV export's own "Poele" column),
+                    # same restriction as async_add_entry: never on a
+                    # purchase (handled below, never reaches this
+                    # cost-entry branch), and nettoyage never carries one
+                    # either - only maintenance/entretien here.
+                    poele = item.get("poele")
+                    if poele:
+                        stored["poele"] = poele
+                    entries.append(stored)
                     continue
                 if entry_type in DATE_ONLY_ENTRY_TYPES:
                     # Nettoyage: aucune quantite ni cout a valider, meme
@@ -517,23 +527,30 @@ class PelletJournal:
                 if entry_type not in (ENTRY_TYPE_PURCHASE, ENTRY_TYPE_CONSUMPTION):
                     raise ValueError(f"Type de saisie invalide: {entry_type}")
                 unit = item.get("unit", "bag")
+                # Le poele n'est jamais enregistre sur un achat (meme regle
+                # que async_add_entry) : le stock reste une quantite unique
+                # et partagee, jamais scindee par poele.
+                poele = item.get("poele") if entry_type == ENTRY_TYPE_CONSUMPTION else None
                 if unit == "kg":
                     qty = float(item["qty_kg"])
                     if not math.isfinite(qty) or qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
-                    entries.append({
+                    stored = {
                         "type": entry_type,
                         "unit": "kg",
                         "qty_kg": qty,
                         "date": entry_date,
                         "price_eur": item.get("price_eur"),
                         "calorific_value": item.get("calorific_value"),
-                    })
+                    }
+                    if poele:
+                        stored["poele"] = poele
+                    entries.append(stored)
                 else:
                     qty = float(item["qty_bags"])
                     if not math.isfinite(qty) or qty <= 0:
                         raise ValueError("La quantité doit être strictement positive")
-                    entries.append({
+                    stored = {
                         "type": entry_type,
                         "unit": "bag",
                         "qty_bags": qty,
@@ -541,7 +558,10 @@ class PelletJournal:
                         "price_eur": item.get("price_eur"),
                         "bag_weight_kg": item.get("bag_weight_kg"),
                         "calorific_value": item.get("calorific_value"),
-                    })
+                    }
+                    if poele:
+                        stored["poele"] = poele
+                    entries.append(stored)
 
             affected = sorted({item["season"] for item in imported})
             for season in affected:
@@ -691,13 +711,6 @@ class PelletJournal:
                     "Le prix doit être un nombre fini, positif ou nul"
                 )
             updated["price_eur"] = price_eur
-        # Le poele n'est jamais enregistre sur un achat : le stock reste
-        # une quantite unique et partagee, jamais scindee par poele.
-        if updated["type"] != ENTRY_TYPE_PURCHASE:
-            if clear_poele:
-                updated.pop("poele", None)
-            elif poele:
-                updated["poele"] = poele
         target_season = (
             new_season
             if (new_season is not None and new_season != season)
@@ -1047,58 +1060,6 @@ class PelletJournal:
             "purchased_kg": round(purchased_kg, 2),
             "stock_kg": round(stock_kg, 2),
             "consumed_kwh": round(consumed_kwh, 2),
-        }
-
-    def totals_by_device(
-        self,
-        season: str,
-        poele: str,
-        as_of_date: str | None = None,
-        default_bag_weight_kg: float = DEFAULT_BAG_WEIGHT_KG,
-        default_calorific_value: float = DEFAULT_CALORIFIC_VALUE,
-    ) -> dict[str, float]:
-        """Return consumption/maintenance totals filtered to one poele.
-
-        Scoped deliberately to consumption + maintenance/entretien only:
-        purchases and stock stay a single shared figure across every poele
-        (see totals()), never split or duplicated per device. Entries with
-        no "poele" tag (the overwhelming majority, for anyone not using
-        this feature) are excluded here - they only count in the global
-        totals() above, until retroactively assigned via edit_entry.
-        """
-        season_data = self._data.get("seasons", {}).get(season, {})
-        entries = season_data.get("entries", [])
-        if as_of_date is not None:
-            entries = [e for e in entries if e["date"] <= as_of_date]
-        entries = [e for e in entries if e.get("poele") == poele]
-        consumed_kg = sum(
-            _entry_qty_kg(e, default_bag_weight_kg)
-            for e in entries
-            if e["type"] == ENTRY_TYPE_CONSUMPTION
-        )
-        consumed = consumed_kg / default_bag_weight_kg
-        consumed_kwh = sum(
-            _entry_qty_kg(e, default_bag_weight_kg)
-            * (e.get("calorific_value") or default_calorific_value)
-            for e in entries
-            if e["type"] == ENTRY_TYPE_CONSUMPTION
-        )
-        maintenance_eur = sum(
-            (e.get("price_eur") or 0)
-            for e in entries
-            if e["type"] == ENTRY_TYPE_MAINTENANCE
-        )
-        entretien_eur = sum(
-            (e.get("price_eur") or 0)
-            for e in entries
-            if e["type"] == ENTRY_TYPE_ENTRETIEN
-        )
-        return {
-            "consumed_bags": round(consumed, 2),
-            "consumed_kg": round(consumed_kg, 2),
-            "consumed_kwh": round(consumed_kwh, 2),
-            "maintenance_eur": round(maintenance_eur, 2),
-            "entretien_eur": round(entretien_eur, 2),
         }
 
     def last_entry(self, season: str) -> dict[str, Any] | None:
