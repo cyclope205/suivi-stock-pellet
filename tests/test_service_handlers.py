@@ -22,6 +22,8 @@ from custom_components.suivi_stock_pellet import (
     SERVICE_DELETE_ENTRY,
     SERVICE_EDIT_ENTRY,
     SERVICE_LOG_CONSUMPTION,
+    SERVICE_LOG_ENTRETIEN,
+    SERVICE_LOG_MAINTENANCE,
     SERVICE_LOG_PURCHASE,
     SERVICE_SET_STOCK_INITIAL,
     SERVICE_UNDO_LAST_ENTRY,
@@ -213,3 +215,112 @@ async def test_set_stock_initial_updates_totals():
         _call({"season": "2025-2026", ATTR_STOCK_INITIAL_BAGS: 12.0})
     )
     assert journal.totals("2025-2026")["stock_initial_bags"] == 12.0
+
+
+# --- "poele" wiring (service -> journal) -------------------------------
+#
+# journal.py has always supported tagging a consumption/maintenance/
+# entretien entry with a "poele", and totals_by_device() to read it back
+# - but LOG_CONSUMPTION_SCHEMA, EDIT_ENTRY_SCHEMA, LOG_MAINTENANCE_SCHEMA
+# and LOG_ENTRETIEN_SCHEMA never declared a "poele" field, and none of
+# the matching handlers ever read call.data.get("poele") or passed it to
+# the journal. The card and services.yaml already exposed a "poele"
+# field to the user, so in practice every poele assignment attempted
+# through the real UI/services silently did nothing - only a direct
+# journal.py call (as other tests in this file and in test_poele.py do)
+# ever actually tagged an entry. These tests exercise the full service
+# path, not journal.py directly, specifically to catch that gap.
+
+@pytest.mark.asyncio
+async def test_log_consumption_passes_poele_through_to_journal():
+    handlers, journal = await _setup()
+    await handlers[SERVICE_LOG_CONSUMPTION](
+        _call(
+            {
+                ATTR_QTY_BAGS: 2.0,
+                ATTR_UNIT: "bag",
+                "season": "2025-2026",
+                "poele": "Salon",
+            }
+        )
+    )
+    entries = journal.entries("2025-2026")
+    assert entries[-1]["poele"] == "Salon"
+
+@pytest.mark.asyncio
+async def test_log_consumption_without_poele_field_leaves_entry_untagged():
+    handlers, journal = await _setup()
+    await handlers[SERVICE_LOG_CONSUMPTION](
+        _call({ATTR_QTY_BAGS: 2.0, ATTR_UNIT: "bag", "season": "2025-2026"})
+    )
+    entries = journal.entries("2025-2026")
+    assert "poele" not in entries[-1]
+
+@pytest.mark.asyncio
+async def test_log_maintenance_passes_poele_through_to_journal():
+    handlers, journal = await _setup()
+    await handlers[SERVICE_LOG_MAINTENANCE](
+        _call({ATTR_PRICE_EUR: 50.0, "season": "2025-2026", "poele": "Cuisine"})
+    )
+    entries = journal.entries("2025-2026")
+    assert entries[-1]["poele"] == "Cuisine"
+
+@pytest.mark.asyncio
+async def test_log_entretien_passes_poele_through_to_journal():
+    handlers, journal = await _setup()
+    await handlers[SERVICE_LOG_ENTRETIEN](
+        _call({ATTR_PRICE_EUR: 30.0, "season": "2025-2026", "poele": "Cuisine"})
+    )
+    entries = journal.entries("2025-2026")
+    assert entries[-1]["poele"] == "Cuisine"
+
+@pytest.mark.asyncio
+async def test_edit_entry_sets_poele_via_service():
+    handlers, journal = await _setup()
+    await handlers[SERVICE_LOG_CONSUMPTION](
+        _call({ATTR_QTY_BAGS: 2.0, ATTR_UNIT: "bag", "season": "2025-2026"})
+    )
+    await handlers[SERVICE_EDIT_ENTRY](
+        _call({"season": "2025-2026", ATTR_INDEX: 0, "poele": "Salon"})
+    )
+    assert journal.entries("2025-2026")[0]["poele"] == "Salon"
+
+@pytest.mark.asyncio
+async def test_edit_entry_clears_poele_with_empty_string_via_service():
+    """Per the README's documented contract ("envoyer une chaîne vide
+    pour retirer l'assignation existante"), an explicit empty-string
+    "poele" clears an existing assignment - distinct from omitting the
+    field entirely, which must leave it unchanged."""
+    handlers, journal = await _setup()
+    await handlers[SERVICE_LOG_CONSUMPTION](
+        _call(
+            {
+                ATTR_QTY_BAGS: 2.0,
+                ATTR_UNIT: "bag",
+                "season": "2025-2026",
+                "poele": "Salon",
+            }
+        )
+    )
+    await handlers[SERVICE_EDIT_ENTRY](
+        _call({"season": "2025-2026", ATTR_INDEX: 0, "poele": ""})
+    )
+    assert "poele" not in journal.entries("2025-2026")[0]
+
+@pytest.mark.asyncio
+async def test_edit_entry_omitting_poele_field_leaves_it_unchanged():
+    handlers, journal = await _setup()
+    await handlers[SERVICE_LOG_CONSUMPTION](
+        _call(
+            {
+                ATTR_QTY_BAGS: 2.0,
+                ATTR_UNIT: "bag",
+                "season": "2025-2026",
+                "poele": "Salon",
+            }
+        )
+    )
+    await handlers[SERVICE_EDIT_ENTRY](
+        _call({"season": "2025-2026", ATTR_INDEX: 0, ATTR_QTY_BAGS: 3.0})
+    )
+    assert journal.entries("2025-2026")[0]["poele"] == "Salon"
