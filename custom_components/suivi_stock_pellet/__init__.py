@@ -452,7 +452,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         previously this column did not exist at all, so re-importing an
         exported journal silently lost the poele association even though
         the journal itself still had it; the CSV importer's "Poele"
-        column (csv_import.py) reads this same header back.
+        column (csv_import.py) reads this same header back. Kept as the
+        LAST column (after Note), matching the documented contract in
+        README.md's "Suivi de plusieurs poêles" section ("L'export CSV
+        ajoute une colonne Poêle en dernière position") - the README had
+        described this column before the export code actually wrote it.
         """
         season_filter = call.data.get("season")
         date_from = call.data.get(ATTR_DATE_FROM)
@@ -503,7 +507,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         buffer = io.StringIO()
         writer = csv.writer(buffer, delimiter=";")
         writer.writerow(
-            ["Saison", "Date", "Type", "Quantite", "Poele", "Prix par sac", "Prix total", "Note"]
+            ["Saison", "Date", "Type", "Quantite", "Prix par sac", "Prix total", "Note", "Poele"]
         )
         for season, entry_date, label, qty, price_per_bag, price, note, poele in rows:
             writer.writerow(
@@ -512,10 +516,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     entry_date,
                     label,
                     "" if qty is None else qty,
-                    poele,
                     "" if price_per_bag is None else price_per_bag,
                     "" if price is None else price,
                     note,
+                    poele,
                 ]
             )
 
