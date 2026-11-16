@@ -392,6 +392,10 @@
       return mergeConfig({});
     }
 
+    static getConfigElement() {
+      return document.createElement("suivi-stock-pellet-card-editor-v1750");
+    }
+
     setConfig(config) {
       this._config = mergeConfig(config);
       this._entryUnit = "bag";
@@ -458,7 +462,7 @@
       titleWrap.className = "header-title";
       titleWrap.appendChild(icon("mdi:pine-tree"));
       var title = document.createElement("span");
-      title.textContent = "Granulés";
+      title.textContent = (cfg && cfg.poele) ? cfg.poele : "Granulés";
       titleWrap.appendChild(title);
       var season = document.createElement("select");
       season.className = "season";
@@ -1377,12 +1381,12 @@ if (cfg.show_csv_import) {
       seasonWrap.appendChild(seasonInput);
       el.appendChild(seasonWrap);
 
-      // Poele facultatif pour maintenance/entretien uniquement (jamais
-      // nettoyage, evenement purement date) ; masque tant que moins de 2
-      // poeles ne sont configures.
+      // Poele facultatif pour maintenance/entretien/nettoyage (jamais
+      // achat : le stock reste unique et partage entre tous les poeles) ;
+      // masque tant que moins de 2 poeles ne sont configures.
       var poeleWrap = null;
       var poeleInput = null;
-      if (hasCost) {
+      {
         poeleWrap = document.createElement("div");
         poeleWrap.style.display = "none";
         var poeleLabel = document.createElement("label");
@@ -2022,13 +2026,27 @@ if (cfg.show_csv_import) {
     }
 
     _renderPoeleFormFields() {
-      // Affiche/peuple les selecteurs "Poele" des formulaires (consommation,
-      // maintenance, entretien) uniquement si >= 2 poeles sont configures -
-      // sinon ils restent masques, sans aucun impact pour les utilisateurs
-      // a un seul poele.
+      // Si la carte est scopee a un poele (cfg.poele, derive du nom de la
+      // carte), chaque saisie consommation/maintenance/entretien/nettoyage
+      // est automatiquement attribuee a ce poele : champ pre-rempli et
+      // masque, l'utilisateur n'a plus rien a choisir. Sinon (carte non
+      // scopee), le champ reste visible et modifiable, et n'apparait que
+      // si >= 2 poeles sont configures.
+      var cfg = this._config || DEFAULT_CONFIG;
       var poeles = this._poeles || [];
+      var scoped = cfg.poele || "";
       (this._poeleFormFields || []).forEach(function (field) {
         if (!field.wrap || !field.select) return;
+        if (scoped) {
+          field.select.innerHTML = "";
+          var scopedOpt = document.createElement("option");
+          scopedOpt.value = scoped;
+          scopedOpt.textContent = scoped;
+          field.select.appendChild(scopedOpt);
+          field.select.value = scoped;
+          field.wrap.style.display = "none";
+          return;
+        }
         if (poeles.length < 2) {
           field.wrap.style.display = "none";
           return;
@@ -3183,18 +3201,25 @@ if (cfg.show_csv_import) {
       var poeleLabelWrap = document.createElement("div");
       var poeleLabel = document.createElement("div");
       poeleLabel.className = "row-label";
-      poeleLabel.textContent = "Poêle";
+      poeleLabel.textContent = "Nom du poêle (laisser vide si la carte n'est pas dédiée à un seul poêle)";
       poeleLabelWrap.appendChild(poeleLabel);
-      var poeleSelect = document.createElement("select");
-      poeleSelect.addEventListener("change", function () {
-        self._config.poele = poeleSelect.value || undefined;
+      var poeleInputField = document.createElement("input");
+      poeleInputField.type = "text";
+      poeleInputField.setAttribute("list", "suivi-pellet-poeles-datalist");
+      poeleInputField.placeholder = "ex. Poêle salon";
+      var poeleDatalist = document.createElement("datalist");
+      poeleDatalist.id = "suivi-pellet-poeles-datalist";
+      poeleInputField.addEventListener("change", function () {
+        self._config.poele = poeleInputField.value.trim() || undefined;
         self._emitConfigChanged();
       });
       poeleWrap.appendChild(poeleLabelWrap);
-      poeleWrap.appendChild(poeleSelect);
+      poeleWrap.appendChild(poeleInputField);
+      poeleWrap.appendChild(poeleDatalist);
       this.appendChild(poeleWrap);
       this._poeleWrap = poeleWrap;
-      this._poeleSelect = poeleSelect;
+      this._poeleSelect = poeleInputField;
+      this._poeleDatalist = poeleDatalist;
       this._renderPoeleField();
       this._fetchPoelesOnce();
     }
@@ -3211,25 +3236,22 @@ if (cfg.show_csv_import) {
       }
       this._poeleWrap.style.display = "";
       var current = this._config.poele || "";
-      this._poeleSelect.innerHTML = "";
-      var emptyOpt = document.createElement("option");
-      emptyOpt.value = "";
-      emptyOpt.textContent = "(toutes / non filtré)";
-      this._poeleSelect.appendChild(emptyOpt);
-      var selectEl = this._poeleSelect;
-      poeles.forEach(function (name) {
-        var opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        selectEl.appendChild(opt);
-      });
+      if (this._poeleDatalist) {
+        this._poeleDatalist.innerHTML = "";
+        poeles.forEach(function (name) {
+          var opt = document.createElement("option");
+          opt.value = name;
+          this._poeleDatalist.appendChild(opt);
+        }, this);
+      }
       this._poeleSelect.value = current;
     }
 
     _syncUnitButtons() {
+      var self = this;
       var unit = this._config.entry_unit === "kg" ? "kg" : "bag";
       Object.keys(this._unitButtons || {}).forEach(function (key) {
-        var btn = this._unitButtons[key];
+        var btn = self._unitButtons[key];
         if (!btn) return;
         btn.classList.toggle("selected", key === unit);
         btn.setAttribute("aria-pressed", key === unit ? "true" : "false");
