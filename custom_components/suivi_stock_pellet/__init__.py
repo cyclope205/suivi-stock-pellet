@@ -88,7 +88,6 @@ _EXPORT_TYPE_LABELS = {
     ENTRY_TYPE_NETTOYAGE: "Nettoyage",
 }
 
-
 def _valid_season(value: str) -> str:
     """Validate a season key is 'AAAA-AAAA' with two consecutive years.
 
@@ -105,7 +104,6 @@ def _valid_season(value: str) -> str:
         )
     return value
 
-
 LOG_CONSUMPTION_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_QTY_BAGS): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
@@ -113,6 +111,15 @@ LOG_CONSUMPTION_SCHEMA = vol.Schema(
         vol.Optional(ATTR_UNIT, default="bag"): vol.In(["bag", "kg"]),
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
+        # Nom du poele si plusieurs sont configures - voir services.yaml et
+        # journal.async_add_entry (jamais applique sur un achat). Absent de
+        # ce schema jusqu'ici: la carte/services.yaml le documentaient et
+        # l'envoyaient deja, mais vol.Schema (extra=PREVENT_EXTRA par
+        # defaut) le rejetait ou le laissait silencieusement de cote avant
+        # meme d'atteindre _handle_log_consumption - le suivi par poele ne
+        # fonctionnait donc jamais via la carte ou les services, seulement
+        # en appelant journal.py directement (ce que font les tests).
+        vol.Optional("poele"): cv.string,
     }
 )
 
@@ -124,6 +131,9 @@ LOG_PURCHASE_SCHEMA = vol.Schema(
         vol.Optional(ATTR_PRICE_EUR): vol.All(vol.Coerce(float), vol.Range(min=0)),
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
+        # Pas de "poele" ici volontairement : un achat n'est jamais
+        # rattache a un poele (le stock reste une quantite unique et
+        # partagee) - meme regle que journal.async_add_entry.
     }
 )
 
@@ -151,6 +161,12 @@ EDIT_ENTRY_SCHEMA = vol.Schema(
         # a purchase filed under the wrong season). Never auto-derived from
         # ATTR_DATE - see _handle_edit_entry.
         vol.Optional("new_season"): _valid_season,
+        # Nom du poele a assigner, ou chaine vide pour retirer
+        # l'assignation existante (voir README: "envoyer une chaîne vide
+        # pour retirer l'assignation existante") - _handle_edit_entry
+        # traduit cette chaine vide en clear_poele=True pour
+        # journal.async_edit_entry, qui distingue les deux cas.
+        vol.Optional("poele"): cv.string,
     }
 )
 
@@ -186,6 +202,7 @@ LOG_MAINTENANCE_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
         vol.Optional(ATTR_NOTE): cv.string,
+        vol.Optional("poele"): cv.string,
     }
 )
 
@@ -195,6 +212,7 @@ LOG_ENTRETIEN_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
         vol.Optional(ATTR_NOTE): cv.string,
+        vol.Optional("poele"): cv.string,
     }
 )
 
@@ -202,6 +220,8 @@ LOG_NETTOYAGE_SCHEMA = vol.Schema(
     {
         # Pas de price_eur : le nettoyage est un evenement pur (date +
         # note), jamais un cout - contrairement a maintenance/entretien.
+        # Pas de "poele" non plus: async_add_entry ne l'applique jamais a
+        # un nettoyage (voir journal.py), donc inutile de l'exposer ici.
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
         vol.Optional(ATTR_NOTE): cv.string,
@@ -229,7 +249,6 @@ EXPORT_CSV_SCHEMA = vol.Schema(
         ),
     }
 )
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Suivi Stock Pellet from a config entry."""
@@ -261,6 +280,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise ServiceValidationError("Quantité manquante pour l'unité choisie")
         entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        poele = call.data.get("poele") or None
         current = journal.totals(season, as_of_date=entry_date.isoformat(), default_bag_weight_kg=_bag_weight(), season_start_month=_start_month())
         requested_kg = qty if unit == "kg" else qty * _bag_weight()
         if requested_kg > current["stock_kg"] + 1e-9:
@@ -277,6 +297,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             calorific_value=_calorific_value(),
             unit=unit,
             qty_kg=qty if unit == "kg" else None,
+            poele=poele,
         )
         _notify()
 
@@ -330,6 +351,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry_date = call.data.get(ATTR_DATE)
         new_season = call.data.get("new_season")
         note = call.data.get(ATTR_NOTE)
+        # "poele" absent du call.data -> inchange (poele=None, clear_poele=
+        # False). Une chaine vide explicite -> retire l'assignation
+        # existante (clear_poele=True), voir README. Toute autre valeur ->
+        # nouvelle assignation. journal.async_edit_entry distingue ces deux
+        # intentions via deux parametres separes (poele / clear_poele),
+        # jamais via une simple chaine vide.
+        poele_raw = call.data.get("poele")
+        poele = poele_raw or None
+        clear_poele = poele_raw == ""
         # NOTE: editing an entry never re-derives its season from the
         # (possibly unchanged) date field - a purchase/consumption can be
         # deliberately filed under a season other than the one its date
@@ -352,6 +382,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 unit=unit,
                 qty_kg=qty_kg,
                 note=note,
+                poele=poele,
+                clear_poele=clear_poele,
             )
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
@@ -399,6 +431,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         note = call.data.get(ATTR_NOTE)
         entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        poele = call.data.get("poele") or None
         await journal.async_add_entry(
             season,
             ENTRY_TYPE_MAINTENANCE,
@@ -406,6 +439,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_date.isoformat(),
             price_eur=price,
             note=note,
+            poele=poele,
         )
         _notify()
 
@@ -414,6 +448,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         note = call.data.get(ATTR_NOTE)
         entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        poele = call.data.get("poele") or None
         await journal.async_add_entry(
             season,
             ENTRY_TYPE_ENTRETIEN,
@@ -421,6 +456,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_date.isoformat(),
             price_eur=price,
             note=note,
+            poele=poele,
         )
         _notify()
 
@@ -622,7 +658,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
 
-
 async def _async_register_card(hass: HomeAssistant) -> None:
     """Serve the Lovelace card from this integration and auto-register it.
 
@@ -646,7 +681,6 @@ async def _async_register_card(hass: HomeAssistant) -> None:
         )
 
     await _async_sync_lovelace_resource(hass)
-
 
 async def _async_sync_lovelace_resource(hass: HomeAssistant, _now=None) -> None:
     """Register the card as a real Lovelace resource (the normal way).
@@ -723,11 +757,9 @@ async def _async_sync_lovelace_resource(hass: HomeAssistant, _now=None) -> None:
         )
         add_extra_js_url(hass, f"{CARD_URL_PATH}?v={CARD_VERSION}")
 
-
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the config entry when its options are changed."""
     await hass.config_entries.async_reload(entry.entry_id)
-
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
