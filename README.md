@@ -51,6 +51,7 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 - [Import et export CSV](#import-et-export-csv)
 - [Maintenance, entretien et nettoyage](#maintenance-entretien-et-nettoyage)
 - [Carte Lovelace](#carte-lovelace)
+- [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles)
 - [Installation](#installation)
 - [Utilisation](#utilisation)
 - [Entités créées](#entités-créées)
@@ -67,6 +68,7 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 - Import d'anciennes saisons par CSV, et export CSV par saison/catégorie.
 - Suivi des frais de maintenance et d'entretien du poêle, indépendamment du stock de granulés.
 - Suivi des nettoyages du poêle (dépoussiérage, vidage du cendrier, ramonage du conduit...) : un évènement daté purement informatif, sans coût, qui n'a **aucun** impact sur le stock, la consommation ou les calculs de coût — voir [Maintenance, entretien et nettoyage](#maintenance-entretien-et-nettoyage).
+- Suivi optionnel de plusieurs poêles alimentés par le même stock — voir [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles).
 - Carte Lovelace intégrée, clé en main : tuiles, boutons d'ajout rapide, historique modifiable, calendrier, graphiques, comparaison à la saison précédente.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
 
@@ -191,11 +193,11 @@ Vue d'ensemble :
 
   | Prix moyen | Maintenance | Entretien |
   |---|---|---|
-  | ![Prix moyen](docs/screenshots/70a9d5d9-c62b-462f-a81f-8b9e0b595f6c-IMG_7577.jpeg) | ![Maintenance](docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg) | ![Entretien](docs/screenshots/14cb9b1e-5d83-4699-bca6-31c668aad8eb-IMG_7579.jpeg) |
+  | <img width="220" alt="Prix moyen" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/70a9d5d9-c62b-462f-a81f-8b9e0b595f6c-IMG_7577.jpeg" /> | <img width="220" alt="Maintenance" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/cbaf2ef5-1362-4873-98f2-db1619c0790c-IMG_7578.jpeg" /> | <img width="220" alt="Entretien" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/14cb9b1e-5d83-4699-bca6-31c668aad8eb-IMG_7579.jpeg" /> |
 
   | Achat | Total |
   |---|---|
-  | ![Achat](docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg) | ![Total](docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg) |
+  | <img width="220" alt="Achat" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/bde6d8c3-596c-4b7d-a33c-11012ea267e2-IMG_7580.jpeg" /> | <img width="220" alt="Total" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/64104c8b-4b78-4407-b5d1-917b1425faa9-IMG_7581.jpeg" /> |
 
 - Section calendrier (navigable mois par mois) : chaque jour affiche jusqu'à **5 types d'évènements simultanés** — Achat, Consommation, Maintenance, Entretien et Nettoyage se partagent la cellule à **parts égales selon le nombre de types réellement présents ce jour-là** (1 type = case entièrement colorée, 2 types = moitié/moitié, 3 types = trois tiers, 4 types = quatre quarts), chacun dans la couleur du tableau ci-dessus. Cas particulier lorsque les 5 types sont présents le même jour : la cellule est divisée en **4 quarts** (Achat/Consommation/Maintenance/Entretien) et Nettoyage est représenté par un **rond central violet** superposé par-dessus, plutôt que par une 5ᵉ part trop petite pour rester lisible. Cliquer/toucher un jour affiche le détail (type, quantité ou note) dans une bulle flottante ; mise à jour immédiate après ajout, suppression ou modification.
 
@@ -213,7 +215,7 @@ Vue d'ensemble :
 
   | Déplié | Replié |
   |---|---|
-  | ![Bloc déplié](docs/screenshots/screenshot-1791384983624-52154cbe.png) | ![Bloc replié](docs/screenshots/screenshot-1791384969974-6a7533d1.png) |
+  | <img width="300" alt="Bloc déplié" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1791384983624-52154cbe.png" /> | <img width="300" alt="Bloc replié" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1791384969974-6a7533d1.png" /> |
 
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section sans toucher au YAML.
 
@@ -225,18 +227,36 @@ Vue d'ensemble :
 
 Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer par la carte, via le service `suivi_stock_pellet.log_consumption` (ex. `qty_bags: 1`) depuis n'importe quelle automatisation.
 
+## Suivi de plusieurs poêles
+
+Si tu chauffes avec plusieurs poêles à granulés alimentés par le même stock, tu peux les suivre séparément sans dupliquer le stock :
+
+1. Dans **Configurer** sur l'intégration, renseigne le champ **Poêles** avec les noms séparés par des virgules (ex. `Poêle salon, Poêle chambre`). Il en faut au moins 2 pour que quoi que ce soit change dans l'interface.
+2. Un sélecteur **Poêle** apparaît alors dans les formulaires de consommation, maintenance et entretien (facultatif — une saisie sans poêle précisé reste comptée dans le stock global, mais n'apparaît dans aucun filtrage par poêle).
+3. Ajoute la carte une seconde fois sur le tableau de bord, et choisis un poêle différent dans l'éditeur de carte pour chaque instance. Les tuiles **Stock**, **Acheté** et **Dépensé** restent identiques sur les deux cartes (le stock de granulés est toujours unique et partagé) ; seules les tuiles **Consommé**, **Énergie**, **Maintenance** et **Entretien** sont filtrées sur le poêle choisi.
+4. Une saisie déjà enregistrée sans poêle peut être assignée a posteriori via le crayon (modification) dans l'historique.
+5. L'export CSV ajoute une colonne **Poêle** en dernière position (vide pour les saisies non assignées).
+
+Tant qu'aucun second poêle n'est configuré, rien ne change dans l'interface.
+
+Sélecteur **Poêle** dans les formulaires Consommation et Maintenance (ici avec deux poêles configurés, « Poêle temporaire 1 » et « Poêle temporaire 2 ») :
+
+<img width="600" alt="Sélecteur Poêle - formulaire Consommation" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813691070-819f6594.png" />
+
+<img width="600" alt="Sélecteur Poêle - formulaire Maintenance" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813700073-b44ac4de.png" />
+
 ## Installation
 
 ### Via HACS
 
 1. Ouvrir le dépôt dans HACS et l'installer :
-   
+
    [![Ouvrir dans HACS](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-hacs-fr.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
    [![Ouvrir dans Marketplace](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-marketplace-fr.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
-   
+
    ou rechercher "Suivi Stock Pellet" dans HACS.
-3. Redémarrer Home Assistant.
-4. Ajouter l'intégration :
+2. Redémarrer Home Assistant.
+3. Ajouter l'intégration :
    [![Ajouter l'intégration](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-add-integration-fr.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=suivi_stock_pellet)
    ou Paramètres → Appareils et services → Ajouter une intégration → rechercher "Suivi Stock Pellet".
 
@@ -303,7 +323,7 @@ Options de configuration de la carte (toutes optionnelles, tout est affiché par
 
 Les tuiles de coût existent en deux versions, à ne pas confondre : "Coût / jour CONSO" et "Coût / mois CONSO" reflètent uniquement la valeur des granulés réellement consommés (prix moyen × quantité consommée), tandis que "Coût total saison" et "Coût/mois total saison" couvrent toute la dépense de la saison (achats + maintenance + entretien), y compris du stock pas encore brûlé. Le second peut donc paraître élevé par rapport au premier, notamment en début de saison ou après un gros achat ou un entretien ponctuel.
 
-![Coût total saison et coût/mois total saison](docs/screenshots/screenshot-1791387722124-522e05d1.png)
+<img width="600" alt="Coût total saison et coût/mois total saison" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1791387722124-522e05d1.png" />
 
 Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
 
@@ -355,24 +375,6 @@ data:
   unit: kg
   stock_initial_kg: 180
 ```
-
-## Suivi de plusieurs poêles
-
-Si tu chauffes avec plusieurs poêles à granulés alimentés par le même stock, tu peux les suivre séparément sans dupliquer le stock :
-
-1. Dans **Configurer** sur l'intégration, renseigne le champ **Poêles** avec les noms séparés par des virgules (ex. `Poêle salon, Poêle chambre`). Il en faut au moins 2 pour que quoi que ce soit change dans l'interface.
-2. Un sélecteur **Poêle** apparaît alors dans les formulaires de consommation, maintenance et entretien (facultatif — une saisie sans poêle précisé reste comptée dans le stock global, mais n'apparaît dans aucun filtrage par poêle).
-3. Ajoute la carte une seconde fois sur le tableau de bord, et choisis un poêle différent dans l'éditeur de carte pour chaque instance. Les tuiles **Stock**, **Acheté** et **Dépensé** restent identiques sur les deux cartes (le stock de granulés est toujours unique et partagé) ; seules les tuiles **Consommé**, **Énergie**, **Maintenance** et **Entretien** sont filtrées sur le poêle choisi.
-4. Une saisie déjà enregistrée sans poêle peut être assignée a posteriori via le crayon (modification) dans l'historique.
-5. L'export CSV ajoute une colonne **Poêle** en dernière position (vide pour les saisies non assignées).
-
-Tant qu'aucun second poêle n'est configuré, rien ne change dans l'interface.
-
-Sélecteur **Poêle** dans les formulaires Consommation et Maintenance (ici avec deux poêles configurés, « Poêle temporaire 1 » et « Poêle temporaire 2 ») :
-
-<img width="600" alt="Sélecteur Poêle - formulaire Consommation" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813691070-819f6594.png" />
-
-<img width="600" alt="Sélecteur Poêle - formulaire Maintenance" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813700073-b44ac4de.png" />
 
 ## Licence
 
