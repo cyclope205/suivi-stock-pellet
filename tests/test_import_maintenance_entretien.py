@@ -103,6 +103,55 @@ def test_import_rejects_negative_maintenance_cost_and_rolls_back():
     assert journal.entries("2024-2025") == []
 
 
+def test_import_preserves_poele_on_consumption_and_entretien_never_on_purchase():
+    """async_import_entries used to silently drop a "poele" key present on
+    an imported item (e.g. from the CSV export's own "Poele" column),
+    even though async_add_entry stores it for consumption/maintenance/
+    entretien when logged by hand - so exporting a journal and
+    re-importing it lost every device association. Purchase must never
+    carry one, same restriction as async_add_entry."""
+    journal = _make_journal()
+    run(
+        journal.async_import_entries(
+            [
+                {
+                    "season": "2024-2025",
+                    "type": "purchase",
+                    "unit": "bag",
+                    "qty_bags": 66,
+                    "date": "2023-02-16",
+                    "price_eur": 640.20,
+                    "poele": "Salon",
+                },
+                {
+                    "season": "2024-2025",
+                    "type": "consumption",
+                    "unit": "bag",
+                    "qty_bags": 10,
+                    "date": "2023-03-01",
+                    "poele": "Salon",
+                },
+                {
+                    "season": "2024-2025",
+                    "type": "entretien",
+                    "date": "2024-03-19",
+                    "price_eur": 276.0,
+                    "poele": "Cuisine",
+                },
+            ]
+        )
+    )
+
+    entries = journal.entries("2024-2025")
+    purchase = next(e for e in entries if e["type"] == "purchase")
+    consumption = next(e for e in entries if e["type"] == "consumption")
+    entretien = next(e for e in entries if e["type"] == "entretien")
+
+    assert "poele" not in purchase
+    assert consumption["poele"] == "Salon"
+    assert entretien["poele"] == "Cuisine"
+
+
 def test_import_maintenance_alongside_purchase_and_consumption():
     journal = _make_journal()
     run(

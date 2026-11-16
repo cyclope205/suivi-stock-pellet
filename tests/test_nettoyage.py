@@ -103,7 +103,11 @@ async def test_log_nettoyage_service_handler_stores_entry():
         data={},
         state=CoreState.running,
         services=services,
-        config=SimpleNamespace(config_dir="/tmp"),
+        # See the identical fix/comment in test_service_handlers.py's
+        # _setup(): Store.__init__ now eagerly resolves self.path, so a
+        # bare SimpleNamespace config (no callable .path()) breaks
+        # PelletJournal's construction itself.
+        config=MagicMock(config_dir="/tmp"),
         config_entries=SimpleNamespace(
             async_forward_entry_setups=AsyncMock(),
             async_unload_platforms=AsyncMock(return_value=True),

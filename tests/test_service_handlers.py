@@ -59,7 +59,14 @@ async def _setup(options=None):
         data={},
         state=CoreState.running,
         services=services,
-        config=SimpleNamespace(config_dir="/tmp"),
+        # A plain SimpleNamespace no longer works here: Store.__init__
+        # now eagerly resolves self.path (a cached_property calling
+        # hass.config.path(...)) instead of deferring it to first file
+        # I/O, so a bare config stand-in without a callable .path()
+        # fails PelletJournal's construction itself, before any real
+        # storage access even happens. MagicMock auto-supplies .path()
+        # as a callable, same as test_journal.py's hass = MagicMock().
+        config=MagicMock(config_dir="/tmp"),
         config_entries=SimpleNamespace(
             async_forward_entry_setups=AsyncMock(),
             async_unload_platforms=AsyncMock(return_value=True),

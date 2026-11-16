@@ -67,6 +67,36 @@ def test_event_log_accepts_generic_quantity_column():
     assert result["entries"][1]["price_eur"] == pytest.approx(65.0)
 
 
+def test_event_log_reads_poele_column_for_consumption_and_maintenance():
+    """The CSV export's "Poele" column (added alongside this test to fix
+    the export/import round trip losing the device association) must be
+    read back on import for consumption/maintenance/entretien rows, and
+    never for achat (same restriction as async_add_entry/journal.py)."""
+    csv_text = """Date;Type d'événement;Quantité;Poele;Prix total
+2024-10-15;Consommation;2;Salon;
+2024-10-16;Achat;10;Salon;65,00 €
+2024-10-17;Maintenance;;Cuisine;12,00 €
+"""
+    result = parse_csv_history(csv_text)
+    by_type = {e["type"]: e for e in result["entries"]}
+
+    assert by_type["consumption"]["poele"] == "Salon"
+    assert "poele" not in by_type["purchase"]
+    assert by_type["maintenance"]["poele"] == "Cuisine"
+
+
+def test_event_log_without_poele_column_imports_identically():
+    """A CSV with no "Poele" column (every file predating this feature,
+    including the service's own exports before it added the column)
+    must import exactly as before - no KeyError, no stray "poele" key."""
+    csv_text = """Date;Type d'événement;Quantité;Prix total
+2024-10-15;Consommation;2;
+"""
+    result = parse_csv_history(csv_text)
+
+    assert "poele" not in result["entries"][0]
+
+
 def test_csv_rejects_non_finite_quantity():
     with pytest.raises(CsvImportError):
         parse_csv_history(";septembre;octobre;Saison 2024-2025\n1;nan;0;0\n")
