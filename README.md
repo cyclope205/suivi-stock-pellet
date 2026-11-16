@@ -1,4 +1,3 @@
-
 # Suivi Stock Pellet
 
 [![HACS: Default](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
@@ -368,6 +367,12 @@ Si tu chauffes avec plusieurs poêles à granulés alimentés par le même stock
 5. L'export CSV ajoute une colonne **Poêle** en dernière position (vide pour les saisies non assignées).
 
 Tant qu'aucun second poêle n'est configuré, rien ne change dans l'interface.
+
+Sélecteur **Poêle** dans les formulaires Consommation et Maintenance (ici avec deux poêles configurés, « Poêle temporaire 1 » et « Poêle temporaire 2 ») :
+
+<img width="600" alt="Sélecteur Poêle - formulaire Consommation" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813691070-819f6594.png" />
+
+<img width="600" alt="Sélecteur Poêle - formulaire Maintenance" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813700073-b44ac4de.png" />
 
 ## Licence
 
