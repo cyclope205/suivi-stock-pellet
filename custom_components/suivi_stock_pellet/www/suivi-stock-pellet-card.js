@@ -1799,7 +1799,7 @@ if (cfg.show_csv_import) {
       var cfg = this._config || DEFAULT_CONFIG;
       var entryUnit = this._entryUnit === "kg" ? "kg" : "bag";
       var totals = result.totals || {};
-      var entries = result.entries || [];
+      var entries = result.entries || []; if (cfg.poele) { entries = entries.filter(function (e) { return e.type === "purchase" || e.poele === cfg.poele; }); }
       var startMonth = result.start_month || 9;
       this._startMonth = startMonth;
       var isCurrentSeason = this._season === this._currentSeason;
