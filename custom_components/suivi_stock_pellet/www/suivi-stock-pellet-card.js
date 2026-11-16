@@ -667,7 +667,7 @@
             var season = self._seasonForDate(todayIsoStr);
             self._applyOptimisticConsumption(qty, season, self._entryUnit);
             self._hass
-              .callService("suivi_stock_pellet", "log_consumption", {
+              .callService("suivi_stock_pellet", "log_consumption", { poele: cfg.poele || undefined,
                 qty_bags: qty,
                 unit: "bag",
                 season: season,
