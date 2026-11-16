@@ -642,10 +642,19 @@ class PelletJournal:
                 updated["price_eur"] = price_eur
             if note is not None:
                 updated["note"] = note
-            if clear_poele:
-                updated.pop("poele", None)
-            elif poele:
-                updated["poele"] = poele
+            # Le poele n'est jamais enregistre sur un nettoyage, meme via
+            # une edition - meme regle qu'async_add_entry et
+            # LOG_NETTOYAGE_SCHEMA (evenement pur, jamais associe a un
+            # poele specifique). Avant cette verification, editer une
+            # saisie nettoyage avec un "poele" non vide le lui affectait
+            # quand meme, incoherent avec le modele de donnees (sans
+            # impact sur le calcul du stock, puisque nettoyage n'y entre
+            # jamais).
+            if entry["type"] != ENTRY_TYPE_NETTOYAGE:
+                if clear_poele:
+                    updated.pop("poele", None)
+                elif poele:
+                    updated["poele"] = poele
             target_season = (
                 new_season
                 if (new_season is not None and new_season != season)

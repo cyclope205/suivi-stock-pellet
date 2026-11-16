@@ -303,6 +303,15 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
                 and current.get("date") == item["date"]
                 and float(current.get("qty_bags", 0) or 0) == float(item.get("qty_bags", 0) or 0)
                 and current.get("price_eur") == item.get("price_eur")
+                # Comparer aussi le poele : sans ca, deux consommations
+                # identiques en date/quantite/prix mais affectees a deux
+                # poeles differents etaient vues comme des doublons, et
+                # skip_duplicates pouvait en ecarter une a tort. Les
+                # entrees sans poele (l'immense majorite, pour quiconque
+                # n'utilise pas cette fonctionnalite) continuent de se
+                # comparer normalement : current.get("poele") et
+                # item.get("poele") valent alors tous les deux None.
+                and current.get("poele") == item.get("poele")
                 for current in journal.entries(item["season"])
             ):
                 duplicates.append(item)
