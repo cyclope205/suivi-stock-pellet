@@ -231,9 +231,26 @@ async def test_set_stock_initial_updates_totals():
 # ever actually tagged an entry. These tests exercise the full service
 # path, not journal.py directly, specifically to catch that gap.
 
+async def _seed_stock(handlers, qty_bags=10.0):
+    """Log a purchase so a subsequent log_consumption call has stock to
+    draw down - _handle_log_consumption rejects consumption that would
+    push stock negative, same as test_log_consumption_nominal_reduces_stock
+    above."""
+    await handlers[SERVICE_LOG_PURCHASE](
+        _call(
+            {
+                ATTR_QTY_BAGS: qty_bags,
+                ATTR_UNIT: "bag",
+                ATTR_PRICE_EUR: 65.0,
+                "season": "2025-2026",
+            }
+        )
+    )
+
 @pytest.mark.asyncio
 async def test_log_consumption_passes_poele_through_to_journal():
     handlers, journal = await _setup()
+    await _seed_stock(handlers)
     await handlers[SERVICE_LOG_CONSUMPTION](
         _call(
             {
@@ -250,6 +267,7 @@ async def test_log_consumption_passes_poele_through_to_journal():
 @pytest.mark.asyncio
 async def test_log_consumption_without_poele_field_leaves_entry_untagged():
     handlers, journal = await _setup()
+    await _seed_stock(handlers)
     await handlers[SERVICE_LOG_CONSUMPTION](
         _call({ATTR_QTY_BAGS: 2.0, ATTR_UNIT: "bag", "season": "2025-2026"})
     )
@@ -277,13 +295,14 @@ async def test_log_entretien_passes_poele_through_to_journal():
 @pytest.mark.asyncio
 async def test_edit_entry_sets_poele_via_service():
     handlers, journal = await _setup()
+    await _seed_stock(handlers)
     await handlers[SERVICE_LOG_CONSUMPTION](
         _call({ATTR_QTY_BAGS: 2.0, ATTR_UNIT: "bag", "season": "2025-2026"})
     )
     await handlers[SERVICE_EDIT_ENTRY](
-        _call({"season": "2025-2026", ATTR_INDEX: 0, "poele": "Salon"})
+        _call({"season": "2025-2026", ATTR_INDEX: 1, "poele": "Salon"})
     )
-    assert journal.entries("2025-2026")[0]["poele"] == "Salon"
+    assert journal.entries("2025-2026")[1]["poele"] == "Salon"
 
 @pytest.mark.asyncio
 async def test_edit_entry_clears_poele_with_empty_string_via_service():
@@ -292,6 +311,7 @@ async def test_edit_entry_clears_poele_with_empty_string_via_service():
     "poele" clears an existing assignment - distinct from omitting the
     field entirely, which must leave it unchanged."""
     handlers, journal = await _setup()
+    await _seed_stock(handlers)
     await handlers[SERVICE_LOG_CONSUMPTION](
         _call(
             {
@@ -303,13 +323,14 @@ async def test_edit_entry_clears_poele_with_empty_string_via_service():
         )
     )
     await handlers[SERVICE_EDIT_ENTRY](
-        _call({"season": "2025-2026", ATTR_INDEX: 0, "poele": ""})
+        _call({"season": "2025-2026", ATTR_INDEX: 1, "poele": ""})
     )
-    assert "poele" not in journal.entries("2025-2026")[0]
+    assert "poele" not in journal.entries("2025-2026")[1]
 
 @pytest.mark.asyncio
 async def test_edit_entry_omitting_poele_field_leaves_it_unchanged():
     handlers, journal = await _setup()
+    await _seed_stock(handlers)
     await handlers[SERVICE_LOG_CONSUMPTION](
         _call(
             {
@@ -321,6 +342,6 @@ async def test_edit_entry_omitting_poele_field_leaves_it_unchanged():
         )
     )
     await handlers[SERVICE_EDIT_ENTRY](
-        _call({"season": "2025-2026", ATTR_INDEX: 0, ATTR_QTY_BAGS: 3.0})
+        _call({"season": "2025-2026", ATTR_INDEX: 1, ATTR_QTY_BAGS: 3.0})
     )
-    assert journal.entries("2025-2026")[0]["poele"] == "Salon"
+    assert journal.entries("2025-2026")[1]["poele"] == "Salon"
