@@ -384,7 +384,7 @@ class PelletJournal:
             }
             if poele:
                 stored["poele"] = poele
-                self._season_entries(season).append(stored)
+            self._season_entries(season).append(stored)
             await self._async_save()
             return
         if price_eur is not None and (
