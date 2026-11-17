@@ -1675,7 +1675,7 @@ if (cfg.show_csv_import) {
       return month >= startMonth ? year + "-" + (year + 1) : (year - 1) + "-" + year;
     }
 
-    _applyOptimisticConsumption(qty, season, unit) {
+    _applyOptimisticConsumption(qty, season, unit, fromBroadcast) { if (!this.__pelletOptimisticBound) { this.__pelletOptimisticBound = true; var self2 = this; window.addEventListener("suivi-stock-pellet-optimistic", function (e) { if (!e.detail || e.detail.source === self2) return; if (e.detail.season !== self2._season) return; self2._applyOptimisticConsumption(e.detail.qty, e.detail.season, e.detail.unit, true); }); } if (!fromBroadcast) { window.dispatchEvent(new CustomEvent("suivi-stock-pellet-optimistic", { detail: { source: this, season: season, qty: qty, unit: unit } })); }
       // Fait avancer immediatement l'affichage local (tuiles + stock)
       // pendant que le callService est en vol, pour que le bouton
       // "+1 sac aujourd'hui" paraisse instantane. _applySeasonData (issue
