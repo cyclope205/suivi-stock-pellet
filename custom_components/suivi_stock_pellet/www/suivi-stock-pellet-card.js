@@ -1799,7 +1799,7 @@ if (cfg.show_csv_import) {
       var cfg = this._config || DEFAULT_CONFIG;
       var entryUnit = this._entryUnit === "kg" ? "kg" : "bag";
       var totals = result.totals || {};
-      var entries = result.entries || []; if (cfg.poele) { entries = entries.filter(function (e) { return e.type === "purchase" || e.poele === cfg.poele; }); }
+      var entries = result.entries || []; entries.forEach(function (e, i) { e.__journalIndex = i; }); if (cfg.poele) { entries = entries.filter(function (e) { return e.type === "purchase" || e.poele === cfg.poele; }); }
       var startMonth = result.start_month || 9;
       this._startMonth = startMonth;
       var isCurrentSeason = this._season === this._currentSeason;
@@ -2214,7 +2214,7 @@ if (cfg.show_csv_import) {
         return;
       }
       var indexed = entries.map(function (entry, idx) {
-        return { entry: entry, index: idx };
+        return { entry: entry, index: (entry.__journalIndex !== undefined ? entry.__journalIndex : idx) };
       });
       var recent = indexed.slice().reverse();
       recent.forEach(function (item) {
