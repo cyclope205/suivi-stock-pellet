@@ -4,7 +4,7 @@
  *
  * Utilisation minimale dans un tableau de bord :
  *   type: custom:suivi-stock-pellet-card
- *
+ *h
  * Options de configuration (toutes optionnehlles, tout est affiché par défaut) :
  *   show_stats: true|false          Tuiles consommé / énergie / dépensé / jours
  *   show_cost_stats: true|false     Tuiles coût/jour, coût/mois, coût du sac
@@ -1438,7 +1438,7 @@ if (cfg.show_csv_import) {
         var data = { date: dateInput.value, season: formSeason };
         if (hasCost) data.price_eur = price;
         if (noteInput.value) data.note = noteInput.value;
-        if (hasCost && poeleInput && poeleInput.value) data.poele = poeleInput.value;
+        if (poeleInput && poeleInput.value) data.poele = poeleInput.value;
         var service = kind === "maintenance"
           ? "log_maintenance"
           : kind === "entretien"
