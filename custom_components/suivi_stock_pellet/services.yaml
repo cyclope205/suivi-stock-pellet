@@ -374,6 +374,12 @@ log_nettoyage:
       required: false
       selector:
         text: {}
+    poele:
+      name: Poêle
+      description: Nom du poêle concerné, si plusieurs poêles sont configurés (facultatif, sans effet si un seul poêle n'est configuré).
+      required: false
+      selector:
+        text: {}
 
 export_csv:
   name: Exporter en CSV
