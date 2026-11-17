@@ -220,11 +220,10 @@ LOG_NETTOYAGE_SCHEMA = vol.Schema(
     {
         # Pas de price_eur : le nettoyage est un evenement pur (date +
         # note), jamais un cout - contrairement a maintenance/entretien.
-        # Pas de "poele" non plus: async_add_entry ne l'applique jamais a
-        # un nettoyage (voir journal.py), donc inutile de l'exposer ici.
         vol.Optional(ATTR_DATE): cv.date,
         vol.Optional("season"): _valid_season,
         vol.Optional(ATTR_NOTE): cv.string,
+        vol.Optional("poele"): cv.string,
     }
 )
 
@@ -464,12 +463,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         note = call.data.get(ATTR_NOTE)
         entry_date = call.data.get(ATTR_DATE, dt_util.now().date())
         season = call.data.get("season") or season_for_date(entry_date, _start_month())
+        poele = call.data.get("poele") or None
         await journal.async_add_entry(
             season,
             ENTRY_TYPE_NETTOYAGE,
             None,
             entry_date.isoformat(),
             note=note,
+            poele=poele,
         )
         _notify()
 
