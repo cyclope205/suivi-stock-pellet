@@ -2469,7 +2469,7 @@ if (cfg.show_csv_import) {
       });
 
       deleteBtn.addEventListener("click", function () {
-        if (!window.confirm("Supprimer cette saisie ?")) return;
+        if (deleteBtn.dataset.confirm !== "1") { deleteBtn.dataset.confirm = "1"; setTimeout(function () { deleteBtn.dataset.confirm = ""; }, 4000); return; } deleteBtn.dataset.confirm = "";
           self._hass.callService("suivi_stock_pellet", "delete_entry", {
             season: self._season,
             index: index
