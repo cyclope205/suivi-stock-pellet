@@ -46,14 +46,14 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 ## Sommaire
 
 - [Fonctionnalités](#fonctionnalités)
+- [Installation](#installation)
+- [Utilisation](#utilisation)
 - [Unités et prix (sacs / kg)](#unités-et-prix-sacs--kg)
 - [Saisons de chauffe](#saisons-de-chauffe)
 - [Import et export CSV](#import-et-export-csv)
 - [Maintenance, entretien et nettoyage](#maintenance-entretien-et-nettoyage)
 - [Carte Lovelace](#carte-lovelace)
 - [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles)
-- [Installation](#installation)
-- [Utilisation](#utilisation)
 - [Entités créées](#entités-créées)
 - [Service `set_stock_initial`](#service-set_stock_initial)
 - [Licence](#licence)
@@ -71,6 +71,103 @@ Intégration Home Assistant pour suivre le stock, la consommation et les achats 
 - Suivi optionnel de plusieurs poêles alimentés par le même stock — voir [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles).
 - Carte Lovelace intégrée, clé en main : tuiles, boutons d'ajout rapide, historique modifiable, calendrier, graphiques, comparaison à la saison précédente.
 - Configurateur visuel (éditeur de carte intégré) pour activer/désactiver chaque section de la carte sans toucher au YAML.
+
+## Installation
+
+### Via HACS
+
+1. Ouvrir le dépôt dans HACS et l'installer :
+
+   [![Ouvrir dans HACS](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-hacs-fr.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
+   [![Ouvrir dans Marketplace](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-marketplace-fr.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
+
+   ou rechercher "Suivi Stock Pellet" dans HACS.
+2. Redémarrer Home Assistant.
+3. Ajouter l'intégration :
+   [![Ajouter l'intégration](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-add-integration-fr.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=suivi_stock_pellet)
+   ou Paramètres → Appareils et services → Ajouter une intégration → rechercher "Suivi Stock Pellet".
+
+**⚠️ La carte affiche « Erreur de configuration : Custom element doesn't exist: suivi-stock-pellet-card » juste après l'installation ?** C'est normal, le temps que le navigateur recharge le cache : faites **Ctrl+F5** sur navigateur (rechargement forcé), ou **fermez complètement puis relancez l'application Home Assistant Companion** sur mobile. La carte s'affiche ensuite normalement.
+
+### Ajouter la carte au tableau de bord
+
+Une fois l'intégration installée (étapes ci-dessus), la carte doit être ajoutée manuellement à votre tableau de bord :
+
+1. Ouvrez le tableau de bord concerné et cliquez sur le crayon en haut à droite pour passer en mode édition.
+2. Cliquez sur "+ Ajouter une carte" en bas de l'écran.
+3. Dans la barre de recherche, tapez "Suivi Stock Pellet" : la carte apparaît dans la liste, cliquez dessus puis sur "Enregistrer".
+
+Alternative en YAML (onglet "Modifier en YAML" de la fenêtre d'ajout de carte) :
+
+```yaml
+type: custom:suivi-stock-pellet-card
+```
+
+### Configuration
+
+À l'ajout de l'intégration :
+
+| Paramètre | Description | Défaut |
+|---|---|---|
+| Unité d'affichage | Affichage des quantités et des prix en sacs ou en kilogrammes | Sacs |
+| Prix moyen d'un sac (€) | Affiché et utilisé lorsque l'unité **Sacs** est sélectionnée | 6,50 € |
+| Prix moyen au kg (€) | Affiché et utilisé lorsque l'unité **Kilogrammes (kg)** est sélectionnée | 0,43 € |
+| Pouvoir calorifique | kWh par kg de granulés, pour le calcul énergie | 4,8 |
+| Mois de début de saison | Mois à partir duquel une nouvelle saison de chauffe commence. La fin de saison est automatiquement le mois précédent | 9 (septembre) |
+| Quantité de sacs par défaut (bouton rapide) | Nombre de sacs ajoutés en un clic par le bouton rapide de la carte | 1 |
+| Poêles | Liste de noms de poêles séparés par des virgules (ex. `Poêle salon, Poêle chambre`), facultatif | vide |
+
+> Le poids de référence de **15 kg par sac est fixe en interne** et n'est pas demandé dans la configuration.
+
+Ces valeurs sont modifiables ensuite via **Configurer** sur l'intégration. Le champ **Poêles** n'a aucun effet tant qu'il contient moins de 2 noms : aucun sélecteur supplémentaire n'apparaît ailleurs dans l'intégration pour un usage à un seul poêle (voir [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles)). Le champ de prix proposé dépend de l'unité d'affichage choisie.
+
+## Utilisation
+
+Ajoute la carte à un tableau de bord :
+
+```yaml
+type: custom:suivi-stock-pellet-card
+```
+
+Options de configuration de la carte (toutes optionnelles, tout est affiché par défaut — modifiables aussi via le configurateur visuel) :
+
+| Option | Description |
+|---|---|
+| `show_stats` | Tuiles consommé / énergie / dépensé / jours |
+| `show_cost_stats` | Tuiles coût / jour CONSO, coût / mois CONSO, coût du sac, coût total saison, coût/mois total saison |
+| `show_actions` | Boutons et formulaires de saisie (Consommation, Nettoyage, Achat, Maintenance, Entretien, bouton rapide) |
+| `show_secondary_actions` | Masque entièrement la 2e rangée de boutons (Maintenance, Achat, Entretien) et leurs formulaires ; la 1re rangée (Consommation, Nettoyage, bouton rapide) reste toujours visible. Pratique si vous ne vous servez de Maintenance/Achat/Entretien que rarement — rien n'est désactivé ni perdu, ces fonctions restent accessibles via les services Home Assistant |
+| `show_csv_import` | Bouton "Importer CSV" (réservé aux administrateurs Home Assistant) |
+| `show_csv_export` | Bouton "Exporter CSV" |
+| `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
+| `show_price_chart` | Onglet "Prix moyen" du graphique de coût par saison |
+| `show_maintenance_chart` | Onglet "Maintenance" du graphique de coût par saison |
+| `show_entretien_chart` | Onglet "Entretien" du graphique de coût par saison |
+| `show_achat_chart` | Onglet "Achat" du graphique de coût par saison |
+| `show_cost_total_chart` | Onglet "Total" du graphique de coût par saison (achat + maintenance + entretien) |
+| `show_history` | Liste des dernières saisies |
+| `show_calendar` | Calendrier des ajouts, navigable mois par mois |
+| `show_comparison` | Comparaison avec la saison précédente à date égale |
+
+Les tuiles de coût existent en deux versions, à ne pas confondre : "Coût / jour CONSO" et "Coût / mois CONSO" reflètent uniquement la valeur des granulés réellement consommés (prix moyen × quantité consommée), tandis que "Coût total saison" et "Coût/mois total saison" couvrent toute la dépense de la saison (achats + maintenance + entretien), y compris du stock pas encore brûlé. Le second peut donc paraître élevé par rapport au premier, notamment en début de saison ou après un gros achat ou un entretien ponctuel.
+
+<img width="600" alt="Coût total saison et coût/mois total saison" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1791387722124-522e05d1.png" />
+
+Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
+
+### Services
+
+- `suivi_stock_pellet.log_consumption` (`unit` : `bag` ou `kg`, `qty_bags` ou `qty_kg` selon l'unité, `season` facultative, `date` facultative, `poele` facultatif si plusieurs poêles sont configurés)
+- `suivi_stock_pellet.log_purchase` (`unit` : `bag` ou `kg`, `qty_bags` ou `qty_kg` selon l'unité, `season` facultative, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative)
+- `suivi_stock_pellet.undo_last_entry`
+- `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier, dont `poele` — envoyer une chaîne vide pour retirer l'assignation existante)
+- `suivi_stock_pellet.delete_entry` (`season`, `index`)
+- `suivi_stock_pellet.set_stock_initial` (`season`, `stock_initial_bags`) — définit ou corrige le stock de départ d'une saison, voir [chapitre dédié](#service-set_stock_initial)
+- `suivi_stock_pellet.delete_season` (`season`) — supprime entièrement une saison (toutes ses saisies)
+- `suivi_stock_pellet.log_maintenance` (`price_eur`, `season` facultative, `date` facultative, `note` facultative, `poele` facultatif) — enregistre un coût de maintenance
+- `suivi_stock_pellet.log_entretien` (`price_eur`, `season` facultative, `date` facultative, `note` facultative, `poele` facultatif) — enregistre un coût d'entretien
+- `suivi_stock_pellet.log_nettoyage` (`season` facultative, `date` facultative, `note` facultative, `poele` facultatif) — enregistre un nettoyage ; pas de `price_eur`, ce type n'a jamais de coût
+- `suivi_stock_pellet.export_csv` (`season` facultative — toutes les saisons si absente, `date_from`/`date_to` facultatives, `types` facultatif) — génère un CSV au format "journal" (utilisé en interne par le bouton "Exporter CSV")
 
 ## Unités et prix (sacs / kg)
 
@@ -130,7 +227,7 @@ Dans les deux cas : la saison `AAAA-AAAA` est détectée automatiquement (ou dé
 
 > **⚠️ Un fichier CSV ne peut contenir qu'une seule saison.** Contrairement à la saisie manuelle au fil de l'eau (qui reporte automatiquement le stock restant d'une saison sur la suivante, voir [Saisons de chauffe](#saisons-de-chauffe)), une saison créée par un **import** démarre toujours avec un stock de départ à **0**, sans aucun report depuis une saison précédente — même si cette saison précédente fait partie du même import. C'est volontaire et définitif : cela garantit qu'importer une saison donne toujours exactement le même résultat, qu'elle soit importée seule ou combinée avec d'autres saisons dans un seul fichier. Un fichier au format "journal" qui mélange plusieurs saisons (un export cumulé sur plusieurs années, par exemple) est donc **refusé dès l'analyse**, avec un message listant les saisons détectées : importez chaque saison séparément, un fichier CSV par saison. Si votre stock réel ne repart jamais à 0 d'une saison à l'autre, cette limite ne peut pas être levée côté import ; utilisez le service [`set_stock_initial`](#service-set_stock_initial) après l'import pour corriger manuellement le stock de départ de chaque saison concernée.
 
-Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une ou plusieurs saisons et une ou plusieurs catégories (Achat / Consommation / Maintenance / Entretien / Nettoyage), puis télécharger un CSV fusionné au format "journal" ci-dessus (`Saison;Date;Type;Quantite;Prix par sac;Prix total;Note`). Pour pouvoir le réimporter, veillez à ne cocher qu'une seule saison à la fois lors de l'export. Les lignes "Nettoyage" exportées ont toujours leurs colonnes de prix vides, puisque ce type n'a jamais de coût.
+Le bouton **« Exporter CSV »** ouvre une fenêtre de sélection : cocher une ou plusieurs saisons et une ou plusieurs catégories (Achat / Consommation / Maintenance / Entretien / Nettoyage), puis télécharger un CSV fusionné au format "journal" ci-dessus (`Saison;Date;Type;Quantite;Prix par sac;Prix total;Note;Poele`). La colonne `Poele` (si plusieurs poêles sont configurés, voir [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles)) est ajoutée en dernière position et reprise telle quelle à l'import. Pour pouvoir le réimporter, veillez à ne cocher qu'une seule saison à la fois lors de l'export. Les lignes "Nettoyage" exportées ont toujours leurs colonnes de prix vides, puisque ce type n'a jamais de coût.
 
 > **En cas d'échec de l'import** (fichier refusé, erreur inattendue...), merci d'ouvrir une issue sur le dépôt avec le détail de l'erreur et, si possible, un extrait du fichier CSV concerné : [ouvrir une issue](https://github.com/cyclope205/suivi-stock-pellet/issues/new).
 
@@ -232,114 +329,40 @@ Le bouton **« +1 sac aujourd'hui »** peut aussi être déclenché sans passer 
 Si tu chauffes avec plusieurs poêles à granulés alimentés par le même stock, tu peux les suivre séparément sans dupliquer le stock :
 
 1. Dans **Configurer** sur l'intégration, renseigne le champ **Poêles** avec les noms séparés par des virgules (ex. `Poêle salon, Poêle chambre`). Il en faut au moins 2 pour que quoi que ce soit change dans l'interface.
-2. Un sélecteur **Poêle** apparaît alors dans les formulaires de consommation, maintenance et entretien (facultatif — une saisie sans poêle précisé reste comptée dans le stock global, mais n'apparaît dans aucun filtrage par poêle).
-3. Ajoute la carte une seconde fois sur le tableau de bord, et choisis un poêle différent dans l'éditeur de carte pour chaque instance. Les tuiles **Stock**, **Acheté** et **Dépensé** restent identiques sur les deux cartes (le stock de granulés est toujours unique et partagé) ; seules les tuiles **Consommé**, **Énergie**, **Maintenance** et **Entretien** sont filtrées sur le poêle choisi.
+2. Un sélecteur **Poêle** apparaît alors dans les formulaires de consommation, maintenance, entretien et nettoyage (facultatif — une saisie sans poêle précisé reste comptée dans le stock global, mais n'apparaît dans aucun filtrage par poêle).
+3. Ajoute la carte une seconde fois sur le tableau de bord, et choisis un poêle différent dans l'éditeur de carte pour chaque instance. Dès qu'une carte est dédiée à un poêle, ses formulaires n'affichent plus le sélecteur : chaque saisie faite depuis cette carte est automatiquement rattachée à ce poêle, sans action supplémentaire. Les tuiles **Stock**, **Acheté** et **Dépensé** restent identiques sur les deux cartes (le stock de granulés est toujours unique et partagé) ; seules les tuiles **Consommé**, **Énergie**, **Maintenance** et **Entretien**, ainsi que l'historique, le calendrier et le graphique, sont filtrés sur le poêle choisi.
 4. Une saisie déjà enregistrée sans poêle peut être assignée a posteriori via le crayon (modification) dans l'historique.
 5. L'export CSV ajoute une colonne **Poêle** en dernière position (vide pour les saisies non assignées).
 
 Tant qu'aucun second poêle n'est configuré, rien ne change dans l'interface.
 
-Sélecteur **Poêle** dans les formulaires Consommation et Maintenance (ici avec deux poêles configurés, « Poêle temporaire 1 » et « Poêle temporaire 2 ») :
+### Tutoriel pas à pas
 
-<img width="600" alt="Sélecteur Poêle - formulaire Consommation" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813691070-819f6594.png" />
+**1. Configurer les poêles dans l'intégration**
 
-<img width="600" alt="Sélecteur Poêle - formulaire Maintenance" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1794813700073-b44ac4de.png" />
+Paramètres de l'intégration → champ **Poêles** → renseigne les noms séparés par des virgules (ici `Palazetti, Dielle`) :
 
-## Installation
+<img width="600" alt="Configuration du champ Poêles dans l'intégration" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/mcp-claude-in-chrome-blob-1795404527335-h009ja.jpg" />
 
-### Via HACS
+**2. Vérifier l'apparition du sélecteur dans les formulaires**
 
-1. Ouvrir le dépôt dans HACS et l'installer :
+Dès que 2 poêles ou plus sont configurés, un sélecteur **Poêle (facultatif)** apparaît automatiquement dans les formulaires Consommation, Nettoyage, Maintenance et Entretien — tant que la carte elle-même n'est pas encore dédiée à un poêle (voir étape 3) :
 
-   [![Ouvrir dans HACS](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-hacs-fr.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
-   [![Ouvrir dans Marketplace](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-marketplace-fr.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=cyclope205&repository=suivi-stock-pellet&category=integration)
+<img width="600" alt="Sélecteur Poêle - formulaire Consommation" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/mcp-claude-in-chrome-blob-1795404884904-hdodvo.jpg" />
 
-   ou rechercher "Suivi Stock Pellet" dans HACS.
-2. Redémarrer Home Assistant.
-3. Ajouter l'intégration :
-   [![Ajouter l'intégration](https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/badges/badge-add-integration-fr.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=suivi_stock_pellet)
-   ou Paramètres → Appareils et services → Ajouter une intégration → rechercher "Suivi Stock Pellet".
+<img width="600" alt="Sélecteur Poêle - formulaire Nettoyage" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/mcp-claude-in-chrome-blob-1795404900938-vvllp2.jpg" />
 
-**⚠️ La carte affiche « Erreur de configuration : Custom element doesn't exist: suivi-stock-pellet-card » juste après l'installation ?** C'est normal, le temps que le navigateur recharge le cache : faites **Ctrl+F5** sur navigateur (rechargement forcé), ou **fermez complètement puis relancez l'application Home Assistant Companion** sur mobile. La carte s'affiche ensuite normalement.
+<img width="600" alt="Sélecteur Poêle - formulaire Maintenance" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/mcp-claude-in-chrome-blob-1795404910436-1qvzbk.jpg" />
 
-### Ajouter la carte au tableau de bord
+**3. Créer une carte par poêle**
 
-Une fois l'intégration installée (étapes ci-dessus), la carte doit être ajoutée manuellement à votre tableau de bord :
+Ajoute la carte une première fois sur le tableau de bord, ouvre son éditeur visuel et choisis un poêle dans le champ **Poêle**. Répète l'opération pour le second poêle avec une seconde instance de la carte. Une fois qu'une carte est dédiée à un poêle, ses formulaires n'affichent plus le sélecteur vu à l'étape 2 : chaque saisie y est automatiquement rattachée à ce poêle.
 
-1. Ouvrez le tableau de bord concerné et cliquez sur le crayon en haut à droite pour passer en mode édition.
-2. Cliquez sur "+ Ajouter une carte" en bas de l'écran.
-3. Dans la barre de recherche, tapez "Suivi Stock Pellet" : la carte apparaît dans la liste, cliquez dessus puis sur "Enregistrer".
+**4. Résultat : deux cartes, un seul stock**
 
-Alternative en YAML (onglet "Modifier en YAML" de la fenêtre d'ajout de carte) :
+<img width="600" alt="Deux cartes Suivi Stock Pellet, une par poêle" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/mcp-claude-in-chrome-blob-1795404680123-v77x4v.jpg" />
 
-```yaml
-type: custom:suivi-stock-pellet-card
-```
-
-### Configuration
-
-À l'ajout de l'intégration :
-
-| Paramètre | Description | Défaut |
-|---|---|---|
-| Unité d'affichage | Affichage des quantités et des prix en sacs ou en kilogrammes | Sacs |
-| Prix moyen d'un sac (€) | Affiché et utilisé lorsque l'unité **Sacs** est sélectionnée | 6,50 € |
-| Prix moyen au kg (€) | Affiché et utilisé lorsque l'unité **Kilogrammes (kg)** est sélectionnée | 0,43 € |
-| Pouvoir calorifique | kWh par kg de granulés, pour le calcul énergie | 4,8 |
-| Mois de début de saison | Mois à partir duquel une nouvelle saison de chauffe commence. La fin de saison est automatiquement le mois précédent | 9 (septembre) |
-| Quantité de sacs par défaut (bouton rapide) | Nombre de sacs ajoutés en un clic par le bouton rapide de la carte | 1 |
-| Poêles | Liste de noms de poêles séparés par des virgules (ex. `Poêle salon, Poêle chambre`), facultatif | vide |
-
-> Le poids de référence de **15 kg par sac est fixe en interne** et n'est pas demandé dans la configuration.
-
-Ces valeurs sont modifiables ensuite via **Configurer** sur l'intégration. Le champ **Poêles** n'a aucun effet tant qu'il contient moins de 2 noms : aucun sélecteur supplémentaire n'apparaît ailleurs dans l'intégration pour un usage à un seul poêle (voir [Suivi de plusieurs poêles](#suivi-de-plusieurs-poêles)). Le champ de prix proposé dépend de l'unité d'affichage choisie.
-
-## Utilisation
-
-Ajoute la carte à un tableau de bord :
-
-```yaml
-type: custom:suivi-stock-pellet-card
-```
-
-Options de configuration de la carte (toutes optionnelles, tout est affiché par défaut — modifiables aussi via le configurateur visuel) :
-
-| Option | Description |
-|---|---|
-| `show_stats` | Tuiles consommé / énergie / dépensé / jours |
-| `show_cost_stats` | Tuiles coût / jour CONSO, coût / mois CONSO, coût du sac, coût total saison, coût/mois total saison |
-| `show_actions` | Boutons et formulaires de saisie (Consommation, Nettoyage, Achat, Maintenance, Entretien, bouton rapide) |
-| `show_secondary_actions` | Masque entièrement la 2e rangée de boutons (Maintenance, Achat, Entretien) et leurs formulaires ; la 1re rangée (Consommation, Nettoyage, bouton rapide) reste toujours visible. Pratique si vous ne vous servez de Maintenance/Achat/Entretien que rarement — rien n'est désactivé ni perdu, ces fonctions restent accessibles via les services Home Assistant |
-| `show_csv_import` | Boutons "Importer CSV" et "Exporter CSV" (import réservé aux administrateurs Home Assistant) |
-| `show_monthly_chart` | Graphique "Évolution de la consommation" (quantité / coût) |
-| `show_price_chart` | Onglet "Prix moyen" du graphique de coût par saison |
-| `show_maintenance_chart` | Onglet "Maintenance" du graphique de coût par saison |
-| `show_entretien_chart` | Onglet "Entretien" du graphique de coût par saison |
-| `show_achat_chart` | Onglet "Achat" du graphique de coût par saison |
-| `show_cost_total_chart` | Onglet "Total" du graphique de coût par saison (achat + maintenance + entretien) |
-| `show_history` | Liste des dernières saisies |
-| `show_calendar` | Calendrier des ajouts, navigable mois par mois |
-| `show_comparison` | Comparaison avec la saison précédente à date égale |
-
-Les tuiles de coût existent en deux versions, à ne pas confondre : "Coût / jour CONSO" et "Coût / mois CONSO" reflètent uniquement la valeur des granulés réellement consommés (prix moyen × quantité consommée), tandis que "Coût total saison" et "Coût/mois total saison" couvrent toute la dépense de la saison (achats + maintenance + entretien), y compris du stock pas encore brûlé. Le second peut donc paraître élevé par rapport au premier, notamment en début de saison ou après un gros achat ou un entretien ponctuel.
-
-<img width="600" alt="Coût total saison et coût/mois total saison" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/screenshot-1791387722124-522e05d1.png" />
-
-Les options `show_price_chart`, `show_maintenance_chart`, `show_entretien_chart`, `show_achat_chart` et `show_cost_total_chart` contrôlent chacune un onglet d'un même graphique de coût par saison (un seul graphique affiché à la fois, avec des onglets pour basculer entre Prix moyen / Maintenance / Entretien / Achat / Total). Décocher une option retire simplement son onglet ; si un seul onglet reste, il s'affiche seul et sans navigation.
-
-### Services
-
-- `suivi_stock_pellet.log_consumption` (`qty_bags`, `season` facultative, `date` facultative, `poele` facultatif si plusieurs poêles sont configurés)
-- `suivi_stock_pellet.log_purchase` (`qty_bags`, `season` facultative, `price_eur` facultatif — utilise le prix moyen actuel si absent, `date` facultative)
-- `suivi_stock_pellet.undo_last_entry`
-- `suivi_stock_pellet.edit_entry` (`season`, `index`, champs à modifier, dont `poele` — envoyer une chaîne vide pour retirer l'assignation existante)
-- `suivi_stock_pellet.delete_entry` (`season`, `index`)
-- `suivi_stock_pellet.set_stock_initial` (`season`, `stock_initial_bags`) — définit ou corrige le stock de départ d'une saison, voir [chapitre dédié](#service-set_stock_initial)
-- `suivi_stock_pellet.delete_season` (`season`) — supprime entièrement une saison (toutes ses saisies)
-- `suivi_stock_pellet.log_maintenance` (`price_eur`, `season` facultative, `date` facultative, `note` facultative, `poele` facultatif) — enregistre un coût de maintenance
-- `suivi_stock_pellet.log_entretien` (`price_eur`, `season` facultative, `date` facultative, `note` facultative, `poele` facultatif) — enregistre un coût d'entretien
-- `suivi_stock_pellet.log_nettoyage` (`season` facultative, `date` facultative, `note` facultative) — enregistre un nettoyage ; pas de `price_eur`, ce type n'a jamais de coût
-- `suivi_stock_pellet.export_csv` (`season` facultative — toutes les saisons si absente, `date_from`/`date_to` facultatives, `types` facultatif) — génère un CSV au format "journal" (utilisé en interne par le bouton "Exporter CSV")
+Les tuiles Stock / Acheté / Dépensé restent identiques des deux côtés ; Consommé, Énergie, Maintenance, Entretien, historique, calendrier et graphique sont propres à chaque poêle.
 
 ## Entités créées
 
