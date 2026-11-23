@@ -665,7 +665,7 @@
             btnQuick.disabled = true;
             var todayIsoStr = todayIso();
             var season = self._seasonForDate(todayIsoStr);
-            self._applyOptimisticConsumption(qty, season, self._entryUnit);
+            self._applyOptimisticConsumption(qty, season, "bag", false, cfg.poele);
             self._hass
               .callService("suivi_stock_pellet", "log_consumption", { poele: cfg.poele || undefined,
                 qty_bags: qty,
@@ -1675,7 +1675,7 @@ if (cfg.show_csv_import) {
       return month >= startMonth ? year + "-" + (year + 1) : (year - 1) + "-" + year;
     }
 
-    _applyOptimisticConsumption(qty, season, unit, fromBroadcast) { if (!this.__pelletOptimisticBound) { this.__pelletOptimisticBound = true; var self2 = this; window.addEventListener("suivi-stock-pellet-optimistic", function (e) { if (!e.detail || e.detail.source === self2) return; if (e.detail.season !== self2._season) return; self2._applyOptimisticConsumption(e.detail.qty, e.detail.season, e.detail.unit, true); }); } if (!fromBroadcast) { window.dispatchEvent(new CustomEvent("suivi-stock-pellet-optimistic", { detail: { source: this, season: season, qty: qty, unit: unit } })); }
+    _applyOptimisticConsumption(qty, season, unit, fromBroadcast, poele) { if (!this.__pelletOptimisticBound) { this.__pelletOptimisticBound = true; var self2 = this; window.addEventListener("suivi-stock-pellet-optimistic", function (e) { if (!e.detail || e.detail.source === self2) return; if (e.detail.season !== self2._season) return; var cfg2 = self2._config || DEFAULT_CONFIG; if (cfg2.poele && e.detail.poele !== cfg2.poele) return; self2._applyOptimisticConsumption(e.detail.qty, e.detail.season, e.detail.unit, true, e.detail.poele); }); } if (!fromBroadcast) { window.dispatchEvent(new CustomEvent("suivi-stock-pellet-optimistic", { detail: { source: this, season: season, qty: qty, unit: unit, poele: poele } })); }
       // Fait avancer immediatement l'affichage local (tuiles + stock)
       // pendant que le callService est en vol, pour que le bouton
       // "+1 sac aujourd'hui" paraisse instantane. _applySeasonData (issue
@@ -1698,17 +1698,7 @@ if (cfg.show_csv_import) {
         if (els.btnConso) els.btnConso.disabled = this._currentStockBags <= 0;
       }
 
-            if (typeof this._currentConsumedBags === "number") { this._currentConsumedBags += qtyBags; } var newConsumed = this._currentConsumedBags; if (cfg.show_stats && els.statConsomme && typeof newConsumed === "number") { els.statConsomme.textContent = this._entryUnit === "kg" ? fmt(newConsumed * bagWeight, 1) + " kg" : fmt(newConsumed, 1) + " sac(s)"; if (els.statEnergie) { els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh"; } }  if (this._lastChartData && this._lastChartData.entries && typeof this._renderChart === "function") { var todayISO = todayIso(); var newChartEntries = this._lastChartData.entries.slice(); newChartEntries.push({
-          type: "consumption",
-          date: todayISO,
-          unit: unit,
-          qty_kg: unit === "kg" ? qty : undefined,
-          qty_bags: unit === "bag" ? qtyBags : undefined
-        }); this._renderChart(newChartEntries, this._lastChartData.startMonth, this._lastChartData.avgPricePerBag); } if (els.historyList && !this._openEditRow) { this._renderHistory(newChartEntries); }
-      if (els.calGrid) {
-        this._calendarEntries = newChartEntries;
-        this._renderCalendar();
-      }
+            if (typeof this._currentConsumedBags === "number") { this._currentConsumedBags += qtyBags; } var newConsumed = this._currentConsumedBags; if (cfg.show_stats && els.statConsomme && typeof newConsumed === "number") { els.statConsomme.textContent = this._entryUnit === "kg" ? fmt(newConsumed * bagWeight, 1) + " kg" : fmt(newConsumed, 1) + " sac(s)"; if (els.statEnergie) { els.statEnergie.textContent = fmt(newConsumed * bagWeight * calorificValue, 1) + " kWh"; } }  
     }
 
     _populateFormSeasonSelect(select, dateStr) {
