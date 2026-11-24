@@ -811,6 +811,34 @@ if (cfg.show_csv_import) {
             var content = (utf8.match(/\uFFFD/g) || []).length
               ? new TextDecoder("windows-1252").decode(bytes)
               : utf8;
+            function pelletCsvCommit(skipDuplicates) {
+              return self._hass.connection.sendMessagePromise({
+                type: "suivi_stock_pellet/csv_import_commit",
+                content: content,
+                skip_duplicates: !!skipDuplicates
+              }).then(function (result) {
+                self._seasonDataFetchedAt = 0; self._broadcastDataChanged();
+                self._seasonDataDirty = true;
+                self._seasonsFetchedAt = 0;
+                self._seasonsDirty = true;
+                self._refreshSelectedSeason();
+                if (self._refreshSeasonsSummary) self._refreshSeasonsSummary();
+                var doneMsg = "Import terminé : " + result.imported + " saisie(s).";
+                if (result.skipped_duplicates) {
+                  doneMsg += " (" + result.skipped_duplicates + " doublon(s) ignoré(s))";
+                }
+                alert(doneMsg);
+              }).catch(function (err) {
+                if (!skipDuplicates && err && err.code === "duplicates") {
+                  var retry = window.confirm(
+                    (err.message || "Des doublons ont été détectés.") +
+                    "\n\nImporter quand même le reste, en ignorant ces doublons ?"
+                  );
+                  if (retry) return pelletCsvCommit(true);
+                }
+                alert("Import CSV refusé : " + ((err && err.message) || String(err)));
+              });
+            }
             self._hass.connection.sendMessagePromise({
               type: "suivi_stock_pellet/csv_import_preview",
               content: content
@@ -822,19 +850,7 @@ if (cfg.show_csv_import) {
                 "\n\nImporter ces données ?"
               );
               if (!ok) return null;
-              return self._hass.connection.sendMessagePromise({
-                type: "suivi_stock_pellet/csv_import_commit",
-                content: content
-              });
-            }).then(function (result) {
-              if (!result) return;
-              self._seasonDataFetchedAt = 0; self._broadcastDataChanged();
-              self._seasonDataDirty = true;
-              self._seasonsFetchedAt = 0;
-              self._seasonsDirty = true;
-              self._refreshSelectedSeason();
-              if (self._refreshSeasonsSummary) self._refreshSeasonsSummary();
-              alert("Import terminé : " + result.imported + " saisie(s).");
+              return pelletCsvCommit(false);
             }).catch(function (err) {
               alert("Import CSV refusé : " + ((err && err.message) || String(err)));
             });
