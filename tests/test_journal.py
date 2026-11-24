@@ -195,6 +195,34 @@ def test_async_set_stock_initial_sets_value_and_saves():
     journal._async_save.assert_awaited()
 
 
+def test_async_set_stock_initial_rejects_nan():
+    # Meme lacune que celle corrigee dans async_add_entry/async_edit_entry :
+    # vol.Range(min=0) laisse passer NaN (NaN < 0 est toujours faux). Ce
+    # test verifie que le journal lui-meme rejette un stock initial NaN,
+    # peu importe ce que le schema du service a laisse passer en amont.
+    journal = _make_journal()
+    with pytest.raises(ValueError):
+        run(journal.async_set_stock_initial("2025-2026", float("nan")))
+
+
+def test_async_set_stock_initial_rejects_positive_infinity():
+    journal = _make_journal()
+    with pytest.raises(ValueError):
+        run(journal.async_set_stock_initial("2025-2026", float("inf")))
+
+
+def test_async_set_stock_initial_rejects_negative_infinity():
+    journal = _make_journal()
+    with pytest.raises(ValueError):
+        run(journal.async_set_stock_initial("2025-2026", float("-inf")))
+
+
+def test_async_set_stock_initial_rejects_negative_value():
+    journal = _make_journal()
+    with pytest.raises(ValueError):
+        run(journal.async_set_stock_initial("2025-2026", -1.0))
+
+
 def test_carry_over_ignores_malformed_season_key():
     # _carry_over_stock must not raise on a non-standard season key - it
     # should just treat it as having nothing to carry over.
