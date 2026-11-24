@@ -415,7 +415,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             value = call.data.get(ATTR_STOCK_INITIAL_BAGS)
         if value is None:
             raise ServiceValidationError("Quantité manquante pour l'unité choisie")
-        await journal.async_set_stock_initial(season, value)
+        try:
+            await journal.async_set_stock_initial(season, value)
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
         _notify()
 
     async def _handle_delete_season(call: ServiceCall) -> None:
