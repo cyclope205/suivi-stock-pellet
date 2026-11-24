@@ -829,14 +829,21 @@ if (cfg.show_csv_import) {
                 }
                 alert(doneMsg);
               }).catch(function (err) {
-                if (!skipDuplicates && err && err.code === "duplicates") {
+                var msgText = String((err && err.message) || err || "");
+                // HA peut livrer ce refus soit avec err.code === "duplicates"
+                // (forme attendue), soit sans ce champ selon la version du
+                // frontend - dans les deux cas le texte du backend contient
+                // toujours "identique(s)", donc on se base dessus en
+                // complement pour ne jamais rater ce cas precis.
+                var isDuplicates = (err && err.code === "duplicates") || /identique/i.test(msgText);
+                if (!skipDuplicates && isDuplicates) {
                   var retry = window.confirm(
-                    (err.message || "Des doublons ont été détectés.") +
+                    (msgText || "Des doublons ont été détectés.") +
                     "\n\nImporter quand même le reste, en ignorant ces doublons ?"
                   );
                   if (retry) return pelletCsvCommit(true);
                 }
-                alert("Import CSV refusé : " + ((err && err.message) || String(err)));
+                alert("Import CSV refusé : " + (msgText || String(err)));
               });
             }
             self._hass.connection.sendMessagePromise({
