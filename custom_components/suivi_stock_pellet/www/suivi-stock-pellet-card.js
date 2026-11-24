@@ -1536,6 +1536,17 @@ if (cfg.show_csv_import) {
           });
           dialog.appendChild(typesWrap);
 
+          var poelesTitle = document.createElement("div");
+          poelesTitle.className = "pellet-dialog-group-title";
+          poelesTitle.textContent = "Po\u00eales";
+          poelesTitle.style.display = "none";
+          dialog.appendChild(poelesTitle);
+          var poelesWrap = document.createElement("div");
+          poelesWrap.style.display = "none";
+          dialog.appendChild(poelesWrap);
+          this._exportDialogPoelesTitle = poelesTitle;
+          this._exportDialogPoelesWrap = poelesWrap;
+
           var actions = document.createElement("div");
           actions.className = "pellet-dialog-actions";
           var cancelBtn = document.createElement("button");
@@ -1579,11 +1590,43 @@ if (cfg.show_csv_import) {
         });
         this._exportDialogSeasonChecks = seasonChecks;
 
+        var poelesWrap = this._exportDialogPoelesWrap;
+        var poelesTitle = this._exportDialogPoelesTitle;
+        var poeleChecks = {};
+        if (poelesWrap && poelesTitle) {
+          poelesWrap.innerHTML = "";
+          var knownPoeles = (this._knownPoeles || []).filter(Boolean);
+          if (knownPoeles.length >= 2) {
+            poelesTitle.style.display = "";
+            poelesWrap.style.display = "";
+            knownPoeles.forEach(function (p) {
+              var row = document.createElement("label");
+              row.className = "pellet-dialog-check-row";
+              var cb = document.createElement("input");
+              cb.type = "checkbox";
+              cb.checked = true;
+              cb.value = p;
+              row.appendChild(cb);
+              row.appendChild(document.createTextNode(p));
+              poelesWrap.appendChild(row);
+              poeleChecks[p] = cb;
+            });
+          } else {
+            poelesTitle.style.display = "none";
+            poelesWrap.style.display = "none";
+          }
+        }
+        this._exportDialogPoeleChecks = poeleChecks;
+
         this._exportDialogConfirmBtn.onclick = function () {
           var seasons = Object.keys(seasonChecks).filter(function (s) { return seasonChecks[s].checked; });
           var types = Object.keys(self._exportDialogTypeChecks).filter(function (t) { return self._exportDialogTypeChecks[t].checked; });
           if (!seasons.length) { alert("Selectionne au moins une saison."); return; }
           if (!types.length) { alert("Selectionne au moins une categorie."); return; }
+          var poeleChecksNow = self._exportDialogPoeleChecks || {};
+          var allPoelesNow = Object.keys(poeleChecksNow);
+          var selectedPoeles = allPoelesNow.filter(function (p) { return poeleChecksNow[p].checked; });
+          if (allPoelesNow.length >= 2 && !selectedPoeles.length) { alert("Selectionne au moins un poele."); return; }
           if (seasons.length > 1) {
                       var ok = window.confirm(
                                   "Vous avez coche " + seasons.length + " saisons : le fichier genere ne pourra pas etre reimporte tel quel (l'import ne traite qu'une seule saison a la fois).\n\nExporter quand meme ?"
@@ -1611,7 +1654,36 @@ if (cfg.show_csv_import) {
               if (header === null) { header = rows[0]; }
               lines = lines.concat(rows.slice(1));
             });
-            if (header === null || !lines.length) {
+                        if (allPoelesNow.length >= 2 && selectedPoeles.length < allPoelesNow.length) {
+              var splitCsvLine = function (line) {
+                var fields = [];
+                var cur = "";
+                var inQuotes = false;
+                for (var i = 0; i < line.length; i++) {
+                  var c = line[i];
+                  if (inQuotes) {
+                    if (c === '"') {
+                      if (line[i + 1] === '"') { cur += '"'; i++; }
+                      else { inQuotes = false; }
+                    } else { cur += c; }
+                  } else {
+                    if (c === '"') { inQuotes = true; }
+                    else if (c === ";") { fields.push(cur); cur = ""; }
+                    else { cur += c; }
+                  }
+                }
+                fields.push(cur);
+                return fields;
+              };
+              lines = lines.filter(function (line) {
+                var fields = splitCsvLine(line);
+                var typeLabel = fields[2] || "";
+                var poeleField = fields[fields.length - 1] || "";
+                if (typeLabel === "Achat") return true;
+                return poeleField && selectedPoeles.indexOf(poeleField) !== -1;
+              });
+            }
+if (header === null || !lines.length) {
               alert("Aucune donnee a exporter.");
               return;
             }
@@ -1620,7 +1692,11 @@ if (cfg.show_csv_import) {
             var url = URL.createObjectURL(blob);
             var a = document.createElement("a");
             a.href = url;
-            a.download = "suivi_stock_pellet_" + (seasons.length === 1 ? seasons[0] : "export") + ".csv";
+                        var poeleSuffix = "";
+            if (allPoelesNow.length >= 2 && selectedPoeles.length < allPoelesNow.length) {
+              poeleSuffix = "_" + selectedPoeles.join("-").replace(/[^a-zA-Z0-9_\-]/g, "_");
+            }
+            a.download = "suivi_stock_pellet_" + (seasons.length === 1 ? seasons[0] : "export") + poeleSuffix + ".csv";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1876,6 +1952,8 @@ if (cfg.show_csv_import) {
       var avgPricePerBag = avgPricePerKg > 0 ? avgPricePerKg * bagWeight : 0;
       this._currentAvgPricePerBag = avgPricePerBag;
       this._currentAvgPricePerKg = avgPricePerKg;
+      this._currentDaysLogged = daysLogged;
+      this._currentSpentEur = spentEur;
 
       if (cfg.show_stats) {
         els.statConsomme.textContent = entryUnit === "kg" ? fmt(consumedKg, 0) + " kg" : fmt(consumedBags, 1) + " sac(s)";
@@ -2028,6 +2106,26 @@ if (cfg.show_csv_import) {
       if (cfg.show_cost_stats) {
         if (els.statCoutMaintenance) els.statCoutMaintenance.textContent = fmt(Number(totals.maintenance_eur) || 0, 2) + " €";
         if (els.statCoutEntretien) els.statCoutEntretien.textContent = fmt(Number(totals.entretien_eur) || 0, 2) + " €";
+        var poeleConsumedKg = Number(totals.consumed_kg) || 0;
+        var poelePricePerKg = this._currentAvgPricePerKg || 0;
+        var poeleDaysLogged = this._currentDaysLogged || 0;
+        var poeleCostToDate = poelePricePerKg ? poeleConsumedKg * poelePricePerKg : 0;
+        var poeleCostPerDay = poeleDaysLogged > 0 ? poeleCostToDate / poeleDaysLogged : 0;
+        var poeleCostPerMonth = poeleCostPerDay * 30.44;
+        if (els.statCoutJour) els.statCoutJour.textContent = fmt(poeleCostPerDay, 2) + " €";
+        if (els.statCoutMois) els.statCoutMois.textContent = fmt(poeleCostPerMonth, 2) + " €";
+        if (els.statCoutAnnee) els.statCoutAnnee.textContent = fmt(poeleCostToDate, 2) + " €";
+        if (els.statCoutTotal) {
+          var poeleMaintenanceEur = Number(totals.maintenance_eur) || 0;
+          var poeleEntretienEur = Number(totals.entretien_eur) || 0;
+          var poeleSpentEur = this._currentSpentEur || 0;
+          var poeleCoutTotalSaison = poeleSpentEur + poeleMaintenanceEur + poeleEntretienEur;
+          els.statCoutTotal.textContent = fmt(poeleCoutTotalSaison, 2) + " €";
+          if (els.statCoutMoisTotal) {
+            var poeleCoutMoisTotalSaison = poeleDaysLogged > 0 ? (poeleCoutTotalSaison / poeleDaysLogged) * 30.44 : 0;
+            els.statCoutMoisTotal.textContent = fmt(poeleCoutMoisTotalSaison, 2) + " €";
+          }
+        }
       }
     }
 
