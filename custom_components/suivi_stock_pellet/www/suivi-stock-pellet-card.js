@@ -1595,7 +1595,7 @@ if (cfg.show_csv_import) {
         var poeleChecks = {};
         if (poelesWrap && poelesTitle) {
           poelesWrap.innerHTML = "";
-          var knownPoeles = (this._knownPoeles || []).filter(Boolean);
+          var knownPoeles = (this._poeles || []).filter(Boolean);
           if (knownPoeles.length >= 2) {
             poelesTitle.style.display = "";
             poelesWrap.style.display = "";
