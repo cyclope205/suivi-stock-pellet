@@ -330,7 +330,7 @@ Si tu chauffes avec plusieurs poêles à granulés alimentés par le même stock
 
 1. Dans **Configurer** sur l'intégration, renseigne le champ **Poêles** avec les noms séparés par des virgules (ex. `Poêle salon, Poêle chambre`). Il en faut au moins 2 pour que quoi que ce soit change dans l'interface.
 2. Un sélecteur **Poêle** apparaît alors dans les formulaires de consommation, maintenance, entretien et nettoyage (facultatif — une saisie sans poêle précisé reste comptée dans le stock global, mais n'apparaît dans aucun filtrage par poêle).
-3. Ajoute la carte une seconde fois sur le tableau de bord, et choisis un poêle différent dans l'éditeur de carte pour chaque instance. Dès qu'une carte est dédiée à un poêle, ses formulaires n'affichent plus le sélecteur : chaque saisie faite depuis cette carte est automatiquement rattachée à ce poêle, sans action supplémentaire. Les tuiles **Stock**, **Acheté** et **Dépensé** restent identiques sur les deux cartes (le stock de granulés est toujours unique et partagé) ; seules les tuiles **Consommé**, **Énergie**, **Maintenance** et **Entretien**, ainsi que l'historique, le calendrier et le graphique, sont filtrés sur le poêle choisi.
+3. Ajoute la carte une seconde fois sur le tableau de bord, et choisis un poêle différent dans l'éditeur de carte pour chaque instance. Dès qu'une carte est dédiée à un poêle, ses formulaires n'affichent plus le sélecteur : chaque saisie faite depuis cette carte est automatiquement rattachée à ce poêle, sans action supplémentaire. Les tuiles **Stock**, **Acheté** et **Dépensé** restent identiques sur les deux cartes (le stock de granulés est toujours unique et partagé) ; seules les tuiles **Consommé**, **Énergie**, **Maintenance**, **Entretien**, **Coût/jour**, **Coût/mois**, **Coût consommé** et **Coût total saison**, ainsi que l'historique, le calendrier et le graphique, sont filtrées sur le poêle choisi.
 4. Une saisie déjà enregistrée sans poêle peut être assignée a posteriori via le crayon (modification) dans l'historique.
 5. L'export CSV ajoute une colonne **Poêle** en dernière position (vide pour les saisies non assignées).
 
@@ -362,7 +362,7 @@ Ajoute la carte une première fois sur le tableau de bord, ouvre son éditeur vi
 
 <img width="600" alt="Deux cartes Suivi Stock Pellet, une par poêle" src="https://raw.githubusercontent.com/cyclope205/suivi-stock-pellet/main/docs/screenshots/mcp-claude-in-chrome-blob-1795404680123-v77x4v.jpg" />
 
-Les tuiles Stock / Acheté / Dépensé restent identiques des deux côtés ; Consommé, Énergie, Maintenance, Entretien, historique, calendrier et graphique sont propres à chaque poêle.
+Les tuiles Stock / Acheté / Dépensé restent identiques des deux côtés ; Consommé, Énergie, Maintenance, Entretien, les tuiles de coût (Coût/jour, Coût/mois, Coût consommé, Coût total saison), historique, calendrier et graphique sont propres à chaque poêle.
 
 ## Entités créées
 
