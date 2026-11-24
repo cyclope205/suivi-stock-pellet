@@ -316,7 +316,49 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
             ):
                 duplicates.append(item)
         if duplicates and not msg.get("skip_duplicates", False):
-            connection.send_error(msg["id"], "duplicates", f"{len(duplicates)} saisie(s) identique(s) déjà présente(s).")
+            # Message informatif detaille, groupe par type avec les dates
+            # concernees, plutot qu'un simple compteur generique. Les
+            # achats sont systematiquement signales a part avec une
+            # explication : un achat n'est jamais rattache a un poele
+            # (stock partage), donc il apparait forcement a l'identique
+            # dans chaque export par poele issu du meme historique - c'est
+            # le cas de loin le plus frequent. Les autres types (lies a un
+            # poele) ne peuvent en pratique se dupliquer qu'en reimportant
+            # deux fois le meme fichier ; pas besoin d'explication
+            # particuliere pour ce cas rare, juste le type et les dates.
+            type_labels = {
+                "purchase": "achat",
+                "consumption": "consommation",
+                "maintenance": "maintenance",
+                "entretien": "entretien",
+                "nettoyage": "nettoyage",
+            }
+            by_type: dict[str, list[str]] = {}
+            for dup in duplicates:
+                by_type.setdefault(dup["type"], []).append(dup["date"])
+            parts_msg = []
+            has_purchase = False
+            for entry_type, dup_dates in by_type.items():
+                label = type_labels.get(entry_type, entry_type)
+                dates_str = ", ".join(
+                    date_cls.fromisoformat(d).strftime("%d/%m/%Y") for d in sorted(dup_dates)
+                )
+                if entry_type == "purchase":
+                    has_purchase = True
+                    parts_msg.append(f"{len(dup_dates)} achat(s) (stock global pellet) : {dates_str}")
+                else:
+                    parts_msg.append(f"{len(dup_dates)} {label}(s) : {dates_str}")
+            joined = (
+                parts_msg[0] if len(parts_msg) == 1
+                else ", ".join(parts_msg[:-1]) + " et " + parts_msg[-1]
+            )
+            message = joined + " identique(s) déjà présent(s)."
+            if has_purchase:
+                message += (
+                    " (un achat n'est jamais rattaché à un poêle : il apparaît donc "
+                    "dans chaque export par poêle issu du même historique.)"
+                )
+            connection.send_error(msg["id"], "duplicates", message)
             return
         entries = [item for item in parsed["entries"] if item not in duplicates]
         for item in entries:
