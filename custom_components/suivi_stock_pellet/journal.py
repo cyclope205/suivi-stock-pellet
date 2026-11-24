@@ -984,6 +984,12 @@ class PelletJournal:
         Keep the monetary value of the corrected stock consistent with
         the season's current weighted-average cost per bag.
         """
+        if not math.isfinite(value) or value < 0:
+            # Meme lacune que celle corrigee dans async_add_entry/async_edit_entry :
+            # un stock_initial NaN/infini passait vol.Range(min=0) sans etre rejete
+            # (NaN < 0 est toujours faux). On le valide ici, dans le journal
+            # lui-meme, pas seulement dans le schema du service.
+            raise ValueError("Le stock initial doit etre un nombre fini, positif ou nul")
         season_data = self._get_season(season)
         old_stock = season_data.get("stock_initial", 0.0)
         old_value = season_data.get(
