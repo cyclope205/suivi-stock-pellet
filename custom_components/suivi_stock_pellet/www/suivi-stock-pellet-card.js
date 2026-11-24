@@ -548,11 +548,14 @@
       stock.className = "stock";
       var stockSub = document.createElement("div");
       stockSub.className = "stock-sub";
+      var stockScope = document.createElement("div");
+      stockScope.className = "stock-sub";
       var stockAlert = document.createElement("div");
       stockAlert.className = "stock-alert";
       stockAlert.style.display = "none";
       heroText.appendChild(stock);
       heroText.appendChild(stockSub);
+      heroText.appendChild(stockScope);
       heroText.appendChild(stockAlert);
       hero.appendChild(heroText);
       card.appendChild(hero);
@@ -562,6 +565,7 @@
         seasonNote: seasonNote,
         stock: stock,
         stockSub: stockSub,
+        stockScope: stockScope,
         stockAlert: stockAlert
       };
 
@@ -577,8 +581,11 @@
         comparisonMain.className = "comparison-main";
         var comparisonSub = document.createElement("div");
         comparisonSub.className = "comparison-sub";
+        var comparisonScope = document.createElement("div");
+        comparisonScope.className = "comparison-sub";
         comparisonText.appendChild(comparisonMain);
         comparisonText.appendChild(comparisonSub);
+        comparisonText.appendChild(comparisonScope);
         var comparisonEuro = document.createElement("div");
         comparisonEuro.className = "comparison-euro";
         comparisonText.appendChild(comparisonEuro);
@@ -591,6 +598,7 @@
         els.comparison = comparison;
         els.comparisonMain = comparisonMain;
         els.comparisonSub = comparisonSub;
+        els.comparisonScope = comparisonScope;
         els.comparisonEuro = comparisonEuro;
         els.comparisonBadge = comparisonBadge;
       }
@@ -1941,6 +1949,7 @@ if (header === null || !lines.length) {
 
       els.stock.textContent = entryUnit === "kg" ? fmt(stockKg, 0) + " kg" : fmt(stockBags, 1) + " sac(s)";
       els.stockSub.textContent = entryUnit === "kg" ? "" : fmt(stockKg, 0) + " kg restant(s)";
+      if (els.stockScope) els.stockScope.textContent = (this._poeles || []).length >= 2 ? "Stock global (saison)" : "";
 
       // Prix moyen ponderé par kg : vient du backend (totals.avg_price_per_kg),
             // pas recalculé ici à partir des seuls achats de la saison. Le backend
@@ -2264,6 +2273,7 @@ if (header === null || !lines.length) {
       var entryUnit = this._entryUnit === "kg" ? "kg" : "bag";
       var els = this._els;
       if (!els.comparison) return;
+      if (els.comparisonScope) els.comparisonScope.textContent = (self._poeles || []).length >= 2 ? "Comparaison globale (tous poêles)" : "";
       var current = result.current_consumed_bags;
       var previous = result.previous_consumed_bags;
       var currentQty = entryUnit === "kg" ? result.current_consumed_kg : current;
