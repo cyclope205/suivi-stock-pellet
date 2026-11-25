@@ -248,16 +248,16 @@ def _parse_event_only_block(rows, header_idx, keys, end, entry_type, season):
     entries = []
     for row in rows[header_idx + 1:end]:
         if len(row) <= date_col:
-                break
-            raw_date = str(row[date_col] or "").strip()
-            note = None
-            if note_col is not None and note_col < len(row):
-                note_text = str(row[note_col] or "").strip()
-                note = note_text or None
-            if not raw_date and not note:
-                break
-            if not raw_date:
-                continue
+            break
+        raw_date = str(row[date_col] or "").strip()
+        note = None
+        if note_col is not None and note_col < len(row):
+            note_text = str(row[note_col] or "").strip()
+            note = note_text or None
+        if not raw_date and not note:
+            break
+        if not raw_date:
+            continue
         entries.append(
             {
                 "type": entry_type,
