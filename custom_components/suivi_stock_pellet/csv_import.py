@@ -248,14 +248,16 @@ def _parse_event_only_block(rows, header_idx, keys, end, entry_type, season):
     entries = []
     for row in rows[header_idx + 1:end]:
         if len(row) <= date_col:
-            continue
-        raw_date = str(row[date_col] or "").strip()
-        if not raw_date:
-            continue
-        note = None
-        if note_col is not None and note_col < len(row):
-            note_text = str(row[note_col] or "").strip()
-            note = note_text or None
+                break
+            raw_date = str(row[date_col] or "").strip()
+            note = None
+            if note_col is not None and note_col < len(row):
+                note_text = str(row[note_col] or "").strip()
+                note = note_text or None
+            if not raw_date and not note:
+                break
+            if not raw_date:
+                continue
         entries.append(
             {
                 "type": entry_type,
@@ -425,7 +427,7 @@ def parse_csv_history(text: str, *, default_season: str | None = None, season_st
         header = _find_event_only_block_header(rows, nettoyage_marker)
         if header is not None:
             hi, keys = header
-            end = _end_bound(hi)
+            end = len(rows)
             entries.extend(
                 _parse_event_only_block(rows, hi, keys, end, "nettoyage", season)
             )
