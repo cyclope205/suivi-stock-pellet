@@ -169,6 +169,7 @@
     ".calendar-dot.maintenance { background: rgb(21, 101, 192); }",
     ".calendar-dot.entretien { background: rgb(255, 143, 0); }",
     ".calendar-dot.nettoyage { background: rgb(106, 27, 154); }",
+    ".calendar-legend-count { font-weight: 700; }",
     ".actions-row button.type-maintenance:not(.secondary) { background: linear-gradient(135deg, #4b91e2, rgb(21, 101, 192)); color: #fff; }",
     ".actions-row button.type-maintenance.secondary { background: rgba(21, 101, 192, 0.12); color: rgb(21, 101, 192); border: 1px solid rgba(21, 101, 192, 0.35); }",
     ".actions-row button.type-entretien:not(.secondary) { background: linear-gradient(135deg, #ffb74d, rgb(255, 143, 0)); color: #fff; }",
@@ -850,12 +851,18 @@ if (cfg.show_csv_import) {
               type: "suivi_stock_pellet/csv_import_preview",
               content: content
             }).then(function (preview) {
-              var ok = window.confirm(
-                "Saison : " + preview.season +
-                "\nConsommation : " + preview.consumption_bags + " sac(s)" +
-                "\nAchats : " + preview.purchase_bags + " sac(s)" +
-                "\n\nImporter ces données ?"
-              );
+            var summaryParts = [
+                            "Saison : " + preview.season,
+                            "Consommation : " + preview.consumption_bags + " sac(s)",
+                            "Achats : " + preview.purchase_bags + " sac(s)"
+                          ];
+                          if (preview.maintenance_count) summaryParts.push("Maintenance : " + preview.maintenance_count + " entrée(s)");
+                          if (preview.entretien_count) summaryParts.push("Entretien : " + preview.entretien_count + " entrée(s)");
+                          if (preview.nettoyage_count) summaryParts.push("Nettoyage : " + preview.nettoyage_count + " entrée(s)");
+                          var ok = window.confirm(
+                                          summaryParts.join("\n") + "\n\nImporter ces données ?"
+                            
+                          );
               if (!ok) return null;
               return pelletCsvCommit(false);
             }).catch(function (err) {
@@ -1109,30 +1116,45 @@ if (cfg.show_csv_import) {
         var calDotPurchase = document.createElement("span");
         calDotPurchase.className = "calendar-dot purchase";
         calLegendPurchase.appendChild(calDotPurchase);
+        var calCountPurchase = document.createElement("span");
+        calCountPurchase.className = "calendar-legend-count";
+        calLegendPurchase.appendChild(calCountPurchase);
         calLegendPurchase.appendChild(document.createTextNode("Achat"));
         var calLegendConso = document.createElement("span");
         calLegendConso.className = "calendar-legend-item";
         var calDotConso = document.createElement("span");
         calDotConso.className = "calendar-dot consumption";
         calLegendConso.appendChild(calDotConso);
+        var calCountConso = document.createElement("span");
+        calCountConso.className = "calendar-legend-count";
+        calLegendConso.appendChild(calCountConso);
         calLegendConso.appendChild(document.createTextNode("Consommation"));
         var calLegendMaintenance = document.createElement("span");
         calLegendMaintenance.className = "calendar-legend-item";
         var calDotMaintenance = document.createElement("span");
         calDotMaintenance.className = "calendar-dot maintenance";
         calLegendMaintenance.appendChild(calDotMaintenance);
+        var calCountMaintenance = document.createElement("span");
+        calCountMaintenance.className = "calendar-legend-count";
+        calLegendMaintenance.appendChild(calCountMaintenance);
         calLegendMaintenance.appendChild(document.createTextNode("Maintenance"));
         var calLegendEntretien = document.createElement("span");
         calLegendEntretien.className = "calendar-legend-item";
         var calDotEntretien = document.createElement("span");
         calDotEntretien.className = "calendar-dot entretien";
         calLegendEntretien.appendChild(calDotEntretien);
+        var calCountEntretien = document.createElement("span");
+        calCountEntretien.className = "calendar-legend-count";
+        calLegendEntretien.appendChild(calCountEntretien);
         calLegendEntretien.appendChild(document.createTextNode("Entretien"));
         var calLegendNettoyage = document.createElement("span");
         calLegendNettoyage.className = "calendar-legend-item";
         var calDotNettoyage = document.createElement("span");
         calDotNettoyage.className = "calendar-dot nettoyage";
         calLegendNettoyage.appendChild(calDotNettoyage);
+        var calCountNettoyage = document.createElement("span");
+        calCountNettoyage.className = "calendar-legend-count";
+        calLegendNettoyage.appendChild(calCountNettoyage);
         calLegendNettoyage.appendChild(document.createTextNode("Nettoyage"));
 
         calLegend.appendChild(calLegendPurchase);
@@ -1145,6 +1167,11 @@ if (cfg.show_csv_import) {
         bottomWrap.appendChild(calSection);
         els.calLabel = calLabel;
         els.calGrid = calGrid;
+        els.calCountPurchase = calCountPurchase;
+        els.calCountConso = calCountConso;
+        els.calCountMaintenance = calCountMaintenance;
+        els.calCountEntretien = calCountEntretien;
+        els.calCountNettoyage = calCountNettoyage;
 
         calPrevBtn.addEventListener("click", function () {
           self._calendarMonth--;
@@ -2663,6 +2690,24 @@ if (header === null || !lines.length) {
           byDay[d].nettoyage_count++;
         }
       });
+
+      var monthCounts = { purchase: 0, consumption: 0, maintenance: 0, entretien: 0, nettoyage: 0 };
+      entries.forEach(function (entry) {
+        var p2 = entry.date.split("-");
+        var y2 = parseInt(p2[0], 10);
+        var m2 = parseInt(p2[1], 10);
+        if (y2 !== year || m2 !== month) return;
+        if (entry.type === "purchase") monthCounts.purchase++;
+        else if (entry.type === "consumption") monthCounts.consumption++;
+        else if (entry.type === "maintenance") monthCounts.maintenance++;
+        else if (entry.type === "entretien") monthCounts.entretien++;
+        else if (entry.type === "nettoyage") monthCounts.nettoyage++;
+      });
+      if (els.calCountPurchase) els.calCountPurchase.textContent = monthCounts.purchase ? String(monthCounts.purchase) : "";
+      if (els.calCountConso) els.calCountConso.textContent = monthCounts.consumption ? String(monthCounts.consumption) : "";
+      if (els.calCountMaintenance) els.calCountMaintenance.textContent = monthCounts.maintenance ? String(monthCounts.maintenance) : "";
+      if (els.calCountEntretien) els.calCountEntretien.textContent = monthCounts.entretien ? String(monthCounts.entretien) : "";
+      if (els.calCountNettoyage) els.calCountNettoyage.textContent = monthCounts.nettoyage ? String(monthCounts.nettoyage) : "";
 
       var grid = els.calGrid;
       grid.innerHTML = "";
