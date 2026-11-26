@@ -296,6 +296,7 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
             default_season=msg.get("default_season"),
             season_start_month=start_month,
         )
+        poeles = config_entry.options.get(CONF_POELES, []) if config_entry else []
         duplicates = []
         for item in parsed["entries"]:
             if any(
@@ -358,7 +359,15 @@ async def _ws_csv_import_commit(hass: HomeAssistant, connection, msg) -> None:
                     " (un achat n'est jamais rattaché à un poêle : il apparaît donc "
                     "dans chaque export par poêle issu du même historique.)"
                 )
-            connection.send_error(msg["id"], "duplicates", message)
+            if len(poeles) >= 2:
+                connection.send_error(msg["id"], "duplicates", message)
+            else:
+                message += (
+                    " Import refusé (un seul poêle ou aucun n'est configuré : ces "
+                    "saisies ne peuvent pas être des doublons légitimes d'un export "
+                    "par poêle)."
+                )
+                connection.send_error(msg["id"], "duplicates_blocked", message)
             return
         entries = [item for item in parsed["entries"] if item not in duplicates]
         for item in entries:
