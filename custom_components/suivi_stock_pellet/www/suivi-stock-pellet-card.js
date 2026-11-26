@@ -837,7 +837,8 @@ if (cfg.show_csv_import) {
                 // toujours "identique(s)", donc on se base dessus en
                 // complement pour ne jamais rater ce cas precis.
                 var isDuplicates = (err && err.code === "duplicates") || /identique/i.test(msgText);
-                if (!skipDuplicates && isDuplicates) {
+                var isBlocked = (err && err.code === "duplicates_blocked") || /import refus/i.test(msgText);
+                if !isBlocked && (!skipDuplicates && isDuplicates) {
                   var retry = window.confirm(
                     (msgText || "Des doublons ont été détectés.") +
                     "\n\nImporter quand même le reste, en ignorant ces doublons ?"
